@@ -1,0 +1,97 @@
+# NowoLegalKitSeed (en): generic GDPR / LSSI legal scaffold (REQ-CC-011). Placeholders in [brackets] are
+# reported by nowo:legal-kit:check-placeholders; %brand%, %last_updated% and %cookie_inventory% are resolved at render time.
+# Not legal advice: counsel review stays the operator’s duty (REQ-CC-010).
+common:
+  last_updated: 'Last updated: %last_updated%'
+  manage_cookies: Cookie settings
+identity:
+  name_line: 'Legal name: [Operator legal name — replace]'
+  tax_line: 'Tax ID: [Operator tax ID — replace]'
+  address_line: 'Address: [Registered address — replace]'
+  registry_line: 'Company registry: [if applicable — replace]'
+  contact_line: 'Contact: [privacy@example.com — replace]'
+notice:
+  title: Legal notice
+  intro: This notice identifies the operator of this %brand% instance. Replace the placeholders with the operator’s real details before public use. It is a starting point for Spanish information-society identification (LSSI-CE art. 10) and the EU GDPR — not legal advice.
+  publisher_heading: Publisher and controller
+  publisher_body: The organisation that runs this instance is the information-society provider and the data controller of this deployment. Fill in the identification below before processing other people’s personal data.
+  lssi_heading: Information-society identification
+  lssi_body: In compliance with article 10 of Ley 34/2002 (LSSI-CE), the operator of this instance must publish its legal name, tax or registry identifiers where applicable, postal address, and a contact email or telephone.
+  self_host_heading: Self-hosted deployments
+  self_host_body: These pages ship as editable templates. Whoever deploys this software is the provider and controller of that deployment and must replace every placeholder with their own identification. The default copy must not name a third-party company.
+  hosting_heading: Hosting
+  hosting_body: This instance is hosted on infrastructure chosen by the operator. Document the host and where data is stored before public use. Processors may handle data only on the operator’s instructions.
+  ip_heading: Intellectual property
+  ip_body: The brand, content and interface of this instance belong to the operator or their licensors. Using the service grants no right in them beyond what these pages or a separate licence state.
+  liability_heading: Liability
+  liability_body: The operator maintains the service with the care required by the state of the art. The default text does not limit liability that Spanish or EU consumer law does not allow to be limited. Counsel should review this clause before production.
+  law_heading: Governing law
+  law_body: Replace this clause with the governing law and venue advised for the operator. Until then treat it as a placeholder. Consumers may sue in the courts of their domicile where the law so provides.
+privacy:
+  title: Privacy policy
+  intro: This policy explains how personal data may be processed on this %brand% instance when offered to people in the EU/EEA, including Spain (GDPR and LOPDGDD). The operator must replace placeholders with their own controller details before production.
+  controller_heading: Data controller
+  controller_body: The operator of this instance is the data controller. There is no default data-protection officer in this template; privacy requests go to the contact on the Legal notice page.
+  controller_self_host: A third party that self-hosts this software is the controller of that deployment. Organisations that use the service to process data of their own customers remain controllers of that data; the operator acts as their processor for it.
+  data_heading: Data we process
+  data_body: 'On this instance the operator may process:'
+  data_account: Account data — email, display name, password hash, roles, preferred locale and any optional profile data you add.
+  data_content: Content you or your organisation submit to the service, which may include personal data of other people.
+  data_security: Security data — sign-in attempts, session and device records used to protect accounts. They are not used for advertising.
+  data_logs: Operational logs, including HTTP audit logs and cookie-consent logs.
+  data_cookies: Cookies and similar storage described on the Cookies page.
+  purpose_heading: Purposes
+  purpose_body: We process this data to create and secure accounts, provide the features you use, deliver the notifications you set up, keep the service reliable and record cookie choices.
+  basis_heading: Legal bases
+  basis_contract: Contract (GDPR art. 6(1)(b)) — account, authentication and the service you request.
+  basis_legitimate: Legitimate interests (art. 6(1)(f)) — securing the service, preventing abuse and keeping diagnostic logs. You may object where the law gives you that right.
+  basis_consent: Consent (art. 6(1)(a) and ePrivacy) — optional cookie categories (preferences, analytics). You can withdraw consent at any time with Cookie settings. Necessary cookies do not rely on consent.
+  basis_legal: Legal obligation (art. 6(1)(c)) — answering competent authorities when the law requires it.
+  recipients_heading: Recipients
+  recipients_body: Data is stored on infrastructure the operator chooses and sent by the mail provider the operator configures. The default deployment does not sell personal data. Depending on the features enabled, recipients may also include the providers the operator configures (for example SMS, push or payment providers). Processors act on written instructions.
+  transfers_heading: International transfers
+  transfers_body: The operator must document whether processing stays in the EU/EEA. The default template assumes EEA hosting until replaced. Any transfer outside the EEA requires a GDPR chapter V mechanism (such as standard contractual clauses).
+  retention_heading: Retention
+  retention_account: Accounts are kept while the account exists and deleted or anonymised when you use account deletion or an administrator removes the user.
+  retention_content: Content you submit is kept while your account or organisation uses the service, or for the retention period the operator configures.
+  retention_cookies: Cookies follow the durations listed on the Cookies page (consent cookies about 1 year).
+  retention_logs: HTTP and consent logs follow the purge schedule set in Administration. Security logs are kept only as long as needed to investigate abuse.
+  rights_heading: Your rights
+  rights_body: You may request access, rectification, erasure, restriction, portability, and objection, and you may withdraw consent for optional cookies without affecting earlier processing. Contact the operator using the details on the Legal notice page. The operator should answer within one month, which can be extended by two further months for complex requests, and may need to confirm your identity before disclosing data.
+  authority_heading: Supervisory authority
+  authority_body: You may lodge a complaint with the Agencia Española de Protección de Datos (AEPD), C/ Jorge Juan 6, 28001 Madrid, Spain, https://www.aepd.es, or with the authority of your EU/EEA country of residence.
+  automated_heading: Automated decisions
+  automated_body: We do not make decisions based solely on automated processing that produce legal or similarly significant effects (GDPR art. 22).
+  cookies_heading: Cookies
+  cookies_body: Strictly necessary cookies support sign-in, security, and consent recording. Optional categories run only after you allow them.
+terms:
+  title: Terms of use
+  intro: These terms are a template for use of this %brand% instance. Replace them with terms that match the operator’s offering before production.
+  service_heading: Service
+  service_body: The service is the application offered on this instance to authorised users, including the features and administration the operator enables.
+  accounts_heading: Accounts
+  accounts_body: You must provide accurate account data, keep credentials confidential, and use the service only for projects and personal data you are allowed to process. You are responsible for activity under your account.
+  accept_heading: Acceptable use
+  accept_body: Do not abuse the service or its interfaces, probe for unauthorised access, upload unlawful content or use the service to harm others. We may suspend access that breaks these terms or the law.
+  ip_heading: Intellectual property
+  ip_body: These terms do not assign the operator’s brand or marks. You keep rights in the content you submit; you grant the operator the licence needed to store and display it to provide the service.
+  limitation_heading: Limitation of liability
+  limitation_body: To the extent applicable law allows, the operator is not liable for indirect or consequential loss arising from use of the service. Liability that cannot legally be excluded — including for intent, gross negligence, or non-waivable consumer rights — is unaffected. Counsel should review this clause before production.
+  law_heading: Governing law and venue
+  law_body: Replace this clause with the governing law and venue advised for the operator. Consumers may sue in the courts of their domicile where the law so provides.
+  changes_heading: Changes
+  changes_body: We may update these terms by publishing the new text on this page with a new date. If a change reduces your rights, we will also notify signed-in administrators before it takes effect where the law requires notice. Continued use after the effective date is acceptance where the law allows that form of acceptance.
+cookies:
+  title: Cookie notice
+  intro: This page lists the cookies and similar technologies used by this %brand% instance. Strictly necessary cookies support authentication, security, and consent recording. Optional categories are used only with your prior consent. Use Cookie settings to review or change your selection at any time.
+  categories_heading: Categories
+  cat_required: Strictly necessary
+  cat_required_help: Essential for authentication, security, and recording your consent decision. These cookies cannot be switched off from the banner.
+  cat_preferences: Preferences
+  cat_preferences_help: Optional cookies that store non-essential presentation choices, used only if you accept this category.
+  cat_analytics: Analytics
+  cat_analytics_help: Optional measurement cookies, used only if this instance enables analytics tooling and you accept this category. The default build does not set a third-party analytics cookie.
+  inventory_heading: Cookie inventory
+  inventory_intro: The table below lists the cookies currently configured on this instance.
+  storage_heading: Local storage
+  storage_body: Theme (light/dark) and some layout choices may be stored in the browser’s localStorage. They are not HTTP cookies. They are strictly necessary to keep the interface you chose on this device.

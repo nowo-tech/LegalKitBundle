@@ -1,0 +1,97 @@
+# NowoLegalKitSeed (de): generic GDPR / LSSI legal scaffold (REQ-CC-011). Placeholders in [brackets] are
+# reported by nowo:legal-kit:check-placeholders; %brand%, %last_updated% and %cookie_inventory% are resolved at render time.
+# Not legal advice: counsel review stays the operator’s duty (REQ-CC-010).
+common:
+  last_updated: 'Zuletzt aktualisiert: %last_updated%'
+  manage_cookies: Cookie-Einstellungen
+identity:
+  name_line: 'Firma: [Rechtlicher Name des Betreibers — ersetzen]'
+  tax_line: 'Steuer-ID: [Steuer-ID des Betreibers — ersetzen]'
+  address_line: 'Anschrift: [Sitz / Anschrift — ersetzen]'
+  registry_line: 'Handelsregister: [falls zutreffend — ersetzen]'
+  contact_line: 'Kontakt: [privacy@example.com — ersetzen]'
+notice:
+  title: Impressum
+  intro: Dieser Hinweis benennt den Betreiber dieser %brand%-Instanz. Ersetzen Sie die Platzhalter vor der öffentlichen Nutzung durch echte Angaben. Ausgangspunkt für LSSI-CE Art. 10 und die DSGVO — keine Rechtsberatung.
+  publisher_heading: Anbieter und Verantwortlicher
+  publisher_body: Die Organisation, die diese Instanz betreibt, ist Anbieterin des Teledienstes und Verantwortliche dieser Installation. Tragen Sie die Kennzeichnung unten ein, bevor Sie personenbezogene Daten Dritter verarbeiten.
+  lssi_heading: Kennzeichnung des Teledienstes
+  lssi_body: Nach Artikel 10 des spanischen Gesetzes 34/2002 (LSSI-CE) muss der Betreiber dieser Instanz Firma, Steuer- oder Registerkennzeichen soweit zutreffend, Anschrift sowie E-Mail oder Telefon veröffentlichen.
+  self_host_heading: Selbst gehostete Installationen
+  self_host_body: Diese Seiten sind editierbare Vorlagen. Wer diese Software einsetzt, ist Anbieter und Verantwortlicher dieser Installation und muss jeden Platzhalter durch die eigene Kennzeichnung ersetzen. Der Standardtext darf kein Drittunternehmen nennen.
+  hosting_heading: Hosting
+  hosting_body: Diese Instanz wird auf Infrastruktur gehostet, die der Betreiber wählt. Dokumentieren Sie Host und Speicherort vor der öffentlichen Nutzung. Auftragsverarbeiter handeln nur auf Weisung des Betreibers.
+  ip_heading: Geistiges Eigentum
+  ip_body: Marke, Inhalte und Oberfläche dieser Instanz gehören dem Betreiber oder seinen Lizenzgebern. Die Nutzung des Dienstes gewährt daran keine Rechte über das hinaus, was diese Seiten oder eine gesonderte Lizenz festlegen.
+  liability_heading: Haftung
+  liability_body: Der Betreiber betreibt den Dienst mit der nach dem Stand der Technik gebotenen Sorgfalt. Der Standardtext schränkt keine Haftung ein, die spanisches oder EU-Verbraucherrecht nicht ausschließen lässt. Vor Produktion rechtlich prüfen lassen.
+  law_heading: Anwendbares Recht
+  law_body: Ersetzen Sie diese Klausel durch das für den Betreiber geltende Recht und den Gerichtsstand. Bis dahin ist sie ein Platzhalter. Verbraucher können am Gericht ihres Wohnsitzes klagen, soweit das Recht es vorsieht.
+privacy:
+  title: Datenschutzerklärung
+  intro: Diese Erklärung beschreibt, wie personenbezogene Daten auf dieser %brand%-Instanz verarbeitet werden können, wenn sie Personen in der EU/im EWR einschließlich Spanien angeboten wird (DSGVO und LOPDGDD). Der Betreiber muss Platzhalter vor der Produktion durch eigene Verantwortlichen-Daten ersetzen.
+  controller_heading: Verantwortlicher
+  controller_body: Der Betreiber dieser Instanz ist Verantwortlicher. Diese Vorlage enthält keinen Datenschutzbeauftragten; Anfragen gehen an den Kontakt im Impressum.
+  controller_self_host: Ein Dritter, der diese Software selbst betreibt, ist Verantwortlicher dieser Installation. Organisationen, die den Dienst zur Verarbeitung von Daten ihrer eigenen Kunden nutzen, bleiben für diese Daten verantwortlich; der Betreiber handelt dafür als ihr Auftragsverarbeiter.
+  data_heading: Verarbeitete Daten
+  data_body: 'Auf dieser Instanz kann der Betreiber verarbeiten:'
+  data_account: Kontodaten – E-Mail, Anzeigename, Passwort-Hash, Rollen, bevorzugte Sprache und optionale Profildaten, die Sie hinzufügen.
+  data_content: Inhalte, die Sie oder Ihre Organisation an den Dienst übermitteln und die personenbezogene Daten anderer Personen enthalten können.
+  data_security: Sicherheitsdaten – Anmeldeversuche sowie Sitzungs- und Geräteeinträge zum Schutz der Konten. Sie werden nicht für Werbung verwendet.
+  data_logs: Betriebsprotokolle, einschließlich HTTP-Audit und Cookie-Einwilligungsprotokolle.
+  data_cookies: Cookies und ähnliche Speicher, beschrieben auf der Cookie-Seite.
+  purpose_heading: Zwecke
+  purpose_body: Wir verarbeiten diese Daten, um Konten anzulegen und zu schützen, die von Ihnen genutzten Funktionen bereitzustellen, die von Ihnen eingerichteten Benachrichtigungen zuzustellen, den Dienst zuverlässig zu betreiben und Cookie-Entscheidungen zu speichern.
+  basis_heading: Rechtsgrundlagen
+  basis_contract: Vertrag (Art. 6 Abs. 1 lit. b DSGVO) – Konto, Authentifizierung und der von Ihnen angeforderte Dienst.
+  basis_legitimate: Berechtigte Interessen (Art. 6 Abs. 1 lit. f) – Absicherung des Dienstes, Missbrauchsvermeidung und Diagnoseprotokolle. Sie können widersprechen, soweit das Gesetz Ihnen dieses Recht gibt.
+  basis_consent: Einwilligung (Art. 6 Abs. 1 lit. a und ePrivacy) — optionale Cookie-Kategorien (Präferenzen, Analyse). Widerruf jederzeit über Cookie-Einstellungen. Notwendige Cookies stützen sich nicht auf Einwilligung.
+  basis_legal: Rechtliche Pflicht (Art. 6 Abs. 1 lit. c) — Antworten an zuständige Behörden, wenn das Gesetz es verlangt.
+  recipients_heading: Empfänger
+  recipients_body: Die Daten werden auf der vom Betreiber gewählten Infrastruktur gespeichert und über den vom Betreiber konfigurierten E-Mail-Anbieter versendet. Die Standardinstallation verkauft keine personenbezogenen Daten. Je nach aktivierten Funktionen können Empfänger auch die vom Betreiber konfigurierten Anbieter sein (zum Beispiel für SMS, Push-Benachrichtigungen oder Zahlungen). Auftragsverarbeiter handeln auf schriftliche Weisung.
+  transfers_heading: Drittlandübermittlung
+  transfers_body: Der Betreiber muss dokumentieren, ob die Verarbeitung im EWR bleibt. Die Standardvorlage geht bis zur Anpassung von einem Hosting im EWR aus. Jede Übermittlung außerhalb des EWR erfordert einen Mechanismus nach Kapitel V DSGVO (etwa Standardvertragsklauseln).
+  retention_heading: Speicherdauer
+  retention_account: Konten bleiben bestehen, solange das Konto existiert, und werden gelöscht oder anonymisiert, wenn Sie das Konto löschen oder ein Administrator den Nutzer entfernt.
+  retention_content: Von Ihnen übermittelte Inhalte werden gespeichert, solange Ihr Konto oder Ihre Organisation den Dienst nutzt, oder für die vom Betreiber festgelegte Aufbewahrungsfrist.
+  retention_cookies: Cookies folgen den auf der Cookie-Seite angegebenen Laufzeiten (Einwilligungs-Cookies etwa 1 Jahr).
+  retention_logs: HTTP- und Einwilligungsprotokolle folgen dem in der Administration gesetzten Löschplan. Sicherheitsprotokolle nur so lange, wie zur Untersuchung von Missbrauch nötig.
+  rights_heading: Ihre Rechte
+  rights_body: Sie können Auskunft, Berichtigung, Löschung, Einschränkung, Übertragbarkeit und Widerspruch verlangen und die Einwilligung für optionale Cookies widerrufen. Kontaktieren Sie den Betreiber über das Impressum. Antwort in der Regel innerhalb eines Monats, verlängerbar um zwei Monate bei komplexen Anfragen; vor der Offenlegung kann die Identität geprüft werden.
+  authority_heading: Aufsichtsbehörde
+  authority_body: Beschwerde bei der Agencia Española de Protección de Datos (AEPD), C/ Jorge Juan 6, 28001 Madrid, Spanien, https://www.aepd.es, oder bei der Behörde Ihres Wohnsitzstaats in der EU/im EWR.
+  automated_heading: Automatisierte Entscheidungen
+  automated_body: Wir treffen keine ausschließlich auf automatisierter Verarbeitung beruhenden Entscheidungen, die rechtliche oder ähnlich erhebliche Wirkungen entfalten (Art. 22 DSGVO).
+  cookies_heading: Cookies
+  cookies_body: Unbedingt erforderliche Cookies ermöglichen Anmeldung, Sicherheit und das Speichern der Einwilligung. Optionale Kategorien laufen nur nach Ihrer Zustimmung.
+terms:
+  title: Nutzungsbedingungen
+  intro: Diese Bedingungen sind eine Vorlage für die Nutzung dieser %brand%-Instanz. Ersetzen Sie sie vor dem Produktivbetrieb durch Bedingungen, die zum Angebot des Betreibers passen.
+  service_heading: Dienst
+  service_body: Der Dienst ist die auf dieser Instanz angebotene Anwendung für berechtigte Nutzer, einschließlich der vom Betreiber aktivierten Funktionen und Verwaltung.
+  accounts_heading: Konten
+  accounts_body: Sie müssen zutreffende Kontodaten angeben, Zugangsdaten vertraulich halten und den Dienst nur für Projekte und personenbezogene Daten nutzen, die Sie verarbeiten dürfen. Sie haften für Aktivitäten unter Ihrem Konto.
+  accept_heading: Zulässige Nutzung
+  accept_body: Missbrauchen Sie den Dienst und seine Schnittstellen nicht, versuchen Sie keinen unbefugten Zugriff, laden Sie keine rechtswidrigen Inhalte hoch und nutzen Sie den Dienst nicht, um anderen zu schaden. Wir können Zugänge sperren, die gegen diese Bedingungen oder das Gesetz verstoßen.
+  ip_heading: Geistiges Eigentum
+  ip_body: Diese Bedingungen übertragen weder die Marke noch die Kennzeichen des Betreibers. Sie behalten die Rechte an den von Ihnen übermittelten Inhalten und räumen dem Betreiber die Lizenz ein, die zum Speichern und Anzeigen für die Erbringung des Dienstes nötig ist.
+  limitation_heading: Haftungsbeschränkung
+  limitation_body: Soweit geltendes Recht es zulässt, haftet der Betreiber nicht für mittelbare oder Folgeschäden aus der Nutzung. Haftung, die gesetzlich nicht ausgeschlossen werden kann, bleibt unberührt. Vor Produktion rechtlich prüfen lassen.
+  law_heading: Recht und Gerichtsstand
+  law_body: Ersetzen Sie diese Klausel durch das für den Betreiber geltende Recht und den Gerichtsstand. Verbraucher können am Gericht ihres Wohnsitzes klagen, soweit das Recht es vorsieht.
+  changes_heading: Änderungen
+  changes_body: Wir können diese Bedingungen aktualisieren, indem wir den neuen Text mit neuem Datum auf dieser Seite veröffentlichen. Verringert eine Änderung Ihre Rechte, benachrichtigen wir angemeldete Administratoren vorher, soweit das Gesetz eine Ankündigung verlangt. Weitere Nutzung nach dem Wirksamkeitsdatum ist Annahme, soweit das Recht diese Form zulässt.
+cookies:
+  title: Cookie-Hinweis
+  intro: Diese Seite listet Cookies und ähnliche Techniken dieser %brand%-Instanz. Unbedingt erforderliche Cookies dienen Authentifizierung, Sicherheit und dem Speichern der Einwilligung. Optionale Kategorien nur mit vorheriger Einwilligung. Über Cookie-Einstellungen können Sie die Auswahl jederzeit ändern.
+  categories_heading: Kategorien
+  cat_required: Unbedingt erforderlich
+  cat_required_help: Erforderlich für Authentifizierung, Sicherheit und das Speichern Ihrer Einwilligung. Im Banner nicht abschaltbar.
+  cat_preferences: Präferenzen
+  cat_preferences_help: Optionale Cookies für nicht wesentliche Darstellungswahlen, nur wenn Sie diese Kategorie akzeptieren.
+  cat_analytics: Analyse
+  cat_analytics_help: Optionale Mess-Cookies, nur wenn diese Instanz Analysewerkzeuge aktiviert und Sie die Kategorie akzeptieren. Der Standard setzt kein Analyse-Cookie Dritter.
+  inventory_heading: Cookie-Inventar
+  inventory_intro: Die folgende Tabelle listet die derzeit auf dieser Instanz konfigurierten Cookies auf.
+  storage_heading: Lokaler Speicher
+  storage_body: Thema (hell/dunkel) und einige Layout-Wahlen können im localStorage des Browsers liegen. Das sind keine HTTP-Cookies. Sie sind unbedingt erforderlich, um die auf diesem Gerät gewählte Oberfläche zu halten.

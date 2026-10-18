@@ -1,0 +1,72 @@
+{#
+  Built-in privacy body (generic scaffold, REQ-CC-011). Rendered by TwigSeedProvider with the translator switched to
+  the target locale; texts in the NowoLegalKitSeed domain. %brand%, %last_updated% and %cookie_inventory% stay as
+  tokens (resolved at render time; kept in the editor). Override with pages.privacy.seed_template or the domain keys.
+  Variables: legal_slug, legal_locale.
+#}
+{% trans_default_domain 'NowoLegalKitSeed' %}
+<h1>{{ 'privacy.title'|trans }}</h1>
+<p class="nowo-legal-doc__meta">{{ 'common.last_updated'|trans }}</p>
+
+<p>{{ 'privacy.intro'|trans }}</p>
+
+<h2>{{ 'privacy.controller_heading'|trans }}</h2>
+<p>{{ 'privacy.controller_body'|trans }}</p>
+<ul>
+    <li>{{ 'identity.name_line'|trans }}</li>
+    <li>{{ 'identity.tax_line'|trans }}</li>
+    <li>{{ 'identity.address_line'|trans }}</li>
+    <li>{{ 'identity.contact_line'|trans }}</li>
+</ul>
+<p>{{ 'privacy.controller_self_host'|trans }}</p>
+
+<h2>{{ 'privacy.data_heading'|trans }}</h2>
+<p>{{ 'privacy.data_body'|trans }}</p>
+<ul>
+    <li>{{ 'privacy.data_account'|trans }}</li>
+    <li>{{ 'privacy.data_content'|trans }}</li>
+    <li>{{ 'privacy.data_security'|trans }}</li>
+    <li>{{ 'privacy.data_logs'|trans }}</li>
+    <li>{{ 'privacy.data_cookies'|trans }}</li>
+</ul>
+
+<h2>{{ 'privacy.purpose_heading'|trans }}</h2>
+<p>{{ 'privacy.purpose_body'|trans }}</p>
+
+<h2>{{ 'privacy.basis_heading'|trans }}</h2>
+<ul>
+    <li>{{ 'privacy.basis_contract'|trans }}</li>
+    <li>{{ 'privacy.basis_legitimate'|trans }}</li>
+    <li>{{ 'privacy.basis_consent'|trans }}</li>
+    <li>{{ 'privacy.basis_legal'|trans }}</li>
+</ul>
+
+<h2>{{ 'privacy.recipients_heading'|trans }}</h2>
+<p>{{ 'privacy.recipients_body'|trans }}</p>
+
+<h2>{{ 'privacy.transfers_heading'|trans }}</h2>
+<p>{{ 'privacy.transfers_body'|trans }}</p>
+
+<h2>{{ 'privacy.retention_heading'|trans }}</h2>
+<ul>
+    <li>{{ 'privacy.retention_account'|trans }}</li>
+    <li>{{ 'privacy.retention_content'|trans }}</li>
+    <li>{{ 'privacy.retention_cookies'|trans }}</li>
+    <li>{{ 'privacy.retention_logs'|trans }}</li>
+</ul>
+
+<h2>{{ 'privacy.rights_heading'|trans }}</h2>
+<p>{{ 'privacy.rights_body'|trans }}</p>
+
+<h2>{{ 'privacy.authority_heading'|trans }}</h2>
+<p>{{ 'privacy.authority_body'|trans }}</p>
+
+<h2>{{ 'privacy.automated_heading'|trans }}</h2>
+<p>{{ 'privacy.automated_body'|trans }}</p>
+
+<h2>{{ 'privacy.cookies_heading'|trans }}</h2>
+<p>{{ 'privacy.cookies_body'|trans }}</p>
+{% set _cookies = nowo_legal_kit_links(legal_locale)|filter(l => l.slug == 'cookies')|first %}
+<p>
+    {% if _cookies %}<a href="{{ _cookies.url }}">{{ 'cookies.title'|trans }}</a> · {% endif %}<a href="{{ _cookies ? _cookies.url : '#' }}" data-nowo-open-consent>{{ 'common.manage_cookies'|trans }}</a>
+</p>

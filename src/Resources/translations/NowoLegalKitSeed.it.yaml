@@ -1,0 +1,97 @@
+# NowoLegalKitSeed (it): generic GDPR / LSSI legal scaffold (REQ-CC-011). Placeholders in [brackets] are
+# reported by nowo:legal-kit:check-placeholders; %brand%, %last_updated% and %cookie_inventory% are resolved at render time.
+# Not legal advice: counsel review stays the operator’s duty (REQ-CC-010).
+common:
+  last_updated: 'Ultimo aggiornamento: %last_updated%'
+  manage_cookies: Impostazioni cookie
+identity:
+  name_line: 'Denominazione: [Nome legale dell’operatore — sostituire]'
+  tax_line: 'Codice fiscale: [Identificativo fiscale dell’operatore — sostituire]'
+  address_line: 'Indirizzo: [Sede legale — sostituire]'
+  registry_line: 'Registro imprese: [se applicabile — sostituire]'
+  contact_line: 'Contatto: [privacy@example.com — sostituire]'
+notice:
+  title: Note legali
+  intro: Questo avviso identifica l’operatore di questa istanza %brand%. Sostituisci i segnaposto con i dati reali prima dell’uso pubblico. Punto di partenza per LSSI-CE art. 10 e il GDPR — non un parere legale.
+  publisher_heading: Editore e titolare
+  publisher_body: L’organizzazione che gestisce questa istanza è il prestatore del servizio della società dell’informazione e il titolare del trattamento di questa installazione. Compila l’identificazione sotto prima di trattare dati di terzi.
+  lssi_heading: Identificazione del servizio
+  lssi_body: Ai sensi dell’articolo 10 della legge spagnola 34/2002 (LSSI-CE), l’operatore deve pubblicare denominazione, identificativi fiscali o di registro se applicabili, indirizzo postale e un’e-mail o un telefono di contatto.
+  self_host_heading: Installazioni self-hosted
+  self_host_body: Queste pagine sono modelli modificabili. Chi distribuisce questo software è prestatore e titolare di quella installazione e deve sostituire ogni segnaposto con la propria identificazione. Il testo predefinito non deve nominare una società terza.
+  hosting_heading: Hosting
+  hosting_body: Questa istanza è ospitata su infrastruttura scelta dall’operatore. Documenta l’host e il luogo di conservazione prima dell’uso pubblico. I responsabili del trattamento agiscono solo su istruzione dell’operatore.
+  ip_heading: Proprietà intellettuale
+  ip_body: Il marchio, i contenuti e l’interfaccia di questa istanza appartengono all’operatore o ai suoi licenzianti. L’uso del servizio non concede alcun diritto su di essi oltre a quanto indicato in queste pagine o in una licenza separata.
+  liability_heading: Responsabilità
+  liability_body: L’operatore mantiene il servizio con la diligenza richiesta dallo stato dell’arte. Il testo predefinito non limita una responsabilità che il diritto dei consumatori spagnolo o dell’UE non consente di escludere. Fai esaminare questa clausola prima della produzione.
+  law_heading: Legge applicabile
+  law_body: Sostituisci questa clausola con la legge applicabile e il foro indicati per l’operatore. Fino ad allora è un segnaposto. I consumatori possono agire davanti al giudice del proprio domicilio ove la legge lo preveda.
+privacy:
+  title: Informativa privacy
+  intro: Questa informativa spiega come i dati personali possono essere trattati su questa istanza %brand% offerta a persone nell’UE/SEE, Spagna inclusa (GDPR e LOPDGDD). L’operatore deve sostituire i segnaposto con i propri dati di titolare prima della produzione.
+  controller_heading: Titolare del trattamento
+  controller_body: L’operatore di questa istanza è il titolare del trattamento. Questo modello non include un responsabile della protezione dei dati; le richieste vanno al contatto dell’avviso legale.
+  controller_self_host: Un terzo che ospita autonomamente questo software è il titolare di quella installazione. Le organizzazioni che usano il servizio per trattare i dati dei propri clienti restano titolari di tali dati; l’operatore agisce per essi come responsabile del trattamento.
+  data_heading: Dati trattati
+  data_body: 'Su questa istanza l’operatore può trattare:'
+  data_account: Dati dell’account — email, nome visualizzato, hash della password, ruoli, lingua preferita ed eventuali dati di profilo facoltativi che aggiungi.
+  data_content: Contenuti che tu o la tua organizzazione inviate al servizio, che possono includere dati personali di altre persone.
+  data_security: Dati di sicurezza — tentativi di accesso e registrazioni di sessione e dispositivo usati per proteggere gli account. Non sono usati a fini pubblicitari.
+  data_logs: Log operativi, inclusi audit HTTP e log del consenso ai cookie.
+  data_cookies: Cookie e memorie simili descritte nella pagina Cookie.
+  purpose_heading: Finalità
+  purpose_body: Trattiamo questi dati per creare e proteggere gli account, fornire le funzionalità che usi, inviare le notifiche che configuri, mantenere affidabile il servizio e registrare le scelte sui cookie.
+  basis_heading: Basi giuridiche
+  basis_contract: Contratto (art. 6, par. 1, lett. b GDPR) — account, autenticazione e servizio che richiedi.
+  basis_legitimate: Legittimo interesse (art. 6, par. 1, lett. f) — protezione del servizio, prevenzione degli abusi e registri diagnostici. Puoi opporti quando la legge ti riconosce tale diritto.
+  basis_consent: Consenso (art. 6, par. 1, lett. a ed ePrivacy) — categorie facoltative di cookie (preferenze, analitica). Revoca in qualsiasi momento da Impostazioni cookie. I cookie necessari non si basano sul consenso.
+  basis_legal: Obbligo di legge (art. 6, par. 1, lett. c) — rispondere alle autorità competenti quando la legge lo richiede.
+  recipients_heading: Destinatari
+  recipients_body: I dati sono conservati sull’infrastruttura scelta dall’operatore e inviati tramite il fornitore di posta da lui configurato. L’installazione predefinita non vende dati personali. A seconda delle funzionalità attive, i destinatari possono includere anche i fornitori configurati dall’operatore (ad esempio per SMS, notifiche push o pagamenti). I responsabili del trattamento agiscono su istruzioni scritte.
+  transfers_heading: Trasferimenti internazionali
+  transfers_body: L’operatore deve documentare se il trattamento resta nel SEE. Il modello predefinito presuppone un hosting nel SEE finché non viene sostituito. Ogni trasferimento al di fuori del SEE richiede un meccanismo del capo V del GDPR (come le clausole contrattuali tipo).
+  retention_heading: Conservazione
+  retention_account: Gli account restano finché esistono e sono cancellati o anonimizzati quando elimini l’account o un amministratore rimuove l’utente.
+  retention_content: I contenuti che invii sono conservati finché il tuo account o la tua organizzazione usa il servizio, o per il periodo di conservazione configurato dall’operatore.
+  retention_cookies: I cookie seguono le durate indicate nella pagina dei cookie (cookie di consenso circa 1 anno).
+  retention_logs: I log HTTP e di consenso seguono la pulizia impostata in Amministrazione. I log di sicurezza sono tenuti solo per il tempo necessario a indagare abusi.
+  rights_heading: I tuoi diritti
+  rights_body: Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità e opposizione, e revocare il consenso per i cookie facoltativi. Contatta l’operatore tramite l’avviso legale. Risposta entro un mese, prorogabile di due mesi se la richiesta è complessa; l’identità può essere verificata.
+  authority_heading: Autorità di controllo
+  authority_body: Puoi proporre reclamo all’Agencia Española de Protección de Datos (AEPD), C/ Jorge Juan 6, 28001 Madrid, Spagna, https://www.aepd.es, o all’autorità del tuo Paese di residenza nell’UE/SEE.
+  automated_heading: Decisioni automatizzate
+  automated_body: Non adottiamo decisioni basate unicamente su trattamenti automatizzati che producano effetti giuridici o effetti analoghi significativi (art. 22 GDPR).
+  cookies_heading: Cookie
+  cookies_body: I cookie strettamente necessari consentono l’accesso, la sicurezza e la registrazione del consenso. Le categorie facoltative si attivano solo se le consenti.
+terms:
+  title: Condizioni d’uso
+  intro: Questi termini sono un modello per l’uso di questa istanza di %brand%. Sostituiscili con termini adeguati all’offerta dell’operatore prima della messa in produzione.
+  service_heading: Servizio
+  service_body: Il servizio è l’applicazione offerta su questa istanza agli utenti autorizzati, comprese le funzionalità e l’amministrazione attivate dall’operatore.
+  accounts_heading: Account
+  accounts_body: Devi fornire dati di account esatti, mantenere riservate le credenziali e usare il servizio solo per progetti e dati personali che sei autorizzato a trattare. Rispondi dell’attività svolta con il tuo account.
+  accept_heading: Uso accettabile
+  accept_body: Non abusare del servizio o delle sue interfacce, non tentare accessi non autorizzati, non caricare contenuti illeciti e non usare il servizio per danneggiare altri. Possiamo sospendere gli accessi che violano questi termini o la legge.
+  ip_heading: Proprietà intellettuale
+  ip_body: Questi termini non cedono il marchio né i segni distintivi dell’operatore. Conservi i diritti sui contenuti che invii e concedi all’operatore la licenza necessaria per conservarli e mostrarli al fine di fornire il servizio.
+  limitation_heading: Limitazione di responsabilità
+  limitation_body: Nella misura consentita dal diritto applicabile, l’operatore non risponde di danni indiretti o consequenziali derivanti dall’uso del servizio. Resta impregiudicata la responsabilità che non può essere esclusa per legge. Fai esaminare questa clausola prima della produzione.
+  law_heading: Legge e foro
+  law_body: Sostituisci questa clausola con la legge applicabile e il foro indicati per l’operatore. I consumatori possono agire davanti al giudice del proprio domicilio ove la legge lo preveda.
+  changes_heading: Modifiche
+  changes_body: Possiamo aggiornare queste condizioni pubblicando il nuovo testo in questa pagina con una nuova data. Se una modifica riduce i tuoi diritti, avviseremo anche gli amministratori connessi prima dell’efficacia quando la legge richiede un preavviso. L’uso continuato dopo la data di efficacia è accettazione quando la legge ammette tale forma.
+cookies:
+  title: Informativa cookie
+  intro: Questa pagina elenca i cookie e le tecniche simili di questa istanza %brand%. I cookie strettamente necessari consentono autenticazione, sicurezza e registrazione del consenso. Le categorie facoltative si usano solo con il tuo consenso previo. Usa Impostazioni cookie per rivedere o cambiare la scelta in qualsiasi momento.
+  categories_heading: Categorie
+  cat_required: Strettamente necessari
+  cat_required_help: Essenziali per autenticazione, sicurezza e registrazione della tua decisione. Non si possono disattivare dal banner.
+  cat_preferences: Preferenze
+  cat_preferences_help: Cookie facoltativi che memorizzano scelte di presentazione non essenziali, solo se accetti questa categoria.
+  cat_analytics: Analitica
+  cat_analytics_help: Cookie di misurazione facoltativi, solo se questa istanza attiva strumenti di analisi e accetti la categoria. La build predefinita non imposta un cookie di analisi di terzi.
+  inventory_heading: Inventario cookie
+  inventory_intro: La tabella seguente elenca i cookie attualmente configurati su questa istanza.
+  storage_heading: Archiviazione locale
+  storage_body: Il tema (chiaro/scuro) e alcune scelte di layout possono essere salvati nel localStorage del browser. Non sono cookie HTTP. Sono strettamente necessari per mantenere l’interfaccia scelta su questo dispositivo.

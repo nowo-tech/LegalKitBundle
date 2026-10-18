@@ -1,0 +1,32 @@
+{#
+  Built-in terms body (generic scaffold, REQ-CC-011). Rendered by TwigSeedProvider with the translator switched to
+  the target locale; texts in the NowoLegalKitSeed domain. %brand%, %last_updated% and %cookie_inventory% stay as
+  tokens (resolved at render time; kept in the editor). Override with pages.terms.seed_template or the domain keys.
+  Variables: legal_slug, legal_locale.
+#}
+{% trans_default_domain 'NowoLegalKitSeed' %}
+<h1>{{ 'terms.title'|trans }}</h1>
+<p class="nowo-legal-doc__meta">{{ 'common.last_updated'|trans }}</p>
+
+<p>{{ 'terms.intro'|trans }}</p>
+
+<h2>{{ 'terms.service_heading'|trans }}</h2>
+<p>{{ 'terms.service_body'|trans }}</p>
+
+<h2>{{ 'terms.accounts_heading'|trans }}</h2>
+<p>{{ 'terms.accounts_body'|trans }}</p>
+
+<h2>{{ 'terms.accept_heading'|trans }}</h2>
+<p>{{ 'terms.accept_body'|trans }}</p>
+
+<h2>{{ 'terms.ip_heading'|trans }}</h2>
+<p>{{ 'terms.ip_body'|trans }}</p>
+
+<h2>{{ 'terms.limitation_heading'|trans }}</h2>
+<p>{{ 'terms.limitation_body'|trans }}</p>
+
+<h2>{{ 'terms.law_heading'|trans }}</h2>
+<p>{{ 'terms.law_body'|trans }}</p>
+
+<h2>{{ 'terms.changes_heading'|trans }}</h2>
+<p>{{ 'terms.changes_body'|trans }}</p>

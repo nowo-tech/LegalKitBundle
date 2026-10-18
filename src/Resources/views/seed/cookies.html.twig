@@ -1,0 +1,26 @@
+{#
+  Built-in cookies body (generic scaffold, REQ-CC-011). Rendered by TwigSeedProvider with the translator switched to
+  the target locale; texts in the NowoLegalKitSeed domain. %brand%, %last_updated% and %cookie_inventory% stay as
+  tokens (resolved at render time; kept in the editor). Override with pages.cookies.seed_template or the domain keys.
+  Variables: legal_slug, legal_locale.
+#}
+{% trans_default_domain 'NowoLegalKitSeed' %}
+<h1>{{ 'cookies.title'|trans }}</h1>
+<p class="nowo-legal-doc__meta">{{ 'common.last_updated'|trans }}</p>
+
+<p>{{ 'cookies.intro'|trans }}</p>
+<p><a href="#" data-nowo-open-consent>{{ 'common.manage_cookies'|trans }}</a></p>
+
+<h2>{{ 'cookies.categories_heading'|trans }}</h2>
+<ul>
+    <li><strong>{{ 'cookies.cat_required'|trans }}</strong> — {{ 'cookies.cat_required_help'|trans }}</li>
+    <li><strong>{{ 'cookies.cat_preferences'|trans }}</strong> — {{ 'cookies.cat_preferences_help'|trans }}</li>
+    <li><strong>{{ 'cookies.cat_analytics'|trans }}</strong> — {{ 'cookies.cat_analytics_help'|trans }}</li>
+</ul>
+
+<h2>{{ 'cookies.inventory_heading'|trans }}</h2>
+<p>{{ 'cookies.inventory_intro'|trans }}</p>
+<div>%cookie_inventory%</div>
+
+<h2>{{ 'cookies.storage_heading'|trans }}</h2>
+<p>{{ 'cookies.storage_body'|trans }}</p>

@@ -1,0 +1,97 @@
+# NowoLegalKitSeed (nl): generic GDPR / LSSI legal scaffold (REQ-CC-011). Placeholders in [brackets] are
+# reported by nowo:legal-kit:check-placeholders; %brand%, %last_updated% and %cookie_inventory% are resolved at render time.
+# Not legal advice: counsel review stays the operator’s duty (REQ-CC-010).
+common:
+  last_updated: 'Laatst bijgewerkt: %last_updated%'
+  manage_cookies: Cookie-instellingen
+identity:
+  name_line: 'Naam: [Wettelijke naam van de exploitant — vervangen]'
+  tax_line: 'Fiscaal nummer: [fiscaal nummer van de exploitant — vervangen]'
+  address_line: 'Adres: [statutaire zetel — vervangen]'
+  registry_line: 'Handelsregister: [indien van toepassing — vervangen]'
+  contact_line: 'Contact: [privacy@example.com — vervangen]'
+notice:
+  title: Juridische kennisgeving
+  intro: Deze tekst identificeert de exploitant van deze %brand%-instantie. Vervang de plaatsaanduidingen vóór openbaar gebruik door echte gegevens. Uitgangspunt voor LSSI-CE art. 10 en de AVG — geen juridisch advies.
+  publisher_heading: Aanbieder en verwerkingsverantwoordelijke
+  publisher_body: De organisatie die deze instantie draait is aanbieder van de informatiemaatschappijdienst en verwerkingsverantwoordelijke van deze installatie. Vul de identificatie hieronder in voordat u persoonsgegevens van anderen verwerkt.
+  lssi_heading: Identificatie van de dienst
+  lssi_body: Op grond van artikel 10 van de Spaanse wet 34/2002 (LSSI-CE) moet de exploitant wettelijke naam, fiscale of registergegevens waar van toepassing, postadres en een e-mail of telefoon publiceren.
+  self_host_heading: Zelf gehoste installaties
+  self_host_body: Deze pagina’s zijn bewerkbare sjablonen. Wie deze software inzet is aanbieder en verantwoordelijke van die installatie en moet elke plaatsaanduiding vervangen door de eigen identificatie. De standaardtekst mag geen derde vennootschap noemen.
+  hosting_heading: Hosting
+  hosting_body: Deze instantie wordt gehost op infrastructuur die de exploitant kiest. Documenteer host en opslaglocatie vóór openbaar gebruik. Verwerkers handelen alleen in opdracht van de exploitant.
+  ip_heading: Intellectuele eigendom
+  ip_body: Het merk, de inhoud en de interface van deze instantie zijn van de exploitant of zijn licentiegevers. Het gebruik van de dienst geeft daarop geen rechten buiten wat deze pagina’s of een afzonderlijke licentie bepalen.
+  liability_heading: Aansprakelijkheid
+  liability_body: De exploitant onderhoudt de dienst met de zorg die de stand van de techniek vereist. De standaardtekst beperkt geen aansprakelijkheid die Spaans of EU-consumentenrecht niet toestaat uit te sluiten. Laat deze clausule vóór productie toetsen.
+  law_heading: Toepasselijk recht
+  law_body: Vervang deze clausule door het toepasselijke recht en de forumkeuze van de exploitant. Tot dan is het een plaatsaanduiding. Consumenten kunnen dagvaarden bij de rechter van hun woonplaats waar de wet dat toestaat.
+privacy:
+  title: Privacyverklaring
+  intro: Deze verklaring legt uit hoe persoonsgegevens op deze %brand%-instantie kunnen worden verwerkt wanneer die wordt aangeboden aan mensen in de EU/EER, inclusief Spanje (AVG en LOPDGDD). De exploitant moet plaatsaanduidingen vóór productie vervangen door de eigen verantwoordelijke.
+  controller_heading: Verwerkingsverantwoordelijke
+  controller_body: De exploitant van deze instantie is verwerkingsverantwoordelijke. Dit sjabloon heeft geen functionaris voor gegevensbescherming; privacyverzoeken gaan naar het contact op de juridische kennisgeving.
+  controller_self_host: Een derde die deze software zelf host, is de verwerkingsverantwoordelijke van die installatie. Organisaties die de dienst gebruiken om gegevens van hun eigen klanten te verwerken, blijven verantwoordelijk voor die gegevens; de exploitant treedt daarvoor op als hun verwerker.
+  data_heading: Gegevens die wij verwerken
+  data_body: 'Op deze instantie kan de exploitant verwerken:'
+  data_account: Accountgegevens — e-mailadres, weergavenaam, wachtwoordhash, rollen, voorkeurstaal en eventuele optionele profielgegevens die u toevoegt.
+  data_content: Inhoud die u of uw organisatie bij de dienst indient, die persoonsgegevens van andere mensen kan bevatten.
+  data_security: Beveiligingsgegevens — inlogpogingen en sessie- en apparaatgegevens om accounts te beschermen. Ze worden niet voor advertenties gebruikt.
+  data_logs: Operationele logs, inclusief HTTP-audit en cookie-toestemmingslogs.
+  data_cookies: Cookies en vergelijkbare opslag, beschreven op de cookiepagina.
+  purpose_heading: Doeleinden
+  purpose_body: Wij verwerken deze gegevens om accounts aan te maken en te beveiligen, de functies te leveren die u gebruikt, de meldingen te versturen die u instelt, de dienst betrouwbaar te houden en cookiekeuzes vast te leggen.
+  basis_heading: Rechtsgronden
+  basis_contract: Overeenkomst (art. 6, lid 1, onder b AVG) — account, authenticatie en de dienst die u aanvraagt.
+  basis_legitimate: Gerechtvaardigd belang (art. 6, lid 1, onder f) — beveiliging van de dienst, voorkomen van misbruik en diagnostische logboeken. U kunt bezwaar maken waar de wet u dat recht geeft.
+  basis_consent: Toestemming (art. 6 lid 1 onder a en ePrivacy) — optionele cookiecategorieën (voorkeuren, analyse). Intrekken kan op elk moment via Cookie-instellingen. Noodzakelijke cookies steunen niet op toestemming.
+  basis_legal: Wettelijke plicht (art. 6 lid 1 onder c) — bevoegde autoriteiten antwoorden wanneer de wet dat vereist.
+  recipients_heading: Ontvangers
+  recipients_body: Gegevens worden opgeslagen op infrastructuur die de exploitant kiest en verzonden via de e-mailprovider die de exploitant instelt. De standaardinstallatie verkoopt geen persoonsgegevens. Afhankelijk van de ingeschakelde functies kunnen ontvangers ook de providers zijn die de exploitant instelt (bijvoorbeeld voor sms, pushmeldingen of betalingen). Verwerkers handelen op schriftelijke instructie.
+  transfers_heading: Internationale doorgifte
+  transfers_body: De exploitant moet vastleggen of de verwerking binnen de EER blijft. Het standaardsjabloon gaat uit van hosting in de EER totdat het wordt vervangen. Elke doorgifte buiten de EER vereist een mechanisme uit hoofdstuk V van de AVG (zoals modelcontractbepalingen).
+  retention_heading: Bewaartermijn
+  retention_account: Accounts blijven bestaan zolang het account bestaat en worden gewist of geanonimiseerd wanneer u het account verwijdert of een beheerder de gebruiker verwijdert.
+  retention_content: Inhoud die u indient, wordt bewaard zolang uw account of organisatie de dienst gebruikt, of gedurende de bewaartermijn die de exploitant instelt.
+  retention_cookies: Cookies volgen de looptijden op de cookiepagina (toestemmingscookies ongeveer 1 jaar).
+  retention_logs: HTTP- en toestemmingslogs volgen het opschoonschema in Beheer. Beveiligingslogs worden alleen bewaard zolang nodig om misbruik te onderzoeken.
+  rights_heading: Uw rechten
+  rights_body: U kunt inzage, rectificatie, wissing, beperking, overdraagbaarheid en bezwaar vragen en toestemming voor optionele cookies intrekken. Contacteer de exploitant via de juridische kennisgeving. Antwoord in beginsel binnen een maand, verlengbaar met twee maanden bij complexe verzoeken; identiteit kan worden gecontroleerd.
+  authority_heading: Toezichthoudende autoriteit
+  authority_body: U kunt een klacht indienen bij de Agencia Española de Protección de Datos (AEPD), C/ Jorge Juan 6, 28001 Madrid, Spanje, https://www.aepd.es, of bij de autoriteit van uw woonland in de EU/EER.
+  automated_heading: Geautomatiseerde besluiten
+  automated_body: Wij nemen geen besluiten die uitsluitend op geautomatiseerde verwerking berusten en rechtsgevolgen of vergelijkbare aanzienlijke gevolgen hebben (art. 22 AVG).
+  cookies_heading: Cookies
+  cookies_body: Strikt noodzakelijke cookies ondersteunen aanmelden, beveiliging en het vastleggen van toestemming. Optionele categorieën draaien alleen nadat u ze toestaat.
+terms:
+  title: Gebruiksvoorwaarden
+  intro: Deze voorwaarden zijn een sjabloon voor het gebruik van deze %brand%-instantie. Vervang ze vóór productie door voorwaarden die passen bij het aanbod van de exploitant.
+  service_heading: Dienst
+  service_body: De dienst is de applicatie die op deze instantie aan geautoriseerde gebruikers wordt aangeboden, inclusief de functies en het beheer die de exploitant inschakelt.
+  accounts_heading: Accounts
+  accounts_body: U moet juiste accountgegevens geven, inloggegevens vertrouwelijk houden en de dienst alleen gebruiken voor projecten en persoonsgegevens die u mag verwerken. U bent verantwoordelijk voor activiteit onder uw account.
+  accept_heading: Aanvaardbaar gebruik
+  accept_body: Misbruik de dienst en de interfaces ervan niet, probeer geen ongeautoriseerde toegang, upload geen onrechtmatige inhoud en gebruik de dienst niet om anderen te schaden. Wij kunnen toegang opschorten die deze voorwaarden of de wet schendt.
+  ip_heading: Intellectuele eigendom
+  ip_body: Deze voorwaarden dragen het merk of de kenmerken van de exploitant niet over. U behoudt de rechten op de inhoud die u indient; u verleent de exploitant de licentie die nodig is om die op te slaan en te tonen om de dienst te leveren.
+  limitation_heading: Beperking van aansprakelijkheid
+  limitation_body: Voor zover toepasselijk recht dat toelaat, is de exploitant niet aansprakelijk voor indirecte of gevolgschade door gebruik van de dienst. Aansprakelijkheid die wettelijk niet kan worden uitgesloten blijft gelden. Laat deze clausule vóór productie toetsen.
+  law_heading: Recht en forum
+  law_body: Vervang deze clausule door het toepasselijke recht en de forumkeuze van de exploitant. Consumenten kunnen dagvaarden bij de rechter van hun woonplaats waar de wet dat toestaat.
+  changes_heading: Wijzigingen
+  changes_body: Wij kunnen deze voorwaarden bijwerken door de nieuwe tekst met een nieuwe datum op deze pagina te publiceren. Vermindert een wijziging uw rechten, dan waarschuwen wij ook ingelogde beheerders vooraf wanneer de wet kennisgeving vereist. Voortgezet gebruik na de ingangsdatum is aanvaarding waar het recht die vorm toestaat.
+cookies:
+  title: Cookieverklaring
+  intro: Deze pagina somt de cookies en vergelijkbare technieken van deze %brand%-instantie op. Strikt noodzakelijke cookies ondersteunen authenticatie, beveiliging en het vastleggen van toestemming. Optionele categorieën alleen met uw voorafgaande toestemming. Gebruik Cookie-instellingen om uw keuze op elk moment te wijzigen.
+  categories_heading: Categorieën
+  cat_required: Strikt noodzakelijk
+  cat_required_help: Nodig voor authenticatie, beveiliging en het vastleggen van uw toestemming. Niet uit te zetten via de banner.
+  cat_preferences: Voorkeuren
+  cat_preferences_help: Optionele cookies die niet-essentiële weergavekeuzes bewaren, alleen als u deze categorie aanvaardt.
+  cat_analytics: Analyse
+  cat_analytics_help: Optionele meetcookies, alleen als deze instantie analysetools inschakelt en u de categorie accepteert. De standaard zet geen analytische cookie van derden.
+  inventory_heading: Cookie-inventaris
+  inventory_intro: De onderstaande tabel toont de cookies die momenteel op deze instantie zijn ingesteld.
+  storage_heading: Lokale opslag
+  storage_body: Thema (licht/donker) en sommige lay-outkeuzes kunnen in de localStorage van de browser staan. Dat zijn geen HTTP-cookies. Ze zijn strikt noodzakelijk om de interface die u op dit apparaat koos te behouden.

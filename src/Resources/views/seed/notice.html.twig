@@ -1,0 +1,39 @@
+{#
+  Built-in notice body (generic scaffold, REQ-CC-011). Rendered by TwigSeedProvider with the translator switched to
+  the target locale; texts in the NowoLegalKitSeed domain. %brand%, %last_updated% and %cookie_inventory% stay as
+  tokens (resolved at render time; kept in the editor). Override with pages.notice.seed_template or the domain keys.
+  Variables: legal_slug, legal_locale.
+#}
+{% trans_default_domain 'NowoLegalKitSeed' %}
+<h1>{{ 'notice.title'|trans }}</h1>
+<p class="nowo-legal-doc__meta">{{ 'common.last_updated'|trans }}</p>
+
+<p>{{ 'notice.intro'|trans }}</p>
+
+<h2>{{ 'notice.publisher_heading'|trans }}</h2>
+<p>{{ 'notice.publisher_body'|trans }}</p>
+<ul>
+    <li>{{ 'identity.name_line'|trans }}</li>
+    <li>{{ 'identity.tax_line'|trans }}</li>
+    <li>{{ 'identity.address_line'|trans }}</li>
+    <li>{{ 'identity.registry_line'|trans }}</li>
+    <li>{{ 'identity.contact_line'|trans }}</li>
+</ul>
+
+<h2>{{ 'notice.lssi_heading'|trans }}</h2>
+<p>{{ 'notice.lssi_body'|trans }}</p>
+
+<h2>{{ 'notice.self_host_heading'|trans }}</h2>
+<p>{{ 'notice.self_host_body'|trans }}</p>
+
+<h2>{{ 'notice.hosting_heading'|trans }}</h2>
+<p>{{ 'notice.hosting_body'|trans }}</p>
+
+<h2>{{ 'notice.ip_heading'|trans }}</h2>
+<p>{{ 'notice.ip_body'|trans }}</p>
+
+<h2>{{ 'notice.liability_heading'|trans }}</h2>
+<p>{{ 'notice.liability_body'|trans }}</p>
+
+<h2>{{ 'notice.law_heading'|trans }}</h2>
+<p>{{ 'notice.law_body'|trans }}</p>

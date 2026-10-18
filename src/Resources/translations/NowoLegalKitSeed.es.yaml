@@ -1,0 +1,97 @@
+# NowoLegalKitSeed (es): generic GDPR / LSSI legal scaffold (REQ-CC-011). Placeholders in [brackets] are
+# reported by nowo:legal-kit:check-placeholders; %brand%, %last_updated% and %cookie_inventory% are resolved at render time.
+# Not legal advice: counsel review stays the operator’s duty (REQ-CC-010).
+common:
+  last_updated: 'Última actualización: %last_updated%'
+  manage_cookies: Configuración de cookies
+identity:
+  name_line: 'Denominación: [Nombre legal del operador — sustituir]'
+  tax_line: 'NIF/CIF: [Identificación fiscal del operador — sustituir]'
+  address_line: 'Domicilio: [Domicilio social — sustituir]'
+  registry_line: 'Registro mercantil: [si aplica — sustituir]'
+  contact_line: 'Contacto: [privacy@example.com — sustituir]'
+notice:
+  title: Aviso legal
+  intro: Este aviso identifica al operador de esta instancia de %brand%. Sustituye los marcadores por los datos reales del operador antes del uso público. Es un punto de partida para la identificación LSSI-CE art. 10 y el RGPD, no un dictamen jurídico.
+  publisher_heading: Prestador y responsable
+  publisher_body: Quien ejecuta esta instancia es el prestador del servicio de la sociedad de la información y el responsable del tratamiento de este despliegue. Completa la identificación siguiente antes de tratar datos de otras personas.
+  lssi_heading: Identificación del servicio de la sociedad de la información
+  lssi_body: En cumplimiento del artículo 10 de la Ley 34/2002 (LSSI-CE), el operador de esta instancia debe publicar su denominación, identificadores fiscales o registrales si aplican, domicilio postal y un correo o teléfono de contacto.
+  self_host_heading: Despliegues autoalojados
+  self_host_body: Estas páginas se entregan como plantillas editables. Quien despliega este software es el prestador y el responsable de ese despliegue y debe sustituir cada marcador por su propia identificación. El texto por defecto no debe nombrar a una empresa de terceros.
+  hosting_heading: Alojamiento
+  hosting_body: Esta instancia se aloja en infraestructura elegida por el operador. Documenta el alojador y dónde se guardan los datos antes del uso público. Los encargados solo tratan datos siguiendo instrucciones del operador.
+  ip_heading: Propiedad intelectual
+  ip_body: La marca, los contenidos y la interfaz de esta instancia pertenecen al operador o a sus licenciantes. El uso del servicio no concede ningún derecho sobre ellos más allá de lo que indiquen estas páginas o una licencia aparte.
+  liability_heading: Responsabilidad
+  liability_body: El operador mantiene el servicio con la diligencia que exige el estado de la técnica. El texto por defecto no limita la responsabilidad que el derecho de consumo español o de la UE no permite excluir. Revisa esta cláusula con asesoramiento legal antes de producción.
+  law_heading: Ley aplicable
+  law_body: Sustituye esta cláusula por la ley aplicable y el fuero que corresponda al operador. Hasta entonces es un marcador. Las personas consumidoras pueden demandar en los juzgados de su domicilio cuando la ley lo prevea.
+privacy:
+  title: Política de privacidad
+  intro: Esta política explica cómo pueden tratarse datos personales en esta instancia de %brand% ofrecida a personas en la UE/EEE, incluida España (RGPD y LOPDGDD). El operador debe sustituir los marcadores por sus datos de responsable antes de producción.
+  controller_heading: Responsable del tratamiento
+  controller_body: El operador de esta instancia es el responsable del tratamiento. Esta plantilla no incluye un delegado de protección de datos por defecto; las solicitudes de privacidad van al contacto del Aviso legal.
+  controller_self_host: Un tercero que aloja este software por su cuenta es el responsable de ese despliegue. Las organizaciones que usan el servicio para tratar datos de sus propios clientes siguen siendo responsables de esos datos; el operador actúa como su encargado del tratamiento.
+  data_heading: Datos que tratamos
+  data_body: 'En esta instancia el operador puede tratar:'
+  data_account: 'Datos de cuenta: correo electrónico, nombre visible, hash de la contraseña, roles, idioma preferido y los datos de perfil opcionales que añadas.'
+  data_content: Contenido que tú o tu organización enviáis al servicio, que puede incluir datos personales de otras personas.
+  data_security: 'Datos de seguridad: intentos de inicio de sesión y registros de sesión y dispositivo usados para proteger las cuentas. No se usan con fines publicitarios.'
+  data_logs: Registros operativos, incluidos los de auditoría HTTP y los de consentimiento de cookies.
+  data_cookies: Cookies y almacenamiento similar descritos en la página de Cookies.
+  purpose_heading: Finalidades
+  purpose_body: Tratamos estos datos para crear y proteger cuentas, prestar las funciones que usas, enviar las notificaciones que configures, mantener la fiabilidad del servicio y registrar las preferencias de cookies.
+  basis_heading: Bases jurídicas
+  basis_contract: 'Contrato (art. 6.1.b RGPD): cuenta, autenticación y el servicio que solicitas.'
+  basis_legitimate: 'Interés legítimo (art. 6.1.f): proteger el servicio, prevenir abusos y conservar registros de diagnóstico. Puedes oponerte cuando la ley te reconozca ese derecho.'
+  basis_consent: Consentimiento (art. 6.1.a y ePrivacy) — categorías opcionales de cookies (preferencias, analítica). Puedes retirarlo en cualquier momento en Configuración de cookies. Las cookies necesarias no se basan en el consentimiento.
+  basis_legal: Obligación legal (art. 6.1.c) — atender a autoridades competentes cuando la ley lo exija.
+  recipients_heading: Destinatarios
+  recipients_body: Los datos se almacenan en la infraestructura que elige el operador y se envían mediante el proveedor de correo que configura. El despliegue por defecto no vende datos personales. Según las funciones activas, los destinatarios pueden incluir también los proveedores que configure el operador (por ejemplo, de SMS, notificaciones push o pagos). Los encargados actúan según instrucciones escritas.
+  transfers_heading: Transferencias internacionales
+  transfers_body: El operador debe documentar si el tratamiento se mantiene en el EEE. La plantilla por defecto supone alojamiento en el EEE hasta que se sustituya. Cualquier transferencia fuera del EEE requiere un mecanismo del capítulo V del RGPD (como las cláusulas contractuales tipo).
+  retention_heading: Conservación
+  retention_account: Las cuentas se conservan mientras existan y se suprimen o anonimizan cuando usas la eliminación de cuenta o un administrador borra al usuario.
+  retention_content: El contenido que envías se conserva mientras tu cuenta u organización usa el servicio, o durante el plazo de conservación que configure el operador.
+  retention_cookies: Las cookies siguen las duraciones indicadas en la página de cookies (las de consentimiento, aproximadamente 1 año).
+  retention_logs: Los registros HTTP y de consentimiento siguen la purga configurada en Administración. Los registros de seguridad se conservan solo el tiempo necesario para investigar abusos.
+  rights_heading: Tus derechos
+  rights_body: Puedes solicitar acceso, rectificación, supresión, limitación, portabilidad y oposición, y retirar el consentimiento de las cookies opcionales sin afectar al tratamiento anterior. Contacta con el operador usando los datos del Aviso legal. El operador debería responder en el plazo de un mes, ampliable en dos meses más si la solicitud es compleja, y puede pedirte que acredites tu identidad antes de comunicar datos.
+  authority_heading: Autoridad de control
+  authority_body: Puedes reclamar ante la Agencia Española de Protección de Datos (AEPD), C/ Jorge Juan 6, 28001 Madrid, España, https://www.aepd.es, o ante la autoridad de tu país de residencia en la UE/EEE.
+  automated_heading: Decisiones automatizadas
+  automated_body: No tomamos decisiones basadas únicamente en tratamientos automatizados que produzcan efectos jurídicos o significativamente similares (art. 22 RGPD).
+  cookies_heading: Cookies
+  cookies_body: Las cookies estrictamente necesarias permiten el acceso, la seguridad y el registro del consentimiento. Las categorías opcionales solo se activan si las permites.
+terms:
+  title: Términos de uso
+  intro: Estas condiciones son una plantilla para el uso de esta instancia de %brand%. Sustitúyelas por condiciones adaptadas a la oferta del operador antes de la puesta en producción.
+  service_heading: Servicio
+  service_body: El servicio es la aplicación ofrecida en esta instancia a los usuarios autorizados, incluidas las funciones y la administración que active el operador.
+  accounts_heading: Cuentas
+  accounts_body: Debes facilitar datos de cuenta exactos, guardar la confidencialidad de las credenciales y usar el servicio solo para proyectos y datos personales que estés autorizado a tratar. Respondes de la actividad realizada con tu cuenta.
+  accept_heading: Uso aceptable
+  accept_body: No abuses del servicio ni de sus interfaces, no intentes accesos no autorizados, no subas contenido ilícito ni uses el servicio para perjudicar a terceros. Podemos suspender el acceso que incumpla estas condiciones o la ley.
+  ip_heading: Propiedad intelectual
+  ip_body: Estas condiciones no ceden la marca ni los signos distintivos del operador. Conservas los derechos sobre el contenido que envías y concedes al operador la licencia necesaria para almacenarlo y mostrarlo al prestar el servicio.
+  limitation_heading: Limitación de responsabilidad
+  limitation_body: En la medida en que lo permita la normativa aplicable, el operador no responde de daños indirectos o consecuenciales derivados del uso del servicio. No se afecta la responsabilidad que no pueda excluirse legalmente, incluida la por dolo, negligencia grave o derechos irrenunciables de las personas consumidoras. Revisa esta cláusula con asesoramiento legal antes de producción.
+  law_heading: Ley aplicable y fuero
+  law_body: Sustituye esta cláusula por la ley aplicable y el fuero que corresponda al operador. Las personas consumidoras pueden demandar en los juzgados de su domicilio cuando la ley lo prevea.
+  changes_heading: Cambios
+  changes_body: Podemos actualizar estos términos publicando el texto nuevo en esta página con una fecha nueva. Si un cambio reduce tus derechos, avisaremos también a los administradores con sesión iniciada antes de que surta efecto cuando la ley exija preaviso. El uso continuado después de la fecha de efecto es aceptación cuando la ley admite esa forma de aceptación.
+cookies:
+  title: Política de cookies
+  intro: Esta página enumera las cookies y tecnologías similares de esta instancia de %brand%. Las cookies estrictamente necesarias permiten la autenticación, la seguridad y el registro del consentimiento. Las categorías opcionales solo se usan con tu consentimiento previo. Usa Configuración de cookies para revisar o cambiar tu elección en cualquier momento.
+  categories_heading: Categorías
+  cat_required: Estrictamente necesarias
+  cat_required_help: Imprescindibles para la autenticación, la seguridad y registrar tu decisión de consentimiento. No se pueden desactivar desde el banner.
+  cat_preferences: Preferencias
+  cat_preferences_help: Cookies opcionales que guardan elecciones de presentación no esenciales, solo si aceptas esta categoría.
+  cat_analytics: Analítica
+  cat_analytics_help: Cookies opcionales de medición, solo si esta instancia activa herramientas de analítica y aceptas esta categoría. La compilación por defecto no instala una cookie de analítica de terceros.
+  inventory_heading: Inventario de cookies
+  inventory_intro: La tabla siguiente recoge las cookies configuradas actualmente en esta instancia.
+  storage_heading: Almacenamiento local
+  storage_body: El tema (claro/oscuro) y algunas opciones de diseño pueden guardarse en localStorage del navegador. No son cookies HTTP. Son estrictamente necesarias para mantener la interfaz que elegiste en este dispositivo.
