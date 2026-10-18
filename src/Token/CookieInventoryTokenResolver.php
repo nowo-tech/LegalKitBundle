@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Token;
 
+use Nowo\CookieConsentBundle\Config\CookieInventoryProvider;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Throwable;
 use Twig\Environment;
 use Twig\TwigFunction;
@@ -28,9 +30,14 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
 
     /**
      * @param Environment $twig Twig environment (CookieConsent registers the inventory function there)
+     * @param CookieInventoryProvider|null $inventoryProvider CookieConsent inventory (static YAML inventory when no
+     *                                                         database profile is resolved)
+     * @param RequestStack|null $requestStack Locale of the static inventory
      */
     public function __construct(
         private Environment $twig,
+        private ?CookieInventoryProvider $inventoryProvider = null,
+        private ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -79,6 +86,10 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
             return [];
         }
         $inventory = $callable();
+        if ((!is_array($inventory) || $inventory === []) && $this->inventoryProvider instanceof CookieInventoryProvider) {
+            // No database profile resolved (use_database_config: false): the static `cookie_inventory` of the config.
+            $inventory = $this->inventoryProvider->listForLocale(null, $this->requestStack?->getCurrentRequest()?->getLocale() ?? 'en');
+        }
         if (!is_array($inventory)) {
             return [];
         }

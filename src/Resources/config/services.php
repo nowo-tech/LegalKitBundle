@@ -77,6 +77,12 @@ return static function (ContainerConfigurator $container): void {
         ->tag(LegalTokenResolverInterface::TAG, ['priority' => -100]);
     $services->set(CookieInventoryTokenResolver::class)
         ->autoconfigure(false)
+        ->autowire(false)
+        ->args([
+            service('twig'),
+            service('Nowo\\CookieConsentBundle\\Config\\CookieInventoryProvider')->nullOnInvalid(),
+            service('request_stack')->nullOnInvalid(),
+        ])
         ->tag(LegalTokenResolverInterface::TAG, ['priority' => -100]);
     $services->set(LegalTokenRenderer::class)->args([tagged_iterator(LegalTokenResolverInterface::TAG)]);
 

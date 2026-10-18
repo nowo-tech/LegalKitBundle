@@ -6,7 +6,12 @@ namespace Nowo\LegalKitBundle\Tests\Unit\Token;
 
 use Nowo\LegalKitBundle\Token\CookieInventoryTokenResolver;
 use Nowo\LegalKitBundle\Token\LegalTokenContext;
+use Nowo\CookieConsentBundle\Config\CookieInventoryNormalizer;
+use Nowo\CookieConsentBundle\Config\CookieInventoryProvider;
+use Nowo\CookieConsentBundle\Repository\CookieDefinitionRepository;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use RuntimeException;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
@@ -48,6 +53,22 @@ final class CookieInventoryTokenResolverTest extends TestCase
         $twig = $this->twig();
         $twig->addFunction(new TwigFunction('nowo_cookie_consent_cookie_inventory', static fn (): string => 'nope'));
         self::assertSame('', (new CookieInventoryTokenResolver($twig))->render());
+    }
+
+    public function testStaticInventoryWhenNoProfileIsResolved(): void
+    {
+        $twig = $this->twig();
+        $twig->addFunction(new TwigFunction('nowo_cookie_consent_cookie_inventory', static fn (): array => []));
+        $provider = new CookieInventoryProvider(
+            $this->createMock(CookieDefinitionRepository::class),
+            true,
+            CookieInventoryNormalizer::normalize([['name' => 'PHPSESSID', 'duration' => 'Session', 'category' => 'required', 'purpose' => 'Session', 'provider' => 'Site']]),
+        );
+        $stack = new RequestStack();
+        $stack->push(Request::create('/'));
+
+        self::assertStringStartsWith('PHPSESSID|required|Session|', (new CookieInventoryTokenResolver($twig, $provider, $stack))->render());
+        self::assertStringStartsWith('PHPSESSID|', (new CookieInventoryTokenResolver($twig, $provider))->render());
     }
 
     private function twig(): Environment
