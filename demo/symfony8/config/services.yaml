@@ -1,0 +1,14 @@
+parameters:
+    # Enabled locales of the demo (LegalKit reads them through nowo_legal_kit.locales: '%app.locales%').
+    app.locales: ['en', 'es', 'de']
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/Entity/'

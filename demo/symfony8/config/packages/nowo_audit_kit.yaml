@@ -1,0 +1,4 @@
+nowo_audit_kit:
+    user_class: App\Entity\User
+    action_log:
+        entity_class: App\Entity\ActionLog

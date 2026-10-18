@@ -1,0 +1,19 @@
+nowo_cookie_consent:
+    use_logger: false
+    use_database_config: false
+    use_cookie_inventory: true
+    default_locale: en
+    enabled_locales: '%kernel.enabled_locales%'
+    categories:
+        - preferences
+        - analytics
+    # The legal routes are prepended by LegalKit (no auto-open on legal pages, "Manage cookies" still opens the modal).
+    skip_render_routes:
+        - 'nowo_legal_kit_admin_*'
+        - 'demo_login'
+    cookie_inventory:
+        - { name: PHPSESSID, duration: Session, category: required, type: first_party, provider: 'Acme Cloud', purpose: 'Keeps your session while you are signed in.' }
+        - { name: Cookie_Consent, duration: '1 year', category: required, type: first_party, provider: 'Acme Cloud', purpose: 'Records that you made a cookie choice.' }
+        - { name: Cookie_Category_analytics, duration: '1 year', category: required, type: first_party, provider: 'Acme Cloud', purpose: 'Stores whether you accepted analytics cookies.' }
+    web_ui:
+        enabled: false

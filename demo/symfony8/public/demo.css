@@ -1,0 +1,4 @@
+/* Demo chrome only (the bundle ships css/nowo-legal-kit.css for the legal pages). */
+.demo-navbar { background: #0f766e; }
+.demo-footer .nowo-legal-footer-nav a { color: #0f766e; }
+.demo-login { max-width: 28rem; }

@@ -1,0 +1,8 @@
+# Legal Kit demo: three locales, the default (en) on the bare /legal/… URLs, CKEditor 5 editor, CookieConsent routes
+# prepended automatically. Production hosts keep security.allow_unauthenticated: false (the default).
+nowo_legal_kit:
+    locales: '%app.locales%'
+    default_locale: en
+    brand_name: 'Acme Cloud'
+    routing:
+        default_locale_style: unprefixed

@@ -1,0 +1,11 @@
+demo:
+    brand: Acme Cloud
+    title: Legal-Kit-Demo
+    nav: { admin: Rechtliche Seiten, ops: Ops, logout: Abmelden, login: Anmelden }
+    home:
+        title: Kit für rechtliche Seiten
+        intro: Impressum, Datenschutz, Bedingungen und Cookies auf Englisch, Spanisch und Deutsch — integrierter Standardtext, bis ein Betreiber eine Sprache speichert.
+        admin: 'Als Administrator bearbeiten:'
+        gate: 'Deploy-Prüfung (Exit 1, solange Platzhalter übrig sind):'
+    login: { hint: 'Demo-Konto: admin / admin.', username: Benutzername, password: Passwort, submit: Anmelden }
+    ops: { clear: Kein rechtlicher Platzhalter mehr. Eine rechtliche Prüfung bleibt nötig. }

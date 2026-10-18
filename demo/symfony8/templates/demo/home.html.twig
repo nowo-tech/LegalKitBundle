@@ -1,0 +1,17 @@
+{% extends nowo_ui_layout.guest %}
+
+{% block nowo_ui_document_title %}{{ 'demo.title'|trans }}{% endblock %}
+
+{% block nowo_ui_content %}
+    <section class="demo-hero" data-testid="demo-home">
+        <h1 class="h3">{{ 'demo.home.title'|trans }}</h1>
+        <p class="lead">{{ 'demo.home.intro'|trans }}</p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for link in nowo_legal_kit_links() %}
+                <a class="btn btn-outline-secondary" href="{{ link.url }}">{{ link.label }}</a>
+            {% endfor %}
+        </div>
+        <p class="mt-4">{{ 'demo.home.admin'|trans }} <a href="{{ path('nowo_legal_kit_admin_index') }}">/admin/legal</a> (admin / admin)</p>
+        <p class="text-muted small">{{ 'demo.home.gate'|trans }} <code>bin/console nowo:legal-kit:check-placeholders</code></p>
+    </section>
+{% endblock %}

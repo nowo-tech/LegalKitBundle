@@ -1,0 +1,36 @@
+{#
+  Demo chrome shared by the UiKit layout bridges: navbar (locale switcher, sign-in) and the footer with the LegalKit
+  footer navigation (REQ-CC-014).
+#}
+{% macro navbar() %}
+    {% set _route = app.request.attributes.get('_route') %}
+    <nav class="navbar navbar-expand navbar-dark demo-navbar" data-testid="demo-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="{{ path('homepage') }}">{{ 'demo.brand'|trans }}</a>
+            <div class="navbar-nav ms-auto align-items-center gap-2">
+                {% if app.user %}
+                    <a class="nav-link text-white" href="{{ path('nowo_legal_kit_admin_index') }}">{{ 'demo.nav.admin'|trans }}</a>
+                    <a class="nav-link text-white" href="{{ path('demo_ops') }}">{{ 'demo.nav.ops'|trans }}</a>
+                    <span class="navbar-text text-white-50 small">{{ app.user.userIdentifier }}</span>
+                    <a class="nav-link text-white" href="{{ path('demo_logout') }}">{{ 'demo.nav.logout'|trans }}</a>
+                {% else %}
+                    <a class="nav-link text-white" href="{{ path('demo_login') }}" data-testid="demo-login-link">{{ 'demo.nav.login'|trans }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+{% endmacro %}
+
+{% macro footer() %}
+    <footer class="demo-footer border-top mt-5 py-4" data-testid="demo-footer">
+        <div class="container d-flex flex-wrap gap-3 align-items-center">
+            <span class="text-muted small">© 2026 {{ 'demo.brand'|trans }}</span>
+            {{ include('@NowoLegalKitBundle/_footer_nav.html.twig') }}
+            <span class="ms-auto small">
+                {% for locale in ['en', 'es', 'de'] %}
+                    <a class="me-2" href="{{ locale == 'en' ? path('legal_notice_unlocalized') : path('legal_notice', {_locale: locale}) }}" hreflang="{{ locale }}">{{ locale|upper }}</a>
+                {% endfor %}
+            </span>
+        </div>
+    </footer>
+{% endmacro %}

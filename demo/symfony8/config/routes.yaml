@@ -1,0 +1,10 @@
+controllers:
+    resource: ../src/Controller/
+    type: attribute
+
+nowo_legal_kit:
+    resource: .
+    type: nowo_legal_kit
+
+nowo_cookie_consent:
+    resource: '@NowoCookieConsentBundle/Resources/config/routing.yaml'

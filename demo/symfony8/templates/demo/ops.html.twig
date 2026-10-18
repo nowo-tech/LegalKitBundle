@@ -1,0 +1,13 @@
+{% extends nowo_ui_layout.admin %}
+
+{% block nowo_ui_document_title %}{{ 'demo.nav.ops'|trans }}{% endblock %}
+
+{% block nowo_ui_content %}
+    <section data-testid="demo-ops">
+        <h1 class="h4">{{ 'demo.nav.ops'|trans }}</h1>
+        {{ include('@NowoLegalKitBundle/_placeholder_banner.html.twig') }}
+        {% if nowo_legal_kit_placeholder_hits() is empty %}
+            <p class="alert alert-success" data-testid="demo-ops-clear">{{ 'demo.ops.clear'|trans }}</p>
+        {% endif %}
+    </section>
+{% endblock %}
