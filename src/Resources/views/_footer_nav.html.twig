@@ -1,0 +1,20 @@
+{#
+  Footer legal navigation (REQ-CC-014) for the host footer: every page with nav: true (notice → privacy → terms →
+  cookies by default), then "Manage cookies" — the CookieConsent opener (data-nowo-open-consent) when the consent
+  widget renders on this page, else a link to the cookies page.
+  Optional variables: locale (default: request locale), attr (extra <nav> attributes, no on*).
+#}
+{% set _locale = locale|default(null) %}
+{% set _links = nowo_legal_kit_links(_locale) %}
+<nav class="nowo-legal-footer-nav"{{ nowo_ui_html_attrs(attr|default({})) }} aria-label="{{ 'nav.label'|trans({}, 'NowoLegalKitBundle', _locale) }}">
+    {% for link in _links %}
+        <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ link.url }}" data-nowo-legal-link="{{ link.slug }}">{{ link.label }}</a>
+    {% endfor %}
+    {% set _consent = nowo_legal_kit_consent_widget() %}
+    {% set _cookies = _links|filter(l => l.slug == 'cookies')|first %}
+    {% if _consent %}
+        <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ _cookies ? _cookies.url : '#' }}" data-nowo-open-consent data-nowo-legal-link="manage-cookies">{{ 'nav.manage_cookies'|trans({}, 'NowoLegalKitBundle', _locale) }}</a>
+    {% elseif _cookies %}
+        <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ _cookies.url }}" data-nowo-legal-link="manage-cookies">{{ 'nav.manage_cookies'|trans({}, 'NowoLegalKitBundle', _locale) }}</a>
+    {% endif %}
+</nav>

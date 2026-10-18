@@ -1,0 +1,14 @@
+{#
+  Cross navigation between legal pages (omits the current page).
+  Variables: current (slug), locale.
+#}
+{% set _links = nowo_legal_kit_links(locale) %}
+{% if _links|length > 1 %}
+    <nav class="nowo-legal-nav" aria-label="{{ 'nav.label'|trans({}, 'NowoLegalKitBundle', locale) }}">
+        {% for link in _links %}
+            {% if link.slug != current %}
+                <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ link.url }}">{{ link.label }}</a>
+            {% endif %}
+        {% endfor %}
+    </nav>
+{% endif %}

@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (fr): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Mentions légales
+  privacy: Politique de confidentialité
+  terms: Conditions d’utilisation
+  cookies: Politique de cookies
+nav:
+  label: Informations légales
+  manage_cookies: Paramètres des cookies
+public:
+  last_updated: 'Dernière mise à jour : %date%'
+admin:
+  title: Pages légales
+  intro: Chaque déploiement publie ses propres mentions légales, politique de confidentialité, conditions et page des cookies. Le texte intégré reste en place jusqu’à ce que vous enregistriez une langue. Un conseil juridique doit encore valider le texte avant de traiter les données personnelles d’autrui.
+  empty: Aucune page légale n’est activée.
+  custom: Personnalisé
+  builtin: Intégré
+  placeholders: '{1} 1 espace réservé|]1,Inf[ %count% espaces réservés'
+  edit_title: '%page% (%locale%)'
+  edit_intro: L’éditeur part du texte intégré. L’enregistrement stocke le HTML de cette langue uniquement ; les autres langues ne changent pas. Les jetons comme %brand% sont remplacés sur la page publique.
+  save: Enregistrer la page légale
+  back: Toutes les pages légales
+  view_public: Voir la page publique
+  reset: Restaurer le texte intégré
+  reset_zone: Texte intégré
+  reset_intro: Supprime la version personnalisée de cette langue et republie le texte intégré.
+  reset_confirm_title: Restaurer %page% (%locale%) intégré ?
+  reset_confirm_message: Le texte personnalisé de %page% en %locale% sera supprimé. Cette action est irréversible.
+  reset_confirm: Restaurer
+  column:
+    page: Page
+    locale: '%locale%'
+  tab:
+    label: Langues
+    locale: '%locale%'
+  field:
+    title: Titre
+    body: Texte
+    body_help: Les titres, listes, liens, tableaux et mises en valeur sont conservés ; scripts, styles et contenus intégrés sont supprimés à l’enregistrement.
+flash:
+  saved: Page légale enregistrée pour cette langue.
+  reset_done: Le texte intégré est de nouveau publié pour cette langue.
+  empty_body: Ajoutez du texte, ou utilisez Restaurer le texte intégré pour supprimer la page personnalisée.
+  invalid_csrf: Le formulaire a expiré. Réessayez.
+banner:
+  title: '{1} Il reste 1 espace réservé légal.|]1,Inf[ Il reste %count% espaces réservés légaux.'
+  intro: Remplacez-les dans les pages légales avant la production ; la validation juridique reste nécessaire.
+  more: '{1} …et 1 autre.|]1,Inf[ …et %count% autres.'
+  open_admin: Ouvrir les pages légales
+cookies:
+  column:
+    name: Nom
+    category: Catégorie
+    duration: Durée
+    purpose: Finalité

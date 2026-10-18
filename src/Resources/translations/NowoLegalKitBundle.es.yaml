@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (es): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Aviso legal
+  privacy: Política de privacidad
+  terms: Condiciones de uso
+  cookies: Política de cookies
+nav:
+  label: Legal
+  manage_cookies: Configuración de cookies
+public:
+  last_updated: 'Última actualización: %date%'
+admin:
+  title: Páginas legales
+  intro: Cada despliegue publica su propio aviso legal, política de privacidad, condiciones y página de cookies. El texto integrado se mantiene hasta que guardes un idioma. Un asesor jurídico debe aprobar el texto antes de tratar datos personales de otras personas.
+  empty: No hay ninguna página legal activa.
+  custom: Personalizado
+  builtin: Integrado
+  placeholders: '{1} 1 marcador|]1,Inf[ %count% marcadores'
+  edit_title: '%page% (%locale%)'
+  edit_intro: El editor parte del texto integrado. Al guardar se almacena el HTML solo de este idioma; los demás no cambian. Los tokens como %brand% se sustituyen en la página pública.
+  save: Guardar página legal
+  back: Todas las páginas legales
+  view_public: Ver página pública
+  reset: Restaurar texto integrado
+  reset_zone: Texto integrado
+  reset_intro: Elimina la copia personalizada de este idioma y vuelve a publicar el texto integrado.
+  reset_confirm_title: ¿Restaurar %page% (%locale%) integrado?
+  reset_confirm_message: Se elimina el texto personalizado de %page% en %locale%. No se puede deshacer.
+  reset_confirm: Restaurar
+  column:
+    page: Página
+    locale: '%locale%'
+  tab:
+    label: Idiomas
+    locale: '%locale%'
+  field:
+    title: Título
+    body: Texto
+    body_help: Se conservan títulos, listas, enlaces, tablas y énfasis; los scripts, estilos e incrustaciones se eliminan al guardar.
+flash:
+  saved: Página legal guardada para este idioma.
+  reset_done: Se vuelve a publicar el texto integrado para este idioma.
+  empty_body: Añade algún texto o usa Restaurar texto integrado para eliminar la página personalizada.
+  invalid_csrf: El formulario ha caducado. Inténtalo de nuevo.
+banner:
+  title: '{1} Queda 1 marcador legal.|]1,Inf[ Quedan %count% marcadores legales.'
+  intro: Sustitúyelos en las páginas legales antes de producción; la revisión jurídica sigue siendo necesaria.
+  more: '{1} …y 1 más.|]1,Inf[ …y %count% más.'
+  open_admin: Abrir páginas legales
+cookies:
+  column:
+    name: Nombre
+    category: Categoría
+    duration: Duración
+    purpose: Finalidad

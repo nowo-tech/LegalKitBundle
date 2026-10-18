@@ -1,0 +1,26 @@
+{#
+  Cookie inventory table (%cookie_inventory% token / legal_kit_cookie_inventory()), from the CookieConsent inventory.
+  Variable: cookies (list of {name, category, duration, purpose, provider}). Values are auto-escaped.
+#}
+<div class="{{ nowo_ui_class('table_wrap', 'NowoLegalKitBundle') }}">
+    <table class="nowo-legal-cookie-table {{ nowo_ui_class('table', 'NowoLegalKitBundle') }}">
+        <thead>
+            <tr>
+                <th scope="col">{{ 'cookies.column.name'|trans({}, 'NowoLegalKitBundle') }}</th>
+                <th scope="col">{{ 'cookies.column.category'|trans({}, 'NowoLegalKitBundle') }}</th>
+                <th scope="col">{{ 'cookies.column.duration'|trans({}, 'NowoLegalKitBundle') }}</th>
+                <th scope="col">{{ 'cookies.column.purpose'|trans({}, 'NowoLegalKitBundle') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cookie in cookies %}
+                <tr>
+                    <td><code>{{ cookie.name }}</code></td>
+                    <td>{{ cookie.category }}</td>
+                    <td>{{ cookie.duration }}</td>
+                    <td>{{ cookie.purpose }}{% if cookie.provider %} ({{ cookie.provider }}){% endif %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

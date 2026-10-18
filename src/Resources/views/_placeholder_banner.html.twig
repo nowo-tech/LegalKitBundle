@@ -1,0 +1,24 @@
+{#
+  Ops banner (REQ-CC-012): warns while published legal pages still contain seed placeholders; first 8 hits, "+N more",
+  link to the admin index. Renders nothing without hits. Place it in the host Ops overview.
+  Optional variables: locale (one locale; default every enabled locale), limit (default 8).
+#}
+{% set _hits = nowo_legal_kit_placeholder_hits(locale|default(null)) %}
+{% set _limit = limit|default(8) %}
+{% if _hits is not empty %}
+    <div class="nowo-legal-banner {{ nowo_ui_class('flash_warning', 'NowoLegalKitBundle') }}" role="status" data-testid="nowo-legal-kit-placeholder-banner">
+        <p><strong>{{ 'banner.title'|trans({'%count%': _hits|length}, 'NowoLegalKitBundle') }}</strong> {{ 'banner.intro'|trans({}, 'NowoLegalKitBundle') }}</p>
+        <ul>
+            {% for hit in _hits|slice(0, _limit) %}
+                <li><code class="{{ nowo_ui_class('code', 'NowoLegalKitBundle') }}">{{ hit.locale }}/{{ hit.slug }}</code> — {{ hit.marker }}</li>
+            {% endfor %}
+        </ul>
+        {% if _hits|length > _limit %}
+            <p>{{ 'banner.more'|trans({'%count%': _hits|length - _limit}, 'NowoLegalKitBundle') }}</p>
+        {% endif %}
+        {% set _admin = nowo_legal_kit_admin_url() %}
+        {% if _admin %}
+            <p><a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ _admin }}">{{ 'banner.open_admin'|trans({}, 'NowoLegalKitBundle') }}</a></p>
+        {% endif %}
+    </div>
+{% endif %}

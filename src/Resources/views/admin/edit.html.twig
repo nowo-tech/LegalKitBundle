@@ -1,0 +1,15 @@
+{#
+  Legal page editor (REQ-UI-003): UiKit form scaffold.
+  View model: page (View\FormPage, LegalDocumentAdminController::edit()): header with one tab per enabled locale
+  (page.header.tabs, View\AreaNav), "View public page" secondary action, restore in the danger zone through the
+  UiKit confirm contract (POST + CSRF, only when an operator copy exists).
+  Extra variables: legal_editor (ckeditor5|textarea), legal_slug, legal_locale, is_stored.
+  The CKEditor 5 script loads on this page only (Ckeditor5EditorBundle asset, never a CDN).
+  Data blocks: nowo_ui_form_body (default child loop).
+#}
+{% extends '@NowoUiKit/page/form.html.twig' %}
+
+{% block nowo_ui_scripts %}
+    {{ parent() }}
+    {%- if legal_editor|default('textarea') == 'ckeditor5' %}{{ nowo_ckeditor5_editor_script() }}{% endif -%}
+{% endblock %}

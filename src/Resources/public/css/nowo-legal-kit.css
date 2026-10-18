@@ -1,0 +1,30 @@
+/*
+ * NowoLegalKitBundle — public legal pages (readable prose width, cross navigation, cookie table).
+ * Colours and spacing come from the UiKit tokens (--nowo-ui-*); override --nowo-ui-legal-max-width in the host.
+ */
+.nowo-legal-doc {
+    max-width: var(--nowo-ui-legal-max-width, 48rem);
+    margin-inline: auto;
+    overflow-wrap: anywhere;
+}
+
+.nowo-legal-doc__meta {
+    margin-top: 2rem;
+}
+
+.nowo-legal-nav,
+.nowo-legal-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.nowo-legal-nav {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--nowo-ui-border, currentColor);
+}
+
+.nowo-legal-cookie-table {
+    width: 100%;
+}

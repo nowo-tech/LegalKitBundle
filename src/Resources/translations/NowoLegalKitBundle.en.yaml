@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (en): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Legal notice
+  privacy: Privacy policy
+  terms: Terms of use
+  cookies: Cookie notice
+nav:
+  label: Legal
+  manage_cookies: Cookie settings
+public:
+  last_updated: 'Last updated: %date%'
+admin:
+  title: Legal pages
+  intro: Each deployment publishes its own legal notice, privacy policy, terms and cookie page. The built-in text stays in place until you save a locale. Counsel must still approve the copy before you process other people’s personal data.
+  empty: No legal page is enabled.
+  custom: Custom
+  builtin: Built-in
+  placeholders: '{1} 1 placeholder|]1,Inf[ %count% placeholders'
+  edit_title: '%page% (%locale%)'
+  edit_intro: The editor starts from the built-in text. Saving stores HTML for this locale only; other locales are unchanged. Tokens such as %brand% are replaced on the public page.
+  save: Save legal page
+  back: All legal pages
+  view_public: View public page
+  reset: Restore built-in text
+  reset_zone: Built-in text
+  reset_intro: Delete the custom copy of this locale and publish the built-in text again.
+  reset_confirm_title: Restore the built-in %page% (%locale%)?
+  reset_confirm_message: The custom text of %page% in %locale% is deleted. This cannot be undone.
+  reset_confirm: Restore
+  column:
+    page: Page
+    locale: '%locale%'
+  tab:
+    label: Locales
+    locale: '%locale%'
+  field:
+    title: Title
+    body: Text
+    body_help: Headings, lists, links, tables and emphasis are kept; scripts, styles and embeds are removed when you save.
+flash:
+  saved: Legal page saved for this locale.
+  reset_done: The built-in text is published again for this locale.
+  empty_body: Add some text, or use Restore built-in text to drop the custom page.
+  invalid_csrf: The form expired. Try again.
+banner:
+  title: '{1} 1 legal placeholder left.|]1,Inf[ %count% legal placeholders left.'
+  intro: Replace them in the legal pages before production; counsel review is still required.
+  more: '{1} …and 1 more.|]1,Inf[ …and %count% more.'
+  open_admin: Open legal pages
+cookies:
+  column:
+    name: Name
+    category: Category
+    duration: Duration
+    purpose: Purpose

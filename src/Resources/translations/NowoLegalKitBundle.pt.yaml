@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (pt): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Aviso legal
+  privacy: Política de privacidade
+  terms: Termos de utilização
+  cookies: Política de cookies
+nav:
+  label: Legal
+  manage_cookies: Definições de cookies
+public:
+  last_updated: 'Última atualização: %date%'
+admin:
+  title: Páginas legais
+  intro: Cada instalação publica o seu próprio aviso legal, política de privacidade, termos e página de cookies. O texto integrado mantém-se até guardar um idioma. Um consultor jurídico tem ainda de aprovar o texto antes de tratar dados pessoais de outras pessoas.
+  empty: Nenhuma página legal está ativa.
+  custom: Personalizado
+  builtin: Integrado
+  placeholders: '{1} 1 marcador|]1,Inf[ %count% marcadores'
+  edit_title: '%page% (%locale%)'
+  edit_intro: O editor parte do texto integrado. Guardar armazena o HTML apenas deste idioma; os restantes não mudam. Tokens como %brand% são substituídos na página pública.
+  save: Guardar página legal
+  back: Todas as páginas legais
+  view_public: Ver página pública
+  reset: Repor texto integrado
+  reset_zone: Texto integrado
+  reset_intro: Elimina a versão personalizada deste idioma e volta a publicar o texto integrado.
+  reset_confirm_title: Repor %page% (%locale%) integrado?
+  reset_confirm_message: O texto personalizado de %page% em %locale% será eliminado. Esta ação não pode ser anulada.
+  reset_confirm: Repor
+  column:
+    page: Página
+    locale: '%locale%'
+  tab:
+    label: Idiomas
+    locale: '%locale%'
+  field:
+    title: Título
+    body: Texto
+    body_help: Títulos, listas, ligações, tabelas e ênfase são mantidos; scripts, estilos e conteúdos incorporados são removidos ao guardar.
+flash:
+  saved: Página legal guardada para este idioma.
+  reset_done: O texto integrado volta a ser publicado para este idioma.
+  empty_body: Adicione algum texto ou use Repor texto integrado para eliminar a página personalizada.
+  invalid_csrf: O formulário expirou. Tente novamente.
+banner:
+  title: '{1} Resta 1 marcador legal.|]1,Inf[ Restam %count% marcadores legais.'
+  intro: Substitua-os nas páginas legais antes da produção; a revisão jurídica continua a ser necessária.
+  more: '{1} …e mais 1.|]1,Inf[ …e mais %count%.'
+  open_admin: Abrir páginas legais
+cookies:
+  column:
+    name: Nome
+    category: Categoria
+    duration: Duração
+    purpose: Finalidade

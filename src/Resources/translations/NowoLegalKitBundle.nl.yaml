@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (nl): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Juridische kennisgeving
+  privacy: Privacybeleid
+  terms: Gebruiksvoorwaarden
+  cookies: Cookieverklaring
+nav:
+  label: Juridisch
+  manage_cookies: Cookie-instellingen
+public:
+  last_updated: 'Laatst bijgewerkt: %date%'
+admin:
+  title: Juridische pagina’s
+  intro: Elke installatie publiceert haar eigen juridische kennisgeving, privacybeleid, voorwaarden en cookiepagina. De ingebouwde tekst blijft staan tot u een taal opslaat. Een jurist moet de tekst goedkeuren voordat u persoonsgegevens van anderen verwerkt.
+  empty: Er is geen juridische pagina ingeschakeld.
+  custom: Aangepast
+  builtin: Ingebouwd
+  placeholders: '{1} 1 tijdelijke tekst|]1,Inf[ %count% tijdelijke teksten'
+  edit_title: '%page% (%locale%)'
+  edit_intro: De editor begint met de ingebouwde tekst. Opslaan bewaart HTML alleen voor deze taal; andere talen blijven ongewijzigd. Tokens zoals %brand% worden op de openbare pagina vervangen.
+  save: Juridische pagina opslaan
+  back: Alle juridische pagina’s
+  view_public: Openbare pagina bekijken
+  reset: Ingebouwde tekst herstellen
+  reset_zone: Ingebouwde tekst
+  reset_intro: Verwijdert de aangepaste versie van deze taal en publiceert de ingebouwde tekst opnieuw.
+  reset_confirm_title: Ingebouwde %page% (%locale%) herstellen?
+  reset_confirm_message: De aangepaste tekst van %page% in %locale% wordt verwijderd. Dit kan niet ongedaan worden gemaakt.
+  reset_confirm: Herstellen
+  column:
+    page: Pagina
+    locale: '%locale%'
+  tab:
+    label: Talen
+    locale: '%locale%'
+  field:
+    title: Titel
+    body: Tekst
+    body_help: Koppen, lijsten, links, tabellen en nadruk blijven behouden; scripts, stijlen en insluitingen worden bij het opslaan verwijderd.
+flash:
+  saved: Juridische pagina opgeslagen voor deze taal.
+  reset_done: De ingebouwde tekst wordt weer gepubliceerd voor deze taal.
+  empty_body: Voeg tekst toe of herstel de ingebouwde tekst om de aangepaste pagina te verwijderen.
+  invalid_csrf: Het formulier is verlopen. Probeer het opnieuw.
+banner:
+  title: '{1} Nog 1 juridische tijdelijke tekst.|]1,Inf[ Nog %count% juridische tijdelijke teksten.'
+  intro: Vervang ze vóór productie in de juridische pagina’s; juridische controle blijft nodig.
+  more: '{1} …en nog 1.|]1,Inf[ …en nog %count%.'
+  open_admin: Juridische pagina’s openen
+cookies:
+  column:
+    name: Naam
+    category: Categorie
+    duration: Duur
+    purpose: Doel

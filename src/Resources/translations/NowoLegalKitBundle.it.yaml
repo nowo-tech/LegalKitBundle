@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (it): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Note legali
+  privacy: Informativa sulla privacy
+  terms: Termini di utilizzo
+  cookies: Informativa sui cookie
+nav:
+  label: Note legali
+  manage_cookies: Impostazioni dei cookie
+public:
+  last_updated: 'Ultimo aggiornamento: %date%'
+admin:
+  title: Pagine legali
+  intro: Ogni installazione pubblica le proprie note legali, informativa sulla privacy, termini e pagina dei cookie. Il testo integrato resta finché non salvi una lingua. Un consulente legale deve comunque approvare il testo prima di trattare dati personali di altre persone.
+  empty: Nessuna pagina legale è attiva.
+  custom: Personalizzato
+  builtin: Integrato
+  placeholders: '{1} 1 segnaposto|]1,Inf[ %count% segnaposto'
+  edit_title: '%page% (%locale%)'
+  edit_intro: L’editor parte dal testo integrato. Il salvataggio memorizza l’HTML solo per questa lingua; le altre lingue restano invariate. I token come %brand% vengono sostituiti nella pagina pubblica.
+  save: Salva pagina legale
+  back: Tutte le pagine legali
+  view_public: Vedi pagina pubblica
+  reset: Ripristina testo integrato
+  reset_zone: Testo integrato
+  reset_intro: Elimina la versione personalizzata di questa lingua e pubblica di nuovo il testo integrato.
+  reset_confirm_title: Ripristinare %page% (%locale%) integrato?
+  reset_confirm_message: Il testo personalizzato di %page% in %locale% verrà eliminato. L’operazione è irreversibile.
+  reset_confirm: Ripristina
+  column:
+    page: Pagina
+    locale: '%locale%'
+  tab:
+    label: Lingue
+    locale: '%locale%'
+  field:
+    title: Titolo
+    body: Testo
+    body_help: Titoli, elenchi, link, tabelle ed enfasi vengono mantenuti; script, stili e contenuti incorporati vengono rimossi al salvataggio.
+flash:
+  saved: Pagina legale salvata per questa lingua.
+  reset_done: Il testo integrato è di nuovo pubblicato per questa lingua.
+  empty_body: Aggiungi del testo oppure usa Ripristina testo integrato per eliminare la pagina personalizzata.
+  invalid_csrf: Il modulo è scaduto. Riprova.
+banner:
+  title: '{1} Resta 1 segnaposto legale.|]1,Inf[ Restano %count% segnaposto legali.'
+  intro: Sostituiscili nelle pagine legali prima della produzione; la revisione legale resta necessaria.
+  more: '{1} …e 1 altro.|]1,Inf[ …e altri %count%.'
+  open_admin: Apri pagine legali
+cookies:
+  column:
+    name: Nome
+    category: Categoria
+    duration: Durata
+    purpose: Finalità

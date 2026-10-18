@@ -1,0 +1,55 @@
+# NowoLegalKitBundle (de): admin, navigation, footer, flashes and banner of the legal kit (REQ-I18N-003).
+page:
+  notice: Impressum
+  privacy: Datenschutzerklärung
+  terms: Nutzungsbedingungen
+  cookies: Cookie-Hinweis
+nav:
+  label: Rechtliches
+  manage_cookies: Cookie-Einstellungen
+public:
+  last_updated: 'Zuletzt aktualisiert: %date%'
+admin:
+  title: Rechtliche Seiten
+  intro: Jede Installation veröffentlicht ihr eigenes Impressum, ihre Datenschutzerklärung, Nutzungsbedingungen und Cookie-Seite. Der integrierte Text bleibt bestehen, bis Sie eine Sprache speichern. Eine rechtliche Prüfung ist weiterhin nötig, bevor Sie personenbezogene Daten anderer verarbeiten.
+  empty: Es ist keine rechtliche Seite aktiviert.
+  custom: Angepasst
+  builtin: Integriert
+  placeholders: '{1} 1 Platzhalter|]1,Inf[ %count% Platzhalter'
+  edit_title: '%page% (%locale%)'
+  edit_intro: Der Editor beginnt mit dem integrierten Text. Beim Speichern wird HTML nur für diese Sprache abgelegt; andere Sprachen bleiben unverändert. Tokens wie %brand% werden auf der öffentlichen Seite ersetzt.
+  save: Rechtliche Seite speichern
+  back: Alle rechtlichen Seiten
+  view_public: Öffentliche Seite ansehen
+  reset: Integrierten Text wiederherstellen
+  reset_zone: Integrierter Text
+  reset_intro: Löscht die angepasste Fassung dieser Sprache und veröffentlicht wieder den integrierten Text.
+  reset_confirm_title: Integrierte Fassung von %page% (%locale%) wiederherstellen?
+  reset_confirm_message: Der angepasste Text von %page% in %locale% wird gelöscht. Dies kann nicht rückgängig gemacht werden.
+  reset_confirm: Wiederherstellen
+  column:
+    page: Seite
+    locale: '%locale%'
+  tab:
+    label: Sprachen
+    locale: '%locale%'
+  field:
+    title: Titel
+    body: Text
+    body_help: Überschriften, Listen, Links, Tabellen und Hervorhebungen bleiben erhalten; Skripte, Stile und Einbettungen werden beim Speichern entfernt.
+flash:
+  saved: Rechtliche Seite für diese Sprache gespeichert.
+  reset_done: Für diese Sprache wird wieder der integrierte Text veröffentlicht.
+  empty_body: Fügen Sie Text hinzu oder stellen Sie den integrierten Text wieder her, um die angepasste Seite zu entfernen.
+  invalid_csrf: Das Formular ist abgelaufen. Bitte erneut versuchen.
+banner:
+  title: '{1} 1 rechtlicher Platzhalter übrig.|]1,Inf[ %count% rechtliche Platzhalter übrig.'
+  intro: Ersetzen Sie sie vor dem Produktivbetrieb in den rechtlichen Seiten; eine rechtliche Prüfung bleibt nötig.
+  more: '{1} …und 1 weiterer.|]1,Inf[ …und %count% weitere.'
+  open_admin: Rechtliche Seiten öffnen
+cookies:
+  column:
+    name: Name
+    category: Kategorie
+    duration: Dauer
+    purpose: Zweck

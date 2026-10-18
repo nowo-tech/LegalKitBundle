@@ -1,0 +1,29 @@
+{#
+  Legal pages admin index (REQ-UI-003): UiKit list scaffold.
+  View model: page (View\ListPage, LegalDocumentAdminController::index()); one row per page: page (View\Label), slug,
+  cells (locale => {custom, updated_at, updated_by, hits, edit_href}); extra variable: locales (default first).
+  Data block: nowo_ui_list_row — page label, then one cell per locale with the Built-in / Custom badge
+  (badge_neutral / badge_success), the placeholder badge (badge_warning) and the last update (muted).
+#}
+{% extends '@NowoUiKit/page/list.html.twig' %}
+
+{% block nowo_ui_list_row %}
+    {%- set _b = page.bundle -%}
+    <td class="{{ nowo_ui_class('table_cell', _b) }}" data-label="{{ 'admin.column.page'|trans({}, 'NowoLegalKitBundle') }}" data-required="1">
+        <strong>{{ row.page|nowo_ui_trans }}</strong>
+    </td>
+    {% for locale in locales %}
+        {%- set cell = row.cells[locale] -%}
+        <td class="{{ nowo_ui_class('table_cell', _b) }}" data-label="{{ 'admin.column.locale'|trans({'%locale%': locale}, 'NowoLegalKitBundle') }}">
+            <a class="{{ nowo_ui_class('btn_link', _b) }}" href="{{ cell.edit_href }}" data-testid="nowo-legal-kit-edit-{{ row.slug }}-{{ locale }}">
+                <span class="{{ nowo_ui_class(cell.custom ? 'badge_success' : 'badge_neutral', _b) }}">{{ (cell.custom ? 'admin.custom' : 'admin.builtin')|trans({}, 'NowoLegalKitBundle') }}</span>
+            </a>
+            {% if cell.hits > 0 %}
+                <span class="{{ nowo_ui_class('badge_warning', _b) }}">{{ 'admin.placeholders'|trans({'%count%': cell.hits}, 'NowoLegalKitBundle') }}</span>
+            {% endif %}
+            {% if cell.updated_at %}
+                <span class="{{ nowo_ui_class('muted', _b) }}">{{ cell.updated_at|date('Y-m-d') }}{% if cell.updated_by %} · {{ cell.updated_by }}{% endif %}</span>
+            {% endif %}
+        </td>
+    {% endfor %}
+{% endblock %}
