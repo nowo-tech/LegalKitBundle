@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1b5e4ba5d1f13f841af9192feafacf2f",
+    "content-hash": "0ae4dad1f5ed86ae48551b8c3d7e8de8",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -1294,16 +1294,16 @@
         },
         {
             "name": "nowo-tech/cookie-consent-bundle",
-            "version": "v1.16.3",
+            "version": "v1.17.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/CookieConsentBundle.git",
-                "reference": "2b37e0434ad0aaf3a072739b662d2b120889ffd9"
+                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/2b37e0434ad0aaf3a072739b662d2b120889ffd9",
-                "reference": "2b37e0434ad0aaf3a072739b662d2b120889ffd9",
+                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/d13247d600d6b23564da7f9ae64634d5e6fd2e40",
+                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40",
                 "shasum": ""
             },
             "require": {
@@ -1381,7 +1381,7 @@
                 "issues": "https://github.com/nowo-tech/CookieConsentBundle/issues",
                 "source": "https://github.com/nowo-tech/CookieConsentBundle"
             },
-            "time": "2026-10-18T15:17:55+00:00"
+            "time": "2026-10-18T21:35:40+00:00"
         },
         {
             "name": "nowo-tech/form-kit-bundle",
@@ -1498,7 +1498,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/legal-kit-bundle",
-                "reference": "d389ea86dacce8e09b49a954010dadfbcaaea1be"
+                "reference": "e2897aaa7180ae668802d5bd8344d8b0d39f259f"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.10 || ^3.0",
@@ -1535,7 +1535,7 @@
                 "friendsofphp/php-cs-fixer": "^3.64",
                 "igor-php/igor-php": "^0.9.7",
                 "nowo-tech/ckeditor5-editor-bundle": "^1.9",
-                "nowo-tech/cookie-consent-bundle": "^1.16",
+                "nowo-tech/cookie-consent-bundle": "^1.17",
                 "nowo-tech/outbound-url-guard-bundle": "^1.2",
                 "nowo-tech/phpstan-frankenphp": "^1.1",
                 "nowo-tech/seo-kit-bundle": "^1.14",
