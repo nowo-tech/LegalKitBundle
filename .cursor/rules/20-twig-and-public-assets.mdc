@@ -1,0 +1,18 @@
+---
+description: Twig templates and public bundle assets
+globs:
+  - "templates/**/*.twig"
+  - "src/**/Resources/views/**/*.twig"
+  - "src/Resources/public/**/*"
+alwaysApply: false
+---
+
+Prefer:
+- small, backward-compatible template and public asset changes
+- preserving current block structure
+- local DOM updates
+- reusing existing classes, ids, and hooks
+- minimal asset changes
+
+`src/Resources/public/css/nowo-legal-kit.css` is hand-written (no build). Bundle pages extend UiKit scaffolds or are declared unique in `docs/TEMPLATES.md`; style through UiKit theme slots (`nowo_ui_class()`), never framework utility classes; no inline `<script>` / `style=` / `on*=`; `|raw` only on the sanitiser output (`document.body`). Keep `tests/Integration/PageContractTest.php` green.
+Do not rewrite entire templates or public asset trees for a local change.

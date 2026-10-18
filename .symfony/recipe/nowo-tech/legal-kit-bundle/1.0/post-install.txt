@@ -1,0 +1,15 @@
+<bg=blue;fg=white>                          </>
+<bg=blue;fg=white> Legal Kit Bundle installed </>
+<bg=blue;fg=white>                          </>
+
+Created: config/packages/nowo_legal_kit.yaml and config/routes/nowo_legal_kit.yaml.
+
+Next steps:
+  1. Configure nowo_audit_kit.user_class (your user implements Nowo\AuditKitBundle\Model\AuditUserInterface).
+  2. Create the table: <comment>php bin/console doctrine:migrations:diff && php bin/console doctrine:migrations:migrate</comment>
+  3. security.yaml: PUBLIC_ACCESS for the legal prefix, ROLE_ADMIN for ^/admin/legal.
+  4. Footer: <comment>{{ include('@NowoLegalKitBundle/_footer_nav.html.twig') }}</comment>
+  5. Deploy gate: <comment>php bin/console nowo:legal-kit:check-placeholders</comment>
+  6. Publish the assets: <comment>php bin/console assets:install</comment>
+
+Read docs/INSTALLATION.md and docs/USAGE.md.

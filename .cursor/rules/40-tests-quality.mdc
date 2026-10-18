@@ -1,0 +1,26 @@
+---
+description: Tests and quality rules
+globs:
+  - "tests/**/*.php"
+  - "phpunit.xml*"
+alwaysApply: false
+---
+
+When changing behavior, prefer adding or updating the nearest relevant test.
+
+Prefer:
+- one focused test
+- minimal fixture changes
+- preserving the existing testing style
+- test updates close to the changed behavior
+
+Do not introduce new testing frameworks unless explicitly requested.
+Do not rewrite unrelated tests.
+
+Commands (Docker, from the repository root):
+- `make test` — PHPUnit; `make test-coverage` — PHPUnit with coverage (`coverage-php.txt`)
+- `make coverage-check` — PHPUnit with the ≥ 99% line gate
+- `make qa` — PHP-CS-Fixer check, PHPStan and PHPUnit; `make rector-dry` — Rector dry run
+- `make release-check` — full pre-release gate (QA, Igor, coverage, translations, demos)
+- New HTML handling: extend the sanitiser corpus (`tests/Unit/Sanitizer/DomAllowlistSanitizerTest.php`)
+- `make -C demo/symfony8 test-e2e` — Playwright end-to-end tests against the demo

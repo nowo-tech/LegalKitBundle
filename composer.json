@@ -1,0 +1,160 @@
+{
+    "name": "nowo-tech/legal-kit-bundle",
+    "description": "Operator-editable legal pages for Symfony: legal notice, privacy, terms and cookies per locale with a generic GDPR/LSSI seed in 7 languages, a placeholder gate for deploys, ops-seed portability, a DOM allowlist sanitiser and UiKit admin pages.",
+    "type": "symfony-bundle",
+    "keywords": [
+        "symfony",
+        "symfony-bundle",
+        "bundle",
+        "legal",
+        "legal-notice",
+        "privacy-policy",
+        "terms-of-use",
+        "cookies",
+        "gdpr",
+        "lssi",
+        "i18n",
+        "nowo",
+        "frankenphp"
+    ],
+    "homepage": "https://github.com/nowo-tech/LegalKitBundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Héctor Franco Aceituno",
+            "email": "hectorfranco@nowo.tech",
+            "homepage": "https://github.com/HecFranco",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Nowo.tech",
+            "homepage": "https://nowo.tech"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/nowo-tech/LegalKitBundle/issues",
+        "source": "https://github.com/nowo-tech/LegalKitBundle",
+        "docs": "https://github.com/nowo-tech/LegalKitBundle/tree/main/docs",
+        "changelog": "https://github.com/nowo-tech/LegalKitBundle/blob/main/docs/CHANGELOG.md"
+    },
+    "require": {
+        "php": ">=8.3 <8.6",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "doctrine/doctrine-bundle": "^2.10 || ^3.0",
+        "doctrine/orm": "^3.3",
+        "doctrine/persistence": "^3.0 || ^4.0",
+        "nowo-tech/audit-kit-bundle": "^1.7",
+        "nowo-tech/form-kit-bundle": "^2.12",
+        "nowo-tech/ui-kit-bundle": "^2.4",
+        "psr/event-dispatcher": "^1.0",
+        "symfony/asset": "^7.4 || ^8.0",
+        "symfony/config": "^7.4 || ^8.0",
+        "symfony/console": "^7.4 || ^8.0",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4 || ^8.0",
+        "symfony/form": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "^7.4 || ^8.0",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4 || ^8.0",
+        "symfony/security-core": "^7.4 || ^8.0",
+        "symfony/security-csrf": "^7.4 || ^8.0",
+        "symfony/translation": "^7.4 || ^8.0",
+        "symfony/translation-contracts": "^3.5",
+        "symfony/twig-bundle": "^7.4 || ^8.0",
+        "symfony/validator": "^7.4 || ^8.0",
+        "twig/extra-bundle": "^3.12",
+        "twig/string-extra": "^3.12",
+        "twig/twig": "^3.12"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "igor-php/igor-php": "^0.9.7",
+        "nowo-tech/ckeditor5-editor-bundle": "^1.9",
+        "nowo-tech/cookie-consent-bundle": "^1.16",
+        "nowo-tech/outbound-url-guard-bundle": "^1.2",
+        "nowo-tech/phpstan-frankenphp": "^1.1",
+        "nowo-tech/seo-kit-bundle": "^1.14",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "rector/rector": "^2.0",
+        "symfony/browser-kit": "^7.4 || ^8.0",
+        "symfony/css-selector": "^7.4 || ^8.0",
+        "symfony/dom-crawler": "^7.4 || ^8.0",
+        "symfony/security-bundle": "^7.4 || ^8.0",
+        "symfony/yaml": "^7.4 || ^8.0",
+        "vincentlanglet/twig-cs-fixer": "^3.0"
+    },
+    "suggest": {
+        "nowo-tech/cookie-consent-bundle": "^1.17 — legal routes prepended to disabled_routes / render_routes, legal_privacy as the modal privacy_route fallback, %cookie_inventory% token from the consent inventory",
+        "nowo-tech/ckeditor5-editor-bundle": "^1.9 — CKEditor 5 body widget (editor.type: ckeditor5) and its strict sanitiser as the first pass",
+        "nowo-tech/outbound-url-guard-bundle": "^1.2 — drop private-network / metadata link and image targets from stored legal HTML",
+        "nowo-tech/seo-kit-bundle": "^1.14 — sitemap provider listing every legal page in every locale",
+        "nowo-tech/routing-kit-bundle": "^1.10 — locale-prefixed routing of the host (the bundle registers its own default-locale twins and redirects)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nowo\\LegalKitBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nowo\\LegalKitBundle\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --color=always",
+        "test-coverage": "phpunit --color=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text",
+        "coverage-check": "phpunit --color=always --coverage-text --coverage-clover=coverage.xml",
+        "cs-check": "php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php",
+        "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "rector": "rector process",
+        "rector-dry": "rector process --dry-run --no-progress-bar",
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "twig:lint": "twig-cs-fixer lint --config=.twig-cs-fixer.php",
+        "twig:fix": "twig-cs-fixer fix --config=.twig-cs-fixer.php",
+        "composer-validate": "composer validate --strict",
+        "qa": [
+            "@cs-check",
+            "@phpstan",
+            "@test"
+        ],
+        "igor": "igor-php --no-agent ."
+    },
+    "scripts-descriptions": {
+        "test": "Run PHPUnit tests",
+        "test-coverage": "Run PHPUnit tests with code coverage",
+        "coverage-check": "Run PHPUnit with coverage text (CI gate)",
+        "cs-check": "Check code style with PHP-CS-Fixer",
+        "cs-fix": "Fix code style with PHP-CS-Fixer",
+        "rector": "Apply Rector refactoring",
+        "rector-dry": "Run Rector in dry-run mode",
+        "phpstan": "Run PHPStan static analysis",
+        "twig:lint": "Lint Twig templates (Twig-CS-Fixer)",
+        "twig:fix": "Fix Twig templates (Twig-CS-Fixer)",
+        "composer-validate": "Validate composer.json (composer validate --strict)",
+        "qa": "Run all quality assurance checks",
+        "igor": "Run Igor FrankenPHP worker-state audit (REQ-CS-008)"
+    },
+    "archive": {
+        "exclude": [
+            "/demo",
+            "/.cursor"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "root-version": "1.0.0-dev"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "extra": {
+        "nowo-package-version": "1.0.0",
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

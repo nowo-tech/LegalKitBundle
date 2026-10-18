@@ -1,0 +1,10 @@
+# Legal Kit Bundle — see vendor/nowo-tech/legal-kit-bundle/docs/CONFIGURATION.md
+nowo_legal_kit:
+    locales: ['%kernel.default_locale%']
+    default_locale: '%kernel.default_locale%'
+    brand_name: ''          # %brand% token; the placeholder gate reports it while empty
+    # routing:
+    #     default_locale_style: unprefixed   # prefixed: every locale under /{_locale}/legal/…
+    security:
+        access_roles: [ROLE_ADMIN]
+        allow_unauthenticated: false        # never true in production
