@@ -77,4 +77,5 @@ Update README **Tests and coverage** percentages after each release when coverag
 
 | Version | Date | Notes |
 | --- | --- | --- |
+| 1.0.1 | 2026-10-18 | Test kernel registers the PSR-20 clock on Symfony 7.4 (CI matrix green). |
 | 1.0.0 | 2026-10-18 | First release: legal pages kit extracted from Beacon and five other apps (spec 155). |

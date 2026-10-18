@@ -7,10 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.1] - 2026-10-18](#101---2026-10-18)
+  - [Fixed](#fixed)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added)
 
 ## [Unreleased]
+
+## [1.0.1] - 2026-10-18
+
+### Fixed
+
+- Test suite on Symfony 7.4: the test kernel registers a PSR-20 `clock` service when FrameworkBundle does not (7.4
+  only registers it when `symfony/clock` is a root requirement; AuditKit autowires it). No change in the bundle code;
+  the GitHub CI matrix (PHP 8.3–8.5 × Symfony 7.4 / 8.0 / 8.1 / 8.2) is green.
 
 ## [1.0.0] - 2026-10-18
 

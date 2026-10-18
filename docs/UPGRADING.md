@@ -5,12 +5,18 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.1 (2026-10-18)](#101-2026-10-18)
 - [1.0.0 (2026-10-18)](#100-2026-10-18)
   - [From a legal copy (`src/Shared/Legal`)](#from-a-legal-copy-srcsharedlegal)
   - [Template contract (1.0)](#template-contract-10)
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## 1.0.1 (2026-10-18)
+
+No change for integrators (test kernel fix for Symfony 7.4). Hosts on Symfony 7.4 need a PSR-20 `clock` service for
+AuditKit: require `symfony/clock` in the application (Flex applications already do).
 
 ## 1.0.0 (2026-10-18)
 

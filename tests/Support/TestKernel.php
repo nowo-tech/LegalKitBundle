@@ -29,6 +29,9 @@ use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\BaseNode;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
@@ -117,6 +120,22 @@ final class TestKernel extends Kernel
     {
         $tool = new SchemaTool($entityManager);
         $tool->createSchema($entityManager->getMetadataFactory()->getAllMetadata());
+    }
+
+    /**
+     * Symfony 7.4 registers the `clock` service only when symfony/clock is a root requirement: provide it otherwise
+     * (AuditKit autowires the PSR-20 clock; Flex applications have symfony/clock).
+     */
+    protected function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new class implements CompilerPassInterface {
+            public function process(ContainerBuilder $container): void
+            {
+                if (!$container->has('clock')) {
+                    $container->register('clock', NativeClock::class);
+                }
+            }
+        }, PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
     }
 
     protected function configureContainer(ContainerBuilder $container, LoaderInterface $loader): void
