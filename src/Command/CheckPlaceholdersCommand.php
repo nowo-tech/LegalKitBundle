@@ -29,7 +29,7 @@ use const JSON_UNESCAPED_UNICODE;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-#[AsCommand(name: self::NAME, description: 'Fail while published legal pages still contain generic seed placeholders')]
+#[AsCommand(name: self::NAME, description: 'Fail while published legal pages still contain generic seed placeholders', aliases: [self::LEGACY_ALIAS])]
 final class CheckPlaceholdersCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:check-placeholders';

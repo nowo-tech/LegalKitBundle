@@ -9,6 +9,7 @@ use Nowo\Ckeditor5EditorBundle\Security\AllowlistCkeditor5HtmlSanitizer;
 use Nowo\LegalKitBundle\Command\AdaptSeedCommand;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
+use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
 use Nowo\LegalKitBundle\EventListener\SeoKitHeadListener;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
@@ -30,10 +31,13 @@ use Throwable;
 use function array_fill_keys;
 use function array_key_exists;
 use function class_exists;
+use function implode;
 use function in_array;
 use function interface_exists;
 use function is_a;
 use function is_array;
+use function ltrim;
+use function preg_quote;
 
 /**
  * Loads `nowo_legal_kit`: services, the resolved optional integrations (CKEditor 5, OutboundUrlGuard, SeoKit,
@@ -160,6 +164,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $container->setParameter($p . 'default_locale', $config['default_locale']);
         $container->setParameter($p . 'brand_name', $config['brand_name']);
         $container->setParameter($p . 'pages', $config['pages']);
+        $container->setParameter($p . 'slug_requirement', self::slugRequirement($config['pages']));
         $container->setParameter($p . 'routing.path_prefix', $routing['path_prefix']);
         $container->setParameter($p . 'routing.default_locale_style', $routing['default_locale_style']);
         $container->setParameter($p . 'routing.legacy_admin_aliases', $routing['legacy_admin_aliases']);
@@ -176,6 +181,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $container->setParameter($p . 'public.cache.shared_max_age', $public['cache']['shared_max_age']);
         $container->setParameter($p . 'web_ui.enabled', $webUi['enabled']);
         $container->setParameter($p . 'web_ui.path_prefix', $webUi['path_prefix']);
+        $container->setParameter($p . 'web_ui.route_path', ltrim($webUi['path_prefix'], '/'));
         $container->setParameter($p . 'web_ui.layout_template', $webUi['layout_template']);
         $container->setParameter($p . 'web_ui.templates', $webUi['templates']);
         $container->setParameter($p . 'web_ui.templates.public_page', $webUi['templates']['public_page']);
@@ -197,6 +203,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         if ($doctrine['table_prefix'] !== '') {
             $container->register(TablePrefixListener::class, TablePrefixListener::class)
                 ->setArguments([$doctrine['table_prefix']])
+                // Conditional registration (non-empty prefix only): tagged here, not through an attribute.
                 ->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
         }
 
@@ -213,8 +220,27 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         if ($seoKit && $seo['head'] !== false && class_exists(SeoRuntime::class)) {
             $container->register(SeoKitHeadListener::class, SeoKitHeadListener::class)
                 ->setArguments([new Reference(SeoRuntime::class), new Reference(LegalLocales::class)])
-                ->addTag('kernel.event_listener');
+                ->addTag('kernel.event_listener', ['event' => LegalPageRenderEvent::class, 'method' => '__invoke']);
         }
+    }
+
+    /**
+     * Route requirement of the enabled slugs (`notice|privacy|…`).
+     *
+     * @param mixed $pages Processed `pages` configuration
+     *
+     * @return string The requirement
+     */
+    public static function slugRequirement(mixed $pages): string
+    {
+        $slugs = [];
+        foreach (is_array($pages) ? $pages : [] as $slug => $options) {
+            if (!is_array($options) || ($options['enabled'] ?? true) !== false) {
+                $slugs[] = preg_quote((string) $slug, '#');
+            }
+        }
+
+        return $slugs === [] ? '(?!)' : implode('|', $slugs);
     }
 
     /**
@@ -246,11 +272,17 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         }
     }
 
+    /**
+     * Legacy console aliases (#[AsCommand] aliases) are dropped with `console.legacy_aliases: false`: the command is
+     * then tagged explicitly with its name only.
+     */
     private function configureCommands(ContainerBuilder $container, bool $legacyAliases): void
     {
+        if ($legacyAliases) {
+            return;
+        }
         foreach ([CheckPlaceholdersCommand::class, AdaptSeedCommand::class] as $command) {
-            $name = $command::NAME . ($legacyAliases ? '|' . $command::LEGACY_ALIAS : '');
-            $container->getDefinition($command)->clearTag('console.command')->addTag('console.command', ['command' => $name]);
+            $container->getDefinition($command)->setAutoconfigured(false)->addTag('console.command', ['command' => $command::NAME]);
         }
     }
 

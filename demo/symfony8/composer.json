@@ -11,7 +11,7 @@
         "doctrine/orm": "^3.3",
         "nowo-tech/audit-kit-bundle": "^1.7",
         "nowo-tech/ckeditor5-editor-bundle": "^1.9",
-        "nowo-tech/cookie-consent-bundle": "^1.16",
+        "nowo-tech/cookie-consent-bundle": "^1.17",
         "nowo-tech/form-kit-bundle": "^2.12",
         "nowo-tech/legal-kit-bundle": "@dev",
         "nowo-tech/ui-kit-bundle": "^2.4",

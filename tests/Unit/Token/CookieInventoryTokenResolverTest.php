@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\Token;
 
-use Nowo\LegalKitBundle\Token\CookieInventoryTokenResolver;
-use Nowo\LegalKitBundle\Token\LegalTokenContext;
 use Nowo\CookieConsentBundle\Config\CookieInventoryNormalizer;
 use Nowo\CookieConsentBundle\Config\CookieInventoryProvider;
 use Nowo\CookieConsentBundle\Repository\CookieDefinitionRepository;
+use Nowo\LegalKitBundle\Token\CookieInventoryTokenResolver;
+use Nowo\LegalKitBundle\Token\LegalTokenContext;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use RuntimeException;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 use Twig\TwigFunction;

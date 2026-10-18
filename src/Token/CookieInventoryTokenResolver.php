@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Token;
 
 use Nowo\CookieConsentBundle\Config\CookieInventoryProvider;
+use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Throwable;
 use Twig\Environment;
@@ -22,6 +23,7 @@ use function is_string;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsTaggedItem(priority: -100)]
 final readonly class CookieInventoryTokenResolver implements LegalTokenResolverInterface
 {
     public const string TEMPLATE = '@NowoLegalKitBundle/_cookie_inventory.html.twig';
@@ -31,7 +33,7 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
     /**
      * @param Environment $twig Twig environment (CookieConsent registers the inventory function there)
      * @param CookieInventoryProvider|null $inventoryProvider CookieConsent inventory (static YAML inventory when no
-     *                                                         database profile is resolved)
+     *                                                        database profile is resolved)
      * @param RequestStack|null $requestStack Locale of the static inventory
      */
     public function __construct(

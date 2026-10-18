@@ -23,7 +23,9 @@
 ## Request flow
 
 1. `LegalRouteLoader` (route type `nowo_legal_kit`) generates `legal_<slug>` and its twin or bare redirect from the
-   catalogue and the locales; admin routes when `web_ui.enabled`.
+   catalogue and the locales (the page set is configuration, so these routes are built, like AuthKit's route loader),
+   and — when `web_ui.enabled` — imports the admin `#[Route]` attributes of `LegalDocumentAdminController`, whose path
+   prefix and slug / locale requirements are container parameters resolved by the router (REQ-SF-004).
 2. `LegalPageController::show()` redirects `/{default}/…` (unprefixed style), resolves the document, sets
    `_content_locale`, dispatches `LegalPageRenderEvent` and renders the unique public page with cache headers.
 3. `LegalDocumentResolver` returns a `ResolvedLegalDocument`: stored row with text, else the seed of the locale, else
@@ -51,5 +53,9 @@ One table `legal_document` (see [INSTALLATION.md](INSTALLATION.md#database-table
 - **Tokens at render time.** Stored copies stay linked to configuration (brand, company profile).
 - **Soft integrations.** CookieConsent, SeoKit, CKEditor, OutboundUrlGuard and the AuditKit action log are detected
   by registered bundle / service; nothing breaks without them.
+- **Attributes for wiring.** Commands (`#[AsCommand]`, legacy aliases included), controllers (`#[AsController]`,
+  admin `#[Route]`), subscribers (autoconfigured `EventSubscriberInterface`) and tags (`#[AsTaggedItem]`,
+  `#[AutoconfigureTag]`) are declared on the classes (REQ-SF-003); the services registered only when an option or an optional bundle is present (table prefix
+  listener, SeoKit bridges, action log listener) are tagged where they are registered.
 - **Stable public contract.** Route names `legal_<slug>` and URLs are the contract of REQ-CC-003; the old admin route
   names and console names survive as deprecated aliases in 1.x.

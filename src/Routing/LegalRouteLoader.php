@@ -9,11 +9,10 @@ use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Symfony\Component\Config\Loader\Loader;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
-use function implode;
-use function preg_quote;
 use function rtrim;
 
 /**
@@ -29,6 +28,7 @@ use function rtrim;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AutoconfigureTag('routing.loader')]
 final class LegalRouteLoader extends Loader
 {
     public const string TYPE = 'nowo_legal_kit';
@@ -59,7 +59,6 @@ final class LegalRouteLoader extends Loader
      * @param string $pathPrefix `routing.path_prefix`
      * @param string $defaultLocaleStyle `routing.default_locale_style` (unprefixed|prefixed)
      * @param bool $webUiEnabled `web_ui.enabled`
-     * @param string $adminPathPrefix `web_ui.path_prefix`
      * @param bool $legacyAdminAliases `routing.legacy_admin_aliases`
      */
     public function __construct(
@@ -68,7 +67,6 @@ final class LegalRouteLoader extends Loader
         private readonly string $pathPrefix = '/legal',
         private readonly string $defaultLocaleStyle = 'unprefixed',
         private readonly bool $webUiEnabled = true,
-        private readonly string $adminPathPrefix = '/admin/legal',
         private readonly bool $legacyAdminAliases = true,
     ) {
         parent::__construct();
@@ -100,7 +98,7 @@ final class LegalRouteLoader extends Loader
         }
 
         if ($this->webUiEnabled && $this->catalog->slugs() !== []) {
-            $this->addAdminRoutes($routes, $locales);
+            $this->addAdminRoutes($routes);
         }
 
         return $routes;
@@ -111,26 +109,14 @@ final class LegalRouteLoader extends Loader
         return $type === self::TYPE;
     }
 
-    private function addAdminRoutes(RouteCollection $routes, string $locales): void
+    private function addAdminRoutes(RouteCollection $routes): void
     {
-        $slugs = [];
-        foreach ($this->catalog->slugs() as $slug) {
-            $slugs[] = preg_quote($slug, '#');
+        // Admin routes are #[Route] attributes on the controller (REQ-SF-004), with the configured prefix and the
+        // enabled slugs / locales as container parameters resolved by the router.
+        $admin = $this->import(LegalDocumentAdminController::class, 'attribute');
+        if ($admin instanceof RouteCollection) {
+            $routes->addCollection($admin);
         }
-        $requirements = ['slug' => implode('|', $slugs), 'locale' => $locales];
-        $admin        = rtrim($this->adminPathPrefix, '/');
-
-        $routes->add(self::ADMIN_INDEX, (new Route($admin))
-            ->setDefaults(['_controller' => LegalDocumentAdminController::class . '::index'])
-            ->setMethods(['GET', 'HEAD']));
-        $routes->add(self::ADMIN_EDIT, (new Route($admin . '/{slug}/{locale}'))
-            ->setDefaults(['_controller' => LegalDocumentAdminController::class . '::edit'])
-            ->setRequirements($requirements)
-            ->setMethods(['GET', 'HEAD', 'POST']));
-        $routes->add(self::ADMIN_RESET, (new Route($admin . '/{slug}/{locale}/reset'))
-            ->setDefaults(['_controller' => LegalDocumentAdminController::class . '::reset'])
-            ->setRequirements($requirements)
-            ->setMethods(['POST']));
 
         if (!$this->legacyAdminAliases) {
             return;

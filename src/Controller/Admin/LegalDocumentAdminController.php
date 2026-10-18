@@ -36,7 +36,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
+use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
@@ -49,11 +51,18 @@ use Twig\Environment;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsController]
 final readonly class LegalDocumentAdminController
 {
     public const string BUNDLE = 'NowoLegalKitBundle';
 
     public const string RESET_CSRF_PREFIX = 'nowo_legal_kit_reset_';
+
+    /** `web_ui.path_prefix`, resolved by the router from the container parameter. */
+    public const string PATH_PREFIX = '/%nowo_legal_kit.web_ui.route_path%';
+
+    /** Enabled slugs and locales (container parameters computed from the configuration). */
+    public const array REQUIREMENTS = ['slug' => '%nowo_legal_kit.slug_requirement%', 'locale' => '%nowo_legal_kit.locale_requirement%'];
 
     /**
      * @param LegalPageCatalogInterface $catalog Enabled pages
@@ -98,6 +107,7 @@ final readonly class LegalDocumentAdminController
      *
      * @return Response The result
      */
+    #[Route(self::PATH_PREFIX, name: LegalRouteLoader::ADMIN_INDEX, methods: ['GET', 'HEAD'])]
     public function index(): Response
     {
         $custom = $this->documents->customMap();
@@ -149,6 +159,7 @@ final readonly class LegalDocumentAdminController
      *
      * @return Response The result
      */
+    #[Route(self::PATH_PREFIX . '/{slug}/{locale}', name: LegalRouteLoader::ADMIN_EDIT, requirements: self::REQUIREMENTS, methods: ['GET', 'HEAD', 'POST'])]
     public function edit(Request $request, string $slug, string $locale): Response
     {
         $legalPage = $this->legalPage($slug, $locale);
@@ -250,6 +261,7 @@ final readonly class LegalDocumentAdminController
      *
      * @return RedirectResponse The result
      */
+    #[Route(self::PATH_PREFIX . '/{slug}/{locale}/reset', name: LegalRouteLoader::ADMIN_RESET, requirements: self::REQUIREMENTS, methods: ['POST'])]
     public function reset(Request $request, string $slug, string $locale): RedirectResponse
     {
         $this->legalPage($slug, $locale);

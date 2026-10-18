@@ -10,6 +10,7 @@ use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Token\LegalTokenContext;
 use Nowo\LegalKitBundle\Token\LegalTokenRenderer;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Contracts\Service\ResetInterface;
 
 use function array_merge;
@@ -25,6 +26,7 @@ use function str_contains;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AutoconfigureTag('kernel.reset', ['method' => 'reset'])]
 final class LegalPlaceholderScanner implements ResetInterface
 {
     /** @var array<string, list<PlaceholderHit>> */

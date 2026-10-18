@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Seed;
 
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\LocaleAwareInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -18,6 +19,7 @@ use Twig\Environment;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsTaggedItem(priority: -100)]
 final readonly class TwigSeedProvider implements LegalSeedProviderInterface
 {
     public const string DOMAIN = 'NowoLegalKitSeed';

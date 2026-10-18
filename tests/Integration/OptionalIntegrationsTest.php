@@ -31,6 +31,14 @@ final class OptionalIntegrationsTest extends KernelTestCase
         self::assertContains('legal_*', $render);
         self::assertContains('app_*', $render);
         self::assertTrue($container->getParameter('nowo_legal_kit.cookie_consent.installed'));
+        self::assertSame('legal_privacy', $container->getParameter('nowo_cookie_consent.privacy_route'), 'CookieConsent 1.17 privacy_route fallback');
+    }
+
+    public function testHostPrivacyRouteWins(): void
+    {
+        $container = $this->bootKernel([], ['cookie_consent'], true, ['nowo_cookie_consent' => ['privacy_route' => 'legal_notice']])->getContainer();
+
+        self::assertSame('legal_notice', $container->getParameter('nowo_cookie_consent.privacy_route'));
     }
 
     public function testCookieConsentRenderWhitelistIsNotCreated(): void

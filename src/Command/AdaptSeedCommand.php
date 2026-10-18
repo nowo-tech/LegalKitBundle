@@ -47,7 +47,7 @@ use const JSON_UNESCAPED_UNICODE;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-#[AsCommand(name: self::NAME, description: 'Render the legal seed, apply string replacements and emit the legal_documents JSON')]
+#[AsCommand(name: self::NAME, description: 'Render the legal seed, apply string replacements and emit the legal_documents JSON', aliases: [self::LEGACY_ALIAS])]
 final class AdaptSeedCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:adapt-seed';

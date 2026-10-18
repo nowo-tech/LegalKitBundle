@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
+use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
 use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
@@ -147,6 +148,36 @@ final class ExtensionTest extends TestCase
                 return $this->alias;
             }
         };
+    }
+
+    public function testSlugRequirement(): void
+    {
+        self::assertSame('notice|a\\.b', NowoLegalKitExtension::slugRequirement(['notice' => [], 'terms' => ['enabled' => false], 'a.b' => 'x']));
+        self::assertSame('(?!)', NowoLegalKitExtension::slugRequirement(null));
+    }
+
+    public function testIntegrationPassLocaleRequirement(): void
+    {
+        $container = $this->loaded(['locales' => '%app.locales%', 'default_locale' => 'es']);
+        $container->setParameter('app.locales', ['en', 'es']);
+        (new IntegrationPass())->process($container);
+        self::assertSame('es|en', $container->getParameter('nowo_legal_kit.locale_requirement'));
+
+        $container = $this->loaded(['locales' => '%env(csv:APP_LOCALES)%']);
+        (new IntegrationPass())->process($container);
+        self::assertSame(IntegrationPass::GENERIC_LOCALE_REQUIREMENT, $container->getParameter('nowo_legal_kit.locale_requirement'));
+
+        $container = new ContainerBuilder();
+        (new IntegrationPass())->process($container);
+        self::assertSame(IntegrationPass::GENERIC_LOCALE_REQUIREMENT, $container->getParameter('nowo_legal_kit.locale_requirement'));
+    }
+
+    public function testLegacyConsoleAliasesCanBeDropped(): void
+    {
+        $container = $this->loaded(['console' => ['legacy_aliases' => false]]);
+
+        self::assertSame([['command' => 'nowo:legal-kit:check-placeholders']], $container->getDefinition(CheckPlaceholdersCommand::class)->getTag('console.command'));
+        self::assertFalse($container->getDefinition(CheckPlaceholdersCommand::class)->isAutoconfigured());
     }
 
     public function testPrivacyRouteFallbackWithCookieConsent117(): void

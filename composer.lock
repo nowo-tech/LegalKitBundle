@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6c28e247b4e14a3ca1b401659d58a5c2",
+    "content-hash": "99fe8d4b83af9de32c7a11ed4d0ef7d2",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -6629,16 +6629,16 @@
         },
         {
             "name": "nowo-tech/cookie-consent-bundle",
-            "version": "v1.16.3",
+            "version": "v1.17.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/CookieConsentBundle.git",
-                "reference": "2b37e0434ad0aaf3a072739b662d2b120889ffd9"
+                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/2b37e0434ad0aaf3a072739b662d2b120889ffd9",
-                "reference": "2b37e0434ad0aaf3a072739b662d2b120889ffd9",
+                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/d13247d600d6b23564da7f9ae64634d5e6fd2e40",
+                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40",
                 "shasum": ""
             },
             "require": {
@@ -6716,7 +6716,7 @@
                 "issues": "https://github.com/nowo-tech/CookieConsentBundle/issues",
                 "source": "https://github.com/nowo-tech/CookieConsentBundle"
             },
-            "time": "2026-10-18T15:17:55+00:00"
+            "time": "2026-10-18T21:35:40+00:00"
         },
         {
             "name": "nowo-tech/outbound-url-guard-bundle",

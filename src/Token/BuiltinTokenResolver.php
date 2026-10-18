@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Token;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
 
 /**
  * Built-in tokens: `%brand%` (`nowo_legal_kit.brand_name`; unresolved — so reported — while empty) and
@@ -14,6 +15,7 @@ use DateTimeInterface;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsTaggedItem(priority: -100)]
 final readonly class BuiltinTokenResolver implements LegalTokenResolverInterface
 {
     /**

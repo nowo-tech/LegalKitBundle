@@ -72,7 +72,7 @@
         "friendsofphp/php-cs-fixer": "^3.64",
         "igor-php/igor-php": "^0.9.7",
         "nowo-tech/ckeditor5-editor-bundle": "^1.9",
-        "nowo-tech/cookie-consent-bundle": "^1.16",
+        "nowo-tech/cookie-consent-bundle": "^1.17",
         "nowo-tech/outbound-url-guard-bundle": "^1.2",
         "nowo-tech/phpstan-frankenphp": "^1.1",
         "nowo-tech/seo-kit-bundle": "^1.14",
