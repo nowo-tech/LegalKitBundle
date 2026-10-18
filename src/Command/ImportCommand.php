@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Command;
 use InvalidArgumentException;
 use JsonException;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,6 +23,8 @@ use function is_string;
 use function json_decode;
 use function sprintf;
 
+use const JSON_THROW_ON_ERROR;
+
 /**
  * Imports `legal_documents` JSON (a list, or an ops-seed object with a `legal_documents` key): validates every
  * entry, then upserts sanitised rows in one flush (`--dry-run` validates only).
@@ -29,6 +32,7 @@ use function sprintf;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Import legal_documents JSON (upsert, sanitised)')]
 final class ImportCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:import';
@@ -45,7 +49,6 @@ final class ImportCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Import legal_documents JSON (upsert, sanitised)')
             ->addArgument('file', InputArgument::REQUIRED, 'JSON file: a legal_documents list or an object with a legal_documents key')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Validate only, write nothing');
     }
@@ -61,7 +64,7 @@ final class ImportCommand extends Command
         }
 
         try {
-            $decoded = json_decode((string) file_get_contents($file), true, 512, \JSON_THROW_ON_ERROR);
+            $decoded = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
             if (is_array($decoded) && isset($decoded['legal_documents'])) {
                 $decoded = $decoded['legal_documents'];
             }

@@ -29,6 +29,8 @@ final readonly class SeoKitHeadListener
 
     /**
      * Writes the head overrides of the page.
+     *
+     * @return void The overrides are written into SeoRuntime
      */
     public function __invoke(LegalPageRenderEvent $event): void
     {
@@ -41,6 +43,7 @@ final readonly class SeoKitHeadListener
             $alternates[] = ['locale' => 'x-default', 'url' => $event->alternates[$default], 'hreflang' => 'x-default'];
         }
 
+        // @igor-ignore - SeoRuntime is SeoKit per-request state, reset by SeoKit (kernel.reset / terminate)
         $this->runtime->set([
             'title'      => $event->document->title,
             'canonical'  => $event->canonicalUrl,

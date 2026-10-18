@@ -30,6 +30,8 @@ final class LegalDocumentType extends FormKitAbstractType
     /**
      * @param FormBuilderInterface<mixed> $builder
      * @param array<string, mixed> $options
+     *
+     * @return void Nothing (side effects only)
      */
     #[Override]
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -37,6 +39,7 @@ final class LegalDocumentType extends FormKitAbstractType
         $this->withBuilder($builder, function () use ($options): void {
             $this->addTextField('title', [
                 'label'       => 'admin.field.title',
+                'empty_data'  => '',
                 'help'        => false,
                 'placeholder' => false,
                 'constraints' => [new NotBlank(), new Length(max: LegalDocument::TITLE_MAX_LENGTH)],

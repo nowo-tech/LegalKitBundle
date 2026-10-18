@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Tests\Integration;
 
 use Nowo\LegalKitBundle\EventListener\ActionLogListener;
 use Nowo\LegalKitBundle\Tests\Support\Entity\ActionLog;
+use Nowo\LegalKitBundle\Tests\Support\Entity\User;
 use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
 
 /**
@@ -15,7 +16,7 @@ final class ActionLogTest extends KernelTestCase
 {
     public function testEditsAreRecorded(): void
     {
-        $kernel = $this->bootKernel([], [], true, ['nowo_audit_kit' => ['action_log' => ['entity_class' => ActionLog::class]]]);
+        $kernel = $this->bootKernel([], [], true, ['nowo_audit_kit' => ['user_class' => User::class, 'action_log' => ['entity_class' => ActionLog::class]]]);
         $client = $this->adminClient($kernel);
 
         $crawler = $client->request('GET', '/admin/legal/terms/en');

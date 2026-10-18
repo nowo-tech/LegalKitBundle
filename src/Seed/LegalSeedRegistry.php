@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Seed;
 
+use function in_array;
+
 /**
  * Chain of seed providers (priority order) with the optional `seed.fallback_locale`.
  *
@@ -32,6 +34,8 @@ final readonly class LegalSeedRegistry
 
     /**
      * The seed of a page in a locale, falling back to `seed.fallback_locale`; null when nobody has one.
+     *
+     * @return ?LegalSeed The result
      */
     public function find(string $slug, string $locale): ?LegalSeed
     {
@@ -41,7 +45,7 @@ final readonly class LegalSeedRegistry
         }
 
         $fallback = $this->fallbackLocale;
-        if ($fallback === null || $fallback === '' || $fallback === $locale) {
+        if (in_array($fallback, [null, '', $locale], true)) {
             return null;
         }
         $provider = $this->provider($slug, $fallback);
@@ -54,6 +58,8 @@ final readonly class LegalSeedRegistry
 
     /**
      * Locale the seed of `$slug` is shown in for a page in `$locale` (null: no seed).
+     *
+     * @return ?string The value
      */
     public function contentLocale(string $slug, string $locale): ?string
     {

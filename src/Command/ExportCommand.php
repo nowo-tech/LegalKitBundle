@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Command;
 
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -17,12 +18,18 @@ use function is_string;
 use function json_encode;
 use function sprintf;
 
+use const JSON_PRETTY_PRINT;
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
+
 /**
  * Exports the stored operator copies as `legal_documents` JSON (tokens kept), for hosts without an ops-seed.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Export the stored legal pages as legal_documents JSON')]
 final class ExportCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:export';
@@ -39,14 +46,13 @@ final class ExportCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Export the stored legal pages as legal_documents JSON')
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Write the JSON here (default: stdout)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $rows    = $this->portability->export();
-        $json    = json_encode($rows, \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) . "\n";
+        $json    = json_encode($rows, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
         $outPath = $input->getOption('output');
         if (!is_string($outPath) || $outPath === '') {
             $output->write($json);

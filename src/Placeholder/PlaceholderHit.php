@@ -20,7 +20,7 @@ final readonly class PlaceholderHit
      * @param string $slug Page slug
      * @param string $locale Locale
      * @param string $marker Marker text, or `%name%` for an unknown token
-     * @param 'stored'|'seed'|'fallback' $source Where the effective text comes from
+     * @param 'fallback'|'seed'|'stored' $source Where the effective text comes from
      * @param 'marker'|'token' $kind Hit kind
      */
     public function __construct(

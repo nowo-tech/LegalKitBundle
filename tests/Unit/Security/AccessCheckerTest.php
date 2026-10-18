@@ -10,6 +10,7 @@ use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\ConfigurableLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -56,7 +57,7 @@ final class AccessCheckerTest extends TestCase
                 return false;
             }
         };
-        $controller = (new \ReflectionClass(LegalDocumentAdminController::class))->newInstanceWithoutConstructor();
+        $controller = (new ReflectionClass(LegalDocumentAdminController::class))->newInstanceWithoutConstructor();
         $event      = new ControllerEvent($this->createMock(HttpKernelInterface::class), [$controller, 'index'], new Request(), HttpKernelInterface::SUB_REQUEST);
 
         $this->expectException(AccessDeniedException::class);

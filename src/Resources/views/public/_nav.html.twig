@@ -7,7 +7,7 @@
     <nav class="nowo-legal-nav" aria-label="{{ 'nav.label'|trans({}, 'NowoLegalKitBundle', locale) }}">
         {% for link in _links %}
             {% if link.slug != current %}
-                <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ link.url }}">{{ link.label }}</a>
+                <a class="{{ nowo_ui_class('btn_link', 'NowoLegalKitBundle') }}" href="{{ link.url }}"{{ nowo_ui_attrs('btn_link', 'NowoLegalKitBundle') }}>{{ link.label }}</a>
             {% endif %}
         {% endfor %}
     </nav>

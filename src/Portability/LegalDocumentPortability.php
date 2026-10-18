@@ -16,6 +16,7 @@ use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 use function array_is_list;
+use function count;
 use function is_array;
 use function is_string;
 use function mb_strlen;
@@ -79,9 +80,9 @@ final readonly class LegalDocumentPortability
     /**
      * Validates a decoded `legal_documents` payload.
      *
-     * @return list<LegalDocumentRow>
-     *
      * @throws InvalidArgumentException With the index of the first invalid entry
+     *
+     * @return list<LegalDocumentRow>
      */
     public function normalize(mixed $payload): array
     {
@@ -132,8 +133,11 @@ final readonly class LegalDocumentPortability
      * Upserts normalised rows (sanitised bodies) and returns how many were written.
      *
      * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
-     * @param object|null $actor Optional user stored as created_by / updated_by when AuditKit cannot resolve one (CLI)
+     * @param object|null $actor User set as created_by / updated_by before persisting; AuditKit's blame listener replaces it
+     *                           with the signed-in user (null in CLI) when blame is enabled for the user class
      * @param bool $flush Flush (and dispatch LegalDocumentsImportedEvent); false keeps the host transaction open
+     *
+     * @return int Number of rows written
      */
     public function apply(array $rows, ?object $actor = null, bool $flush = false): int
     {
@@ -160,6 +164,6 @@ final readonly class LegalDocumentPortability
             $this->dispatcher?->dispatch(new LegalDocumentsImportedEvent($written));
         }
 
-        return \count($written);
+        return count($written);
     }
 }

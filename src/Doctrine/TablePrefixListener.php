@@ -29,6 +29,8 @@ final readonly class TablePrefixListener
 
     /**
      * Rewrites the primary table, indexes and unique constraints of bundle entities.
+     *
+     * @return void Nothing (side effects only)
      */
     public function loadClassMetadata(LoadClassMetadataEventArgs $event): void
     {

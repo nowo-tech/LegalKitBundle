@@ -14,6 +14,7 @@ use Nowo\Ckeditor5EditorBundle\Security\Ckeditor5HtmlSanitizerInterface;
 use function array_merge;
 use function array_unique;
 use function array_values;
+use function assert;
 use function in_array;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
@@ -21,6 +22,10 @@ use function preg_match;
 use function str_starts_with;
 use function strtolower;
 use function trim;
+
+use const LIBXML_HTML_NODEFDTD;
+use const LIBXML_HTML_NOIMPLIED;
+use const LIBXML_NONET;
 
 /**
  * Canonical legal HTML sanitiser: optional CKEditor 5 strict pass, then a DOM allowlist (ported from
@@ -138,17 +143,16 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML(
             '<?xml encoding="UTF-8"><div id="' . self::ROOT_ID . '">' . $html . '</div>',
-            \LIBXML_HTML_NOIMPLIED | \LIBXML_HTML_NODEFDTD | \LIBXML_NONET,
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET,
         );
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
         $root = $document->getElementById(self::ROOT_ID);
-        if (!$root instanceof DOMElement) {
-            return ''; // @codeCoverageIgnore — the wrapper div is always parsed
-        }
+        assert($root instanceof DOMElement, 'The wrapper div is always parsed.');
         // An unbalanced "</div>" closes the wrapper early: keep what follows instead of dropping it silently.
         while ($root->nextSibling instanceof DOMNode) {
+            // @igor-ignore - Local DOMDocument built per call, not shared state
             $root->appendChild($root->nextSibling);
         }
         $this->sanitizeChildren($root);
@@ -203,10 +207,8 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
     {
         $allowed = $this->allowed[$tag];
         $remove  = [];
+        /** @var DOMAttr $attribute DOMElement::attributes only yields DOMAttr */
         foreach ($element->attributes as $attribute) {
-            if (!$attribute instanceof DOMAttr) {
-                continue; // @codeCoverageIgnore — DOMElement::attributes only yields DOMAttr
-            }
             $name = strtolower($attribute->name);
             if (!in_array($name, $allowed, true) || !$this->isSafeAttribute($tag, $name, $attribute->value)) {
                 $remove[] = $attribute->name;
@@ -226,16 +228,16 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
     private function isSafeAttribute(string $tag, string $name, string $value): bool
     {
         return match ($name) {
-            'href'               => $this->urlPolicy->isSafeLink($value),
-            'src'                => $tag === 'img' && $this->urlPolicy->isSafeImage($value),
-            'class'              => preg_match('/^[A-Za-z0-9_\- :]{0,200}$/', $value) === 1,
-            'target'             => in_array($value, ['_blank', '_self'], true),
-            'width', 'height'    => preg_match('/^\d{1,4}$/', $value) === 1,
-            'colspan', 'rowspan' => preg_match('/^\d{1,3}$/', $value) === 1,
-            'loading'            => in_array($value, ['lazy', 'eager'], true),
-            'scope'              => in_array($value, ['row', 'col', 'rowgroup', 'colgroup'], true),
+            'href'                   => $this->urlPolicy->isSafeLink($value),
+            'src'                    => $tag === 'img' && $this->urlPolicy->isSafeImage($value),
+            'class'                  => preg_match('/^[A-Za-z0-9_\- :]{0,200}$/', $value) === 1,
+            'target'                 => in_array($value, ['_blank', '_self'], true),
+            'width', 'height'        => preg_match('/^\d{1,4}$/', $value) === 1,
+            'colspan', 'rowspan'     => preg_match('/^\d{1,3}$/', $value) === 1,
+            'loading'                => in_array($value, ['lazy', 'eager'], true),
+            'scope'                  => in_array($value, ['row', 'col', 'rowgroup', 'colgroup'], true),
             'data-nowo-open-consent' => $value === '' || $value === 'true',
-            default              => !str_starts_with($name, 'on') && !in_array($name, self::DENIED_ATTRIBUTES, true),
+            default                  => !str_starts_with($name, 'on') && !in_array($name, self::DENIED_ATTRIBUTES, true),
         };
     }
 

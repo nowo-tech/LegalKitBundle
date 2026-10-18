@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Command;
 
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -18,12 +19,17 @@ use function is_string;
 use function json_encode;
 use function sprintf;
 
+use const JSON_PRETTY_PRINT;
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
+
 /**
  * Deploy gate (REQ-CC-012): exit 1 while a published page still contains a seed marker or an unresolved token.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Fail while published legal pages still contain generic seed placeholders')]
 final class CheckPlaceholdersCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:check-placeholders';
@@ -44,7 +50,6 @@ final class CheckPlaceholdersCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Fail while published legal pages still contain generic seed placeholders')
             ->addOption('locale', 'l', InputOption::VALUE_REQUIRED, 'Check only this locale (default: every enabled locale)')
             ->addOption('format', 'f', InputOption::VALUE_REQUIRED, 'Output format: table or json', 'table');
     }
@@ -66,13 +71,14 @@ final class CheckPlaceholdersCommand extends Command
             return Command::INVALID;
         }
 
+        $this->scanner->reset();
         $hits = $this->scanner->findHits($locale);
         if ($format === 'json') {
             $rows = [];
             foreach ($hits as $hit) {
                 $rows[] = $hit->toArray();
             }
-            $output->writeln((string) json_encode(['hits' => $rows, 'count' => count($rows)], \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE));
+            $output->writeln((string) json_encode(['hits' => $rows, 'count' => count($rows)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
             return $hits === [] ? Command::SUCCESS : Command::FAILURE;
         }

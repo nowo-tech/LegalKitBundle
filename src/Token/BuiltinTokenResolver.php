@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Token;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 
 /**
  * Built-in tokens: `%brand%` (`nowo_legal_kit.brand_name`; unresolved — so reported — while empty) and
@@ -34,7 +35,7 @@ final readonly class BuiltinTokenResolver implements LegalTokenResolverInterface
     {
         return match ($name) {
             'brand'        => $this->brandName !== '' ? $this->brandName : null,
-            'last_updated' => $context->updatedAt !== null
+            'last_updated' => $context->updatedAt instanceof DateTimeInterface
                 ? DateTimeImmutable::createFromInterface($context->updatedAt)->format('Y-m-d')
                 : $this->seedDate,
             default => null,

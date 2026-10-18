@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Token;
 
 use function array_keys;
+use function array_map;
 use function array_merge;
 use function array_unique;
 use function array_values;
 use function htmlspecialchars;
-use function array_map;
 use function is_string;
 use function preg_match_all;
 use function preg_replace_callback;
+
+use const ENT_HTML5;
+use const ENT_QUOTES;
+use const ENT_SUBSTITUTE;
 
 /**
  * Replaces `%token%` placeholders with the values of the resolver chain (first non-null answer wins). Plain-text
@@ -43,27 +47,31 @@ final readonly class LegalTokenRenderer
 
     /**
      * Resolves the tokens of an HTML fragment.
+     *
+     * @return string The value
      */
     public function renderHtml(string $html, LegalTokenContext $context): string
     {
         return (string) preg_replace_callback(self::TOKEN_PATTERN, function (array $match) use ($context): string {
             $value = $this->value($match[1], $context);
-            if ($value === null) {
+            if (!$value instanceof LegalTokenValue) {
                 return $match[0];
             }
 
-            return $value->html ? $value->value : htmlspecialchars($value->value, \ENT_QUOTES | \ENT_SUBSTITUTE | \ENT_HTML5, 'UTF-8');
+            return $value->html ? $value->value : htmlspecialchars($value->value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
         }, $html);
     }
 
     /**
      * Resolves the tokens of a plain-text string (titles); HTML values contribute nothing.
+     *
+     * @return string The value
      */
     public function renderText(string $text, LegalTokenContext $context): string
     {
         return (string) preg_replace_callback(self::TOKEN_PATTERN, function (array $match) use ($context): string {
             $value = $this->value($match[1], $context);
-            if ($value === null) {
+            if (!$value instanceof LegalTokenValue) {
                 return $match[0];
             }
 
@@ -99,7 +107,7 @@ final readonly class LegalTokenRenderer
         }
         $unresolved = [];
         foreach ($matches[1] as $name) {
-            if (!isset($unresolved[$name]) && $this->value($name, $context) === null) {
+            if (!isset($unresolved[$name]) && !$this->value($name, $context) instanceof LegalTokenValue) {
                 $unresolved[$name] = true;
             }
         }

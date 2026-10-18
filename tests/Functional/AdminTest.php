@@ -54,8 +54,8 @@ final class AdminTest extends KernelTestCase
 
     public function testEditStartsFromTheSeedAndSavesSanitisedHtml(): void
     {
-        $kernel = $this->bootKernel();
-        $client = $this->adminClient($kernel);
+        $kernel  = $this->bootKernel();
+        $client  = $this->adminClient($kernel);
         $crawler = $client->request('GET', '/admin/legal/notice/de');
 
         self::assertSame(200, $client->getResponse()->getStatusCode());
@@ -66,7 +66,7 @@ final class AdminTest extends KernelTestCase
         self::assertStringNotContainsString('nowo_legal_kit_reset', $html, 'No restore without a stored copy');
         self::assertStringContainsString('%brand%', $html, 'The editor keeps the tokens');
 
-        $form = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form                                   = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
         $form['nowo_legal_kit_document[title]'] = 'Impressum (Acme)';
         $form['nowo_legal_kit_document[body]']  = '<h1>Impressum</h1><p style="color:red" onmouseover="x()">Acme GmbH</p><iframe src="https://evil.test"></iframe>';
         $client->submit($form);
@@ -86,10 +86,10 @@ final class AdminTest extends KernelTestCase
 
     public function testEmptyBodyIsRejected(): void
     {
-        $kernel  = $this->bootKernel();
-        $client  = $this->adminClient($kernel);
-        $crawler = $client->request('GET', '/admin/legal/terms/en');
-        $form    = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        $kernel                                = $this->bootKernel();
+        $client                                = $this->adminClient($kernel);
+        $crawler                               = $client->request('GET', '/admin/legal/terms/en');
+        $form                                  = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
         $form['nowo_legal_kit_document[body]'] = '<script>only()</script><p> </p>';
         $client->submit($form);
 
@@ -101,9 +101,9 @@ final class AdminTest extends KernelTestCase
 
     public function testInvalidFormAnswers422(): void
     {
-        $client  = $this->adminClient($this->bootKernel());
-        $crawler = $client->request('GET', '/admin/legal/terms/en');
-        $form    = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        $client                                 = $this->adminClient($this->bootKernel());
+        $crawler                                = $client->request('GET', '/admin/legal/terms/en');
+        $form                                   = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
         $form['nowo_legal_kit_document[title]'] = '';
         $client->submit($form);
 
@@ -183,9 +183,9 @@ final class AdminTest extends KernelTestCase
         self::assertSame(404, $client->getResponse()->getStatusCode());
     }
 
-    public function testAllowUnauthenticatedWithoutSecurity(): void
+    public function testAllowUnauthenticatedOpensTheAdmin(): void
     {
-        $client = $this->client($this->bootKernel(['security' => ['allow_unauthenticated' => true]], [], false));
+        $client = $this->client($this->bootKernel(['security' => ['allow_unauthenticated' => true]]));
         $client->request('GET', '/admin/legal');
 
         self::assertSame(200, $client->getResponse()->getStatusCode());

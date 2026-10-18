@@ -18,6 +18,7 @@ use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 use Nowo\SeoKitBundle\Service\SeoRuntime;
 use Nowo\SeoKitBundle\Service\SitemapUrlProviderInterface;
 use Symfony\Component\Config\Definition\ArrayNode;
+use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -29,9 +30,9 @@ use Throwable;
 use function array_fill_keys;
 use function array_key_exists;
 use function class_exists;
-use function dirname;
 use function in_array;
 use function interface_exists;
+use function is_a;
 use function is_array;
 
 /**
@@ -44,6 +45,14 @@ use function is_array;
  */
 final class NowoLegalKitExtension extends Extension implements PrependExtensionInterface
 {
+    /**
+     * @param string $cookieConsentConfiguration CookieConsent configuration class to probe (tests pass another one)
+     */
+    public function __construct(
+        private readonly string $cookieConsentConfiguration = self::COOKIE_CONSENT_CONFIGURATION,
+    ) {
+    }
+
     /** Public path created by `assets:install` (REQ-ASSETS-004). */
     public const string ASSET_BASE_PATH = '/bundles/nowolegalkit';
 
@@ -55,6 +64,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
     public const string OUTBOUND_URL_GUARD_BUNDLE = 'Nowo\\OutboundUrlGuardBundle\\NowoOutboundUrlGuardBundle';
 
+    /** CookieConsentBundle configuration class (probed for the 1.17 `privacy_route` node). */
+    public const string COOKIE_CONSENT_CONFIGURATION = 'Nowo\\CookieConsentBundle\\DependencyInjection\\Configuration';
+
     /** FormKit profile of the editor form. */
     public const string FORM_KIT_PROFILE = 'legal_kit';
 
@@ -62,6 +74,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
      * Prepends the host configuration the kit needs (never overriding what the host set).
      *
      * @param ContainerBuilder $container The container being built
+     *
+     * @return void Nothing (side effects only)
      */
     public function prepend(ContainerBuilder $container): void
     {
@@ -75,7 +89,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             $container->prependExtensionConfig('doctrine', ['orm' => ['mappings' => ['NowoLegalKitBundle' => [
                 'type'      => 'attribute',
                 'is_bundle' => false,
-                'dir'       => dirname(__DIR__) . '/Entity',
+                'dir'       => __DIR__ . '/../Entity',
                 'prefix'    => 'Nowo\\LegalKitBundle\\Entity',
                 'alias'     => 'NowoLegalKit',
             ]]]]);
@@ -94,7 +108,12 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         if ($container->hasExtension('nowo_ckeditor5_editor')) {
             $profile = $raw['editor']['ckeditor5_profile'] ?? 'legal';
             if (!$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['profiles', $profile]) && !$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['configs', $profile])) {
-                $container->prependExtensionConfig('nowo_ckeditor5_editor', ['profiles' => [$profile => ['preset' => 'standard', 'toolbar' => true, 'min_height' => '420px']]]);
+                $profiles = [$profile => ['preset' => 'standard', 'toolbar' => true, 'min_height' => '420px']];
+                // The editor bundle requires its default profile to exist: keep it when the host defines no profiles.
+                if (!$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['profiles', 'default']) && !$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['configs', 'default'])) {
+                    $profiles = ['default' => []] + $profiles;
+                }
+                $container->prependExtensionConfig('nowo_ckeditor5_editor', ['profiles' => $profiles]);
             }
         }
 
@@ -109,6 +128,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
      *
      * @param array<array<string, mixed>> $configs Raw `nowo_legal_kit` configs
      * @param ContainerBuilder $container The container being built
+     *
+     * @return void Nothing (side effects only)
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
@@ -120,7 +141,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $seed = $config['seed'];
         /** @var array{type: string, ckeditor5_profile: string} $editor */
         $editor = $config['editor'];
-        /** @var array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool|string, allowed_elements: array<string, list<string>>} $sanitizer */
+        /** @var array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>} $sanitizer */
         $sanitizer = $config['sanitizer'];
         /** @var array{builtin_markers: bool, extra_markers: list<string>} $placeholders */
         $placeholders = $config['placeholders'];
@@ -180,8 +201,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         }
 
         /** @var array{sitemap: bool|string, head: bool|string} $seo */
-        $seo         = $config['seo'];
-        $seoKit      = $has(self::SEO_KIT_BUNDLE);
+        $seo          = $config['seo'];
+        $seoKit       = $has(self::SEO_KIT_BUNDLE);
         $defaultStyle = $routing['default_locale_style'];
         if ($seoKit && $seo['sitemap'] !== false && interface_exists(SitemapUrlProviderInterface::class)) {
             $container->register(LegalSitemapProvider::class, LegalSitemapProvider::class)
@@ -198,6 +219,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
     /**
      * Returns the configuration alias (`nowo_legal_kit`).
+     *
+     * @return string The value
      */
     public function getAlias(): string
     {
@@ -205,7 +228,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     }
 
     /**
-     * @param array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool|string, allowed_elements: array<string, list<string>>} $sanitizer
+     * @param array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>} $sanitizer
      * @param callable(string): bool $has
      */
     private function configureSanitizer(ContainerBuilder $container, array $sanitizer, callable $has): void
@@ -217,7 +240,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         }
 
         $firstPass = $sanitizer['ckeditor5_first_pass'];
-        if ($firstPass === true || ($firstPass === 'auto' && class_exists(AllowlistCkeditor5HtmlSanitizer::class))) {
+        if ($firstPass && class_exists(AllowlistCkeditor5HtmlSanitizer::class)) {
             $container->register('nowo_legal_kit.ckeditor5_strict_sanitizer', AllowlistCkeditor5HtmlSanitizer::class)->setArguments([false]);
             $container->getDefinition('nowo_legal_kit.sanitizer')->setArgument('$firstPass', new Reference('nowo_legal_kit.ckeditor5_strict_sanitizer'));
         }
@@ -289,8 +312,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
      */
     private function cookieConsentHasPrivacyRoute(): bool
     {
-        $class = 'Nowo\\CookieConsentBundle\\DependencyInjection\\Configuration';
-        if (!class_exists($class)) {
+        $class = $this->cookieConsentConfiguration;
+        if (!is_a($class, ConfigurationInterface::class, true)) {
             return false;
         }
         try {
@@ -310,7 +333,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     private function hostHasKey(ContainerBuilder $container, string $extension, array $path): bool
     {
         foreach ($container->getExtensionConfig($extension) as $config) {
-            $node = $config;
+            $node  = $config;
             $found = true;
             foreach ($path as $key) {
                 if (!is_array($node) || !array_key_exists($key, $node)) {

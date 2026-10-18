@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -28,6 +29,7 @@ use function sprintf;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Store the built-in legal text as rows for every missing page and locale (seed.materialize)')]
 final class SeedCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:seed';
@@ -56,7 +58,6 @@ final class SeedCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Store the built-in legal text as rows for every missing page and locale (seed.materialize)')
             ->addOption('missing-only', null, InputOption::VALUE_NONE, 'Only insert missing rows (always the case; kept for explicit deploy scripts)')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Run even when seed.materialize is false');
     }

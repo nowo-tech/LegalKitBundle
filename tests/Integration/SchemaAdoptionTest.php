@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
-use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ManyToOneAssociationMapping;
 use Doctrine\ORM\Tools\SchemaTool;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Tests\Support\Entity\User;
@@ -28,7 +29,7 @@ final class SchemaAdoptionTest extends KernelTestCase
 
     public function testBeaconTableNeedsNoSchemaChange(): void
     {
-        $kernel  = new TestKernel();
+        $kernel = new TestKernel();
         $kernel->boot();
         $manager = $this->manager($kernel);
         $tool    = new SchemaTool($manager);
@@ -36,7 +37,6 @@ final class SchemaAdoptionTest extends KernelTestCase
         $legal   = $manager->getClassMetadata(LegalDocument::class);
         $tool->createSchema([$user]);
         $connection = $manager->getConnection();
-        self::assertInstanceOf(Connection::class, $connection);
         foreach (self::BEACON_SQLITE_DDL as $sql) {
             $connection->executeStatement($sql);
         }
@@ -59,7 +59,9 @@ final class SchemaAdoptionTest extends KernelTestCase
         self::assertSame('datetime_immutable', $legal->getFieldMapping('createdAt')->type);
         self::assertTrue($legal->getFieldMapping('updatedAt')->nullable);
         self::assertSame(User::class, $legal->getAssociationTargetClass('createdBy'));
-        self::assertSame('SET NULL', $legal->getAssociationMapping('updatedBy')->joinColumns[0]->onDelete);
+        $updatedBy = $legal->getAssociationMapping('updatedBy');
+        self::assertInstanceOf(ManyToOneAssociationMapping::class, $updatedBy);
+        self::assertSame('SET NULL', $updatedBy->joinColumns[0]->onDelete);
         self::assertArrayHasKey('uniq_legal_document_slug_locale', $legal->table['uniqueConstraints'] ?? []);
         self::assertArrayHasKey('idx_legal_document_created_by', $legal->table['indexes'] ?? []);
         $kernel->shutdown();
@@ -79,10 +81,10 @@ final class SchemaAdoptionTest extends KernelTestCase
         $kernel->shutdown();
     }
 
-    private function manager(TestKernel $kernel): \Doctrine\ORM\EntityManagerInterface
+    private function manager(TestKernel $kernel): EntityManagerInterface
     {
         $manager = $kernel->getContainer()->get('doctrine.orm.entity_manager');
-        self::assertInstanceOf(\Doctrine\ORM\EntityManagerInterface::class, $manager);
+        self::assertInstanceOf(EntityManagerInterface::class, $manager);
 
         return $manager;
     }

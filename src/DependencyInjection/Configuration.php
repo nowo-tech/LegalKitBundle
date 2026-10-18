@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\DependencyInjection;
 
+use InvalidArgumentException;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -11,6 +12,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use function is_array;
 use function is_string;
 use function preg_match;
+use function sprintf;
 
 /**
  * Strict configuration tree of `nowo_legal_kit` (REQ-SF-006); every key is documented in docs/CONFIGURATION.md.
@@ -126,10 +128,9 @@ final class Configuration implements ConfigurationInterface
                             ->values(['auto', true, false])
                             ->defaultValue('auto')
                         ->end()
-                        ->enumNode('ckeditor5_first_pass')
-                            ->info('auto: run the Ckeditor5EditorBundle strict sanitiser before the DOM allowlist when the bundle is installed.')
-                            ->values(['auto', true, false])
-                            ->defaultValue('auto')
+                        ->booleanNode('ckeditor5_first_pass')
+                            ->info('Run the Ckeditor5EditorBundle strict sanitiser before the DOM allowlist (off by default: the allowlist is stricter, and the CKEditor pass drops the data-nowo-open-consent opener of the seed).')
+                            ->defaultFalse()
                         ->end()
                         ->arrayNode('allowed_elements')
                             ->info('Extra elements (name => list of attributes) merged into the built-in allowlist.')
@@ -274,7 +275,7 @@ final class Configuration implements ConfigurationInterface
      */
     private function pagesNode(): ArrayNodeDefinition
     {
-        $node = (new TreeBuilder('pages'))->getRootNode();
+        $node     = (new TreeBuilder('pages'))->getRootNode();
         $defaults = [];
         foreach (self::DEFAULT_PAGES as $slug) {
             $defaults[$slug] = ['path' => $slug, 'enabled' => true, 'nav' => true, 'seed_template' => null];
@@ -307,11 +308,11 @@ final class Configuration implements ConfigurationInterface
                     foreach ($pages as $slug => $page) {
                         $slug = (string) $slug;
                         if (preg_match(self::SLUG_PATTERN, $slug) !== 1) {
-                            throw new \InvalidArgumentException(\sprintf('nowo_legal_kit.pages: invalid slug "%s" (lowercase letters, digits and "-", at most 32 characters).', $slug));
+                            throw new InvalidArgumentException(sprintf('nowo_legal_kit.pages: invalid slug "%s" (lowercase letters, digits and "-", at most 32 characters).', $slug));
                         }
                         $path = $page['path'] ?? $slug;
                         if (!is_string($path) || preg_match(self::PATH_PATTERN, $path) !== 1) {
-                            throw new \InvalidArgumentException(\sprintf('nowo_legal_kit.pages.%s.path: invalid path "%s".', $slug, is_string($path) ? $path : get_debug_type($path)));
+                            throw new InvalidArgumentException(sprintf('nowo_legal_kit.pages.%s.path: invalid path "%s".', $slug, is_string($path) ? $path : get_debug_type($path)));
                         }
                         $pages[$slug]['path'] = $path;
                     }

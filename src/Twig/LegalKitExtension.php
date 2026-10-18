@@ -61,6 +61,9 @@ final class LegalKitExtension extends AbstractExtension
     ) {
     }
 
+    /**
+     * @return list<TwigFunction> The Twig functions of the kit
+     */
     public function getFunctions(): array
     {
         return [
@@ -115,6 +118,8 @@ final class LegalKitExtension extends AbstractExtension
 
     /**
      * URL of the admin index, null when the admin UI is disabled.
+     *
+     * @return ?string The value
      */
     public function adminUrl(): ?string
     {
@@ -124,6 +129,8 @@ final class LegalKitExtension extends AbstractExtension
     /**
      * Locale the page is shown in for the given (or request) locale: the locale itself when an operator copy or a
      * seed exists in it, else `seed.fallback_locale`; null when the page has no text.
+     *
+     * @return ?string The value
      */
     public function contentLocale(string $slug, ?string $locale = null): ?string
     {
@@ -142,6 +149,8 @@ final class LegalKitExtension extends AbstractExtension
     /**
      * Whether the CookieConsent widget renders on this page (so "Manage cookies" can open it); false without
      * CookieConsent.
+     *
+     * @return bool The answer
      */
     public function consentWidget(Environment $twig): bool
     {

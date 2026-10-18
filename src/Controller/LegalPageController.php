@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Controller;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -16,6 +17,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\EventListener\AbstractSessionListener;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -66,6 +68,8 @@ final readonly class LegalPageController
 
     /**
      * Renders a legal page (or 301s `/{default}/…` to the bare URL with the unprefixed style).
+     *
+     * @return Response The result
      */
     public function show(Request $request): Response
     {
@@ -103,6 +107,8 @@ final readonly class LegalPageController
 
     /**
      * Prefixed style: the bare URL redirects (302) to the default locale.
+     *
+     * @return RedirectResponse The result
      */
     public function bare(Request $request): RedirectResponse
     {
@@ -142,13 +148,15 @@ final readonly class LegalPageController
         if ($this->sharedMaxAge > 0) {
             $response->setPublic();
             $response->setSharedMaxAge($this->sharedMaxAge);
+            // Opt-in shared cache: keep these headers even when the layout touched the session (flashes).
+            $response->headers->set(AbstractSessionListener::NO_AUTO_CACHE_CONTROL_HEADER, 'true');
         } else {
             $response->setPrivate();
         }
         if ($this->maxAge > 0) {
             $response->setMaxAge($this->maxAge);
         }
-        if ($document->updatedAt !== null) {
+        if ($document->updatedAt instanceof DateTimeInterface) {
             $response->setLastModified(DateTimeImmutable::createFromInterface($document->updatedAt));
         }
         $response->isNotModified($request);

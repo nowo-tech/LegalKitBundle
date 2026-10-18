@@ -7,12 +7,15 @@ namespace Nowo\LegalKitBundle\Sanitizer;
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 
 use function in_array;
+use function is_string;
 use function parse_url;
 use function preg_match;
 use function preg_replace;
-use function str_starts_with;
 use function str_contains;
+use function str_starts_with;
 use function strtolower;
+
+use const PHP_URL_HOST;
 
 /**
  * URL policy of `href` / `src` in legal HTML: relative, `#`, `mailto:`, `tel:`, `http(s)` links; relative or `https`
@@ -38,6 +41,8 @@ final readonly class UrlPolicy
 
     /**
      * Whether a link target (`a[href]`) is allowed.
+     *
+     * @return bool True when the URL may be kept
      */
     public function isSafeLink(string $url): bool
     {
@@ -46,6 +51,8 @@ final readonly class UrlPolicy
 
     /**
      * Whether an image source (`img[src]`) is allowed.
+     *
+     * @return bool True when the URL may be kept
      */
     public function isSafeImage(string $url): bool
     {
@@ -81,7 +88,7 @@ final readonly class UrlPolicy
         if ($scheme === 'mailto' || $scheme === 'tel') {
             return true;
         }
-        $host = parse_url($url, \PHP_URL_HOST);
+        $host = parse_url($url, PHP_URL_HOST);
 
         return is_string($host) && $host !== '' && $this->allowedByGuard($url);
     }

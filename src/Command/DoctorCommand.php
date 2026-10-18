@@ -9,12 +9,14 @@ use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\BuiltinMarkers;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Http\AccessMapInterface;
 
@@ -32,6 +34,7 @@ use function str_contains;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Check the LegalKit integration (routes, public access, CookieConsent, seed markers)')]
 final class DoctorCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:doctor';
@@ -64,7 +67,6 @@ final class DoctorCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Check the LegalKit integration (routes, public access, CookieConsent, seed markers)')
             ->addOption('strict', null, InputOption::VALUE_NONE, 'Exit 1 on warnings too');
     }
 
@@ -77,7 +79,7 @@ final class DoctorCommand extends Command
 
         foreach ($this->catalog->pages() as $page) {
             $route = $routes->get($page->routeName());
-            if ($route === null) {
+            if (!$route instanceof Route) {
                 $errors[] = sprintf('Route "%s" is missing: import the "nowo_legal_kit" route type in config/routes.', $page->routeName());
 
                 continue;
@@ -94,7 +96,7 @@ final class DoctorCommand extends Command
             }
         }
 
-        if ($this->cookieConsentInstalled && $this->catalog->has('privacy') && $this->privacyRoute !== null && $routes->get($this->privacyRoute) === null) {
+        if ($this->cookieConsentInstalled && $this->catalog->has('privacy') && $this->privacyRoute !== null && !$routes->get($this->privacyRoute) instanceof Route) {
             $errors[] = sprintf('nowo_cookie_consent.privacy_route "%s" does not exist.', $this->privacyRoute);
         }
 

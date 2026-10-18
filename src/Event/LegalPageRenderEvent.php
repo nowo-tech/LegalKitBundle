@@ -39,9 +39,12 @@ final class LegalPageRenderEvent extends Event
 
     /**
      * Adds a variable to the page template context.
+     *
+     * @return void Nothing (side effects only)
      */
     public function setTemplateVariable(string $name, mixed $value): void
     {
+        // @igor-ignore - Event object created per dispatch; not a shared service
         $this->templateVariables[$name] = $value;
     }
 

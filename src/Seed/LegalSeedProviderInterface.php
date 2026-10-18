@@ -17,16 +17,22 @@ interface LegalSeedProviderInterface
 
     /**
      * Whether this provider has a seed of the page in this locale itself (no fallback translation).
+     *
+     * @return bool The answer
      */
     public function supports(string $slug, string $locale): bool;
 
     /**
      * Plain-text title of the page in the locale.
+     *
+     * @return string The value
      */
     public function title(string $slug, string $locale): string;
 
     /**
      * HTML body of the page in the locale (unsanitised; the bundle sanitises it).
+     *
+     * @return string The value
      */
     public function body(string $slug, string $locale): string;
 }

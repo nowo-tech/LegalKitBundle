@@ -14,6 +14,8 @@ interface LegalKitAccessCheckerInterface
 {
     /**
      * Whether the current user may use the admin pages.
+     *
+     * @return bool The answer
      */
     public function canAccess(): bool;
 }

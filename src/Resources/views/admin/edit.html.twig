@@ -11,5 +11,5 @@
 
 {% block nowo_ui_scripts %}
     {{ parent() }}
-    {%- if legal_editor|default('textarea') == 'ckeditor5' %}{{ nowo_ckeditor5_editor_script() }}{% endif -%}
+    {%- if legal_editor|default('textarea') == 'ckeditor5' %}{{ include('@NowoLegalKitBundle/admin/_ckeditor_script.html.twig') }}{% endif -%}
 {% endblock %}

@@ -20,6 +20,8 @@ final readonly class LegalTokenValue
 
     /**
      * Plain text, escaped when inserted into HTML.
+     *
+     * @return self Fluent interface
      */
     public static function text(string $value): self
     {
@@ -28,6 +30,8 @@ final readonly class LegalTokenValue
 
     /**
      * Trusted HTML (e.g. rendered by an auto-escaping Twig template), inserted as is.
+     *
+     * @return self Fluent interface
      */
     public static function html(string $value): self
     {

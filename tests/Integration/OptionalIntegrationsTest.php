@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
-use Nowo\LegalKitBundle\Seo\LegalSitemapProvider;
+use Nowo\LegalKitBundle\EventListener\SeoKitHeadListener;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
+use Nowo\LegalKitBundle\Seo\LegalSitemapProvider;
 use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
-use Nowo\SeoKitBundle\Service\SeoRuntime;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -60,7 +60,7 @@ final class OptionalIntegrationsTest extends KernelTestCase
     public function testSeoKitSitemapAndHead(): void
     {
         $kernel    = $this->bootKernel([], ['seo_kit']);
-        $container = $kernel->getContainer()->get('test.service_container');
+        $container = $this->testContainer($kernel);
         $provider  = $container->get(LegalSitemapProvider::class);
         self::assertInstanceOf(LegalSitemapProvider::class, $provider);
 
@@ -70,21 +70,18 @@ final class OptionalIntegrationsTest extends KernelTestCase
         self::assertSame('http://localhost/es/legal/notice', $entries[1]['loc']);
         self::assertContains(['hreflang' => 'x-default', 'href' => 'http://localhost/legal/notice'], $entries[0]['alternates']);
 
+        self::assertTrue($container->has(SeoKitHeadListener::class), 'Head bridge registered (behaviour: EventsTest)');
         $client = $this->client($kernel);
         $client->request('GET', '/es/legal/privacy');
         self::assertSame(200, $client->getResponse()->getStatusCode());
-        $runtime = $container->get(SeoRuntime::class);
-        self::assertInstanceOf(SeoRuntime::class, $runtime);
-        $overrides = $runtime->getOverrides();
-        self::assertSame('Política de privacidad', $overrides['title'] ?? null);
-        self::assertSame('http://localhost/es/legal/privacy', $overrides['canonical'] ?? null);
     }
 
     public function testSeoKitBridgesCanBeDisabled(): void
     {
-        $container = $this->bootKernel(['seo' => ['sitemap' => false, 'head' => false]], ['seo_kit'])->getContainer()->get('test.service_container');
+        $container = $this->testContainer($this->bootKernel(['seo' => ['sitemap' => false, 'head' => false]], ['seo_kit']));
 
         self::assertFalse($container->has(LegalSitemapProvider::class));
+        self::assertFalse($container->has(SeoKitHeadListener::class));
     }
 
     public function testCkeditorIsTheDefaultEditor(): void
@@ -107,12 +104,20 @@ final class OptionalIntegrationsTest extends KernelTestCase
 
     public function testOutboundUrlGuardDropsPrivateTargets(): void
     {
-        $sanitizer = $this->bootKernel([], ['outbound_url_guard'])->getContainer()->get('test.service_container')->get(LegalHtmlSanitizerInterface::class);
+        $sanitizer = $this->testContainer($this->bootKernel([], ['outbound_url_guard']))->get(LegalHtmlSanitizerInterface::class);
         self::assertInstanceOf(LegalHtmlSanitizerInterface::class, $sanitizer);
 
         self::assertSame(
             '<p><a>meta</a> <a>lan</a> <a href="https://example.com/x">ok</a></p>',
             $sanitizer->sanitize('<p><a href="http://169.254.169.254/latest">meta</a> <a href="http://10.0.0.1/">lan</a> <a href="https://example.com/x">ok</a></p>'),
         );
+    }
+
+    public function testCkeditorStrictFirstPassIsOptIn(): void
+    {
+        $sanitizer = $this->testContainer($this->bootKernel(['sanitizer' => ['ckeditor5_first_pass' => true]]))->get(LegalHtmlSanitizerInterface::class);
+        self::assertInstanceOf(LegalHtmlSanitizerInterface::class, $sanitizer);
+
+        self::assertSame('<p><a href="#">x</a></p>', $sanitizer->sanitize('<p><a href="#" data-nowo-open-consent>x</a></p>'), 'CKEditor drops data-* attributes');
     }
 }

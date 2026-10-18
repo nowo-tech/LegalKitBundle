@@ -45,6 +45,8 @@ final readonly class ActionLogListener implements EventSubscriberInterface
 
     /**
      * Logs a save.
+     *
+     * @return void Nothing (side effects only)
      */
     public function onSaved(LegalDocumentSavedEvent $event): void
     {
@@ -53,6 +55,8 @@ final readonly class ActionLogListener implements EventSubscriberInterface
 
     /**
      * Logs a restore.
+     *
+     * @return void Nothing (side effects only)
      */
     public function onRestored(LegalDocumentRestoredEvent $event): void
     {
@@ -61,6 +65,8 @@ final readonly class ActionLogListener implements EventSubscriberInterface
 
     /**
      * Logs an import.
+     *
+     * @return void Nothing (side effects only)
      */
     public function onImported(LegalDocumentsImportedEvent $event): void
     {

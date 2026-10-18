@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use function restore_exception_handler;
 
@@ -58,6 +59,17 @@ abstract class KernelTestCase extends TestCase
         $client->setServerParameters(['PHP_AUTH_USER' => $user, 'PHP_AUTH_PW' => $user]);
 
         return $client;
+    }
+
+    /**
+     * The test container (private services included).
+     */
+    protected function testContainer(TestKernel $kernel): ContainerInterface
+    {
+        $container = $kernel->getContainer()->get('test.service_container');
+        self::assertInstanceOf(ContainerInterface::class, $container);
+
+        return $container;
     }
 
     protected function entityManager(TestKernel $kernel): EntityManagerInterface

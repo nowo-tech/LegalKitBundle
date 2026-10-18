@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
+use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
-use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
+use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
+use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
 use PHPUnit\Framework\TestCase;
-
-use function array_slice;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+
+use function array_slice;
 
 final class ExtensionTest extends TestCase
 {
@@ -69,6 +71,7 @@ final class ExtensionTest extends TestCase
         self::assertCount(1, $container->getExtensionConfig('doctrine'), 'Hosts with several entity managers map the bundle themselves');
         self::assertSame('legal_kit', $container->getExtensionConfig('nowo_form_kit')[0]['profiles']['legal_kit']['alias']);
         self::assertArrayHasKey('policy', $container->getExtensionConfig('nowo_ckeditor5_editor')[0]['profiles']);
+        self::assertArrayHasKey('default', $container->getExtensionConfig('nowo_ckeditor5_editor')[0]['profiles']);
         $cookie = $container->getExtensionConfig('nowo_cookie_consent')[0];
         self::assertContains('legal_cookies_unlocalized', $cookie['disabled_routes']);
         self::assertArrayNotHasKey('render_routes', $cookie);
@@ -144,5 +147,26 @@ final class ExtensionTest extends TestCase
                 return $this->alias;
             }
         };
+    }
+
+    public function testPrivacyRouteFallbackWithCookieConsent117(): void
+    {
+        self::assertSame('legal_privacy', $this->cookieConsentPrepend(FakeCookieConsentConfiguration::class)['privacy_route'] ?? null);
+        self::assertArrayNotHasKey('privacy_route', $this->cookieConsentPrepend(BrokenConfiguration::class));
+        self::assertArrayNotHasKey('privacy_route', $this->cookieConsentPrepend('App\\Missing\\Configuration'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cookieConsentPrepend(string $configurationClass): array
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new NowoLegalKitExtension($configurationClass));
+        $container->registerExtension($this->fakeExtension('nowo_cookie_consent'));
+        $container->loadFromExtension('nowo_legal_kit', []);
+        (new NowoLegalKitExtension($configurationClass))->prepend($container);
+
+        return $container->getExtensionConfig('nowo_cookie_consent')[0];
     }
 }

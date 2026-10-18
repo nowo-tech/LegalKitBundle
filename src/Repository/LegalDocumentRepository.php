@@ -8,10 +8,7 @@ use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
-use Stringable;
-
-use function is_string;
-use function method_exists;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Stored legal documents (one row per slug and locale).
@@ -33,6 +30,8 @@ class LegalDocumentRepository extends ServiceEntityRepository
 
     /**
      * The stored document of a page in a locale.
+     *
+     * @return ?LegalDocument The result
      */
     public function findOneBySlugAndLocale(string $slug, string $locale): ?LegalDocument
     {
@@ -78,10 +77,10 @@ class LegalDocumentRepository extends ServiceEntityRepository
 
         $map = [];
         foreach ($documents as $document) {
-            $editor = $document->getUpdatedBy() ?? $document->getCreatedBy();
+            $editor                                            = $document->getUpdatedBy() ?? $document->getCreatedBy();
             $map[$document->getSlug()][$document->getLocale()] = [
                 'updated_at' => $document->getUpdatedAt() ?? $document->getCreatedAt(),
-                'updated_by' => $editor !== null ? self::describe($editor) : null,
+                'updated_by' => $editor !== null ? $this->describe($editor) : null,
             ];
         }
 
@@ -100,6 +99,8 @@ class LegalDocumentRepository extends ServiceEntityRepository
 
     /**
      * Persists a document; flushes unless `$flush` is false (ops-seed keeps one transaction).
+     *
+     * @return void Nothing (side effects only)
      */
     public function save(LegalDocument $document, bool $flush = true): void
     {
@@ -112,16 +113,21 @@ class LegalDocumentRepository extends ServiceEntityRepository
 
     /**
      * Removes a document and flushes.
+     *
+     * @return void Nothing (side effects only)
      */
     public function remove(LegalDocument $document): void
     {
         $manager = $this->getEntityManager();
+        // @igor-ignore - Doctrine unit of work is request-scoped (entity manager reset between requests)
         $manager->remove($document);
         $manager->flush();
     }
 
     /**
      * Map key of a page in a locale.
+     *
+     * @return string The value
      */
     public static function key(string $slug, string $locale): string
     {
@@ -129,16 +135,10 @@ class LegalDocumentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Display name of an editor: getUserIdentifier(), then __toString(), then null.
+     * Display name of an editor (its user identifier), null for a user object without one.
      */
-    private static function describe(object $user): ?string
+    private function describe(object $user): ?string
     {
-        if (method_exists($user, 'getUserIdentifier')) {
-            $identifier = $user->getUserIdentifier();
-
-            return is_string($identifier) ? $identifier : null;
-        }
-
-        return $user instanceof Stringable ? (string) $user : null;
+        return $user instanceof UserInterface ? $user->getUserIdentifier() : null;
     }
 }

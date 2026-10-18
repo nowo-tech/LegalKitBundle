@@ -41,7 +41,7 @@ final class DomAllowlistSanitizerTest extends TestCase
         yield 'style attribute url' => ['<p style="background:url(javascript:alert(1))">h</p>', '<p>h</p>'];
         yield 'noscript nested' => ['<noscript><p title="</noscript><img src=x onerror=alert(1)>"></p></noscript><p>i</p>', '<p>i</p>'];
         yield 'form controls' => ['<form action="/x"><input name="a"><button>b</button></form><p>j</p>', '<p>j</p>'];
-        yield 'object embed' => ['<object data="x.swf"></object><embed src="x.swf"><p>k</p>', '<p>k</p>'];
+        yield 'object embed' => ['<object data="x.swf"></object><embed src="x.swf"></embed><p>k</p>', '<p>k</p>'];
         yield 'comment' => ['<p>l<!-- <script>x</script> --></p>', '<p>l</p>'];
         yield 'unknown element unwrapped' => ['<marquee><b>m</b></marquee>', '<b>m</b>'];
         yield 'nested unknown' => ['<custom-el><font color="red"><em>n</em></font></custom-el>', '<em>n</em>'];
@@ -56,7 +56,7 @@ final class DomAllowlistSanitizerTest extends TestCase
         yield 'unknown scheme' => ['<a href="ftp://x">x</a><a href="weird:x">y</a>', '<a>x</a><a>y</a>'];
         yield 'protocol relative' => ['<a href="//example.com/x">x</a>', '<a href="//example.com/x">x</a>'];
         yield 'http without host' => ['<a href="http:/x">x</a>', '<a>x</a>'];
-        yield 'consent opener' => ['<a href="#" data-nowo-open-consent>x</a><a data-nowo-open-consent="evil()">y</a>', '<a href="#" data-nowo-open-consent="">x</a><a>y</a>'];
+        yield 'consent opener' => ['<a href="#" data-nowo-open-consent>x</a><a data-nowo-open-consent="evil()">y</a>', '<a href="#" data-nowo-open-consent>x</a><a>y</a>'];
         yield 'image anchor' => ['<img src="#x">', '<img>'];
         yield 'loading' => ['<img src="/a.png" loading="lazy"><img src="/b.png" loading="never">', '<img src="/a.png" loading="lazy"><img src="/b.png">'];
         yield 'text escaped' => ['5 &lt; 6 &amp; "q"', '5 &lt; 6 &amp; "q"'];

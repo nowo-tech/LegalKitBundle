@@ -24,6 +24,8 @@ interface LegalTokenResolverInterface
 
     /**
      * The value of a token (name without `%`), a string being plain text; null when this resolver cannot resolve it.
+     *
+     * @return LegalTokenValue|string|null The result
      */
     public function resolve(string $name, LegalTokenContext $context): LegalTokenValue|string|null;
 }

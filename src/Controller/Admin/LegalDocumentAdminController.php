@@ -41,7 +41,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
-
 /**
  * Admin of the legal pages (REQ-UI-001/002/003): index matrix (page × locale, Built-in / Custom, last editor,
  * placeholder hits) on the UiKit list scaffold, editor on the form scaffold with one tab per locale, and restore
@@ -96,6 +95,8 @@ final readonly class LegalDocumentAdminController
 
     /**
      * Matrix of every page × enabled locale.
+     *
+     * @return Response The result
      */
     public function index(): Response
     {
@@ -105,7 +106,7 @@ final readonly class LegalDocumentAdminController
             $hits[$hit->slug][$hit->locale] = ($hits[$hit->slug][$hit->locale] ?? 0) + 1;
         }
 
-        $columns = [new Column('page', self::t('admin.column.page'), required: true)];
+        $columns = [new Column('page', $this->t('admin.column.page'), required: true)];
         foreach ($this->locales->all() as $locale) {
             $columns[] = new Column('locale_' . $locale, new Label('admin.column.locale', self::BUNDLE, ['%locale%' => $locale]));
         }
@@ -114,8 +115,8 @@ final readonly class LegalDocumentAdminController
         foreach ($this->catalog->pages() as $page) {
             $cells = [];
             foreach ($this->locales->all() as $locale) {
-                $stored          = $custom[$page->slug][$locale] ?? null;
-                $cells[$locale]  = [
+                $stored         = $custom[$page->slug][$locale] ?? null;
+                $cells[$locale] = [
                     'custom'     => $stored !== null,
                     'updated_at' => $stored['updated_at'] ?? null,
                     'updated_by' => $stored['updated_by'] ?? null,
@@ -123,14 +124,14 @@ final readonly class LegalDocumentAdminController
                     'edit_href'  => $this->urls->generate(LegalRouteLoader::ADMIN_EDIT, ['slug' => $page->slug, 'locale' => $locale]),
                 ];
             }
-            $rows[$page->slug] = ['page' => self::t($page->labelKey()), 'slug' => $page->slug, 'cells' => $cells];
+            $rows[$page->slug] = ['page' => $this->t($page->labelKey()), 'slug' => $page->slug, 'cells' => $cells];
         }
 
         $page = new ListPage(
-            new PageHeader(self::t('admin.title'), self::t('admin.intro')),
+            new PageHeader($this->t('admin.title'), $this->t('admin.intro')),
             $columns,
             $rows,
-            empty: new EmptyState(self::t('admin.empty')),
+            empty: new EmptyState($this->t('admin.empty')),
             bundle: self::BUNDLE,
             layout: $this->layoutTemplate,
             attributes: ['data-testid' => 'nowo-legal-kit-admin-index'],
@@ -145,6 +146,8 @@ final readonly class LegalDocumentAdminController
 
     /**
      * Editor of one page in one locale (prefilled from the seed, tokens kept, when no row exists).
+     *
+     * @return Response The result
      */
     public function edit(Request $request, string $slug, string $locale): Response
     {
@@ -195,13 +198,13 @@ final readonly class LegalDocumentAdminController
         if ($isStored) {
             $restore = new Action(
                 'restore',
-                self::t('admin.reset'),
+                $this->t('admin.reset'),
                 $this->urls->generate(LegalRouteLoader::ADMIN_RESET, ['slug' => $slug, 'locale' => $locale]),
                 method: 'POST',
                 confirm: new Confirm(
                     new Label('admin.reset_confirm_title', self::BUNDLE, $params),
                     new Label('admin.reset_confirm_message', self::BUNDLE, $params),
-                    self::t('admin.reset_confirm'),
+                    $this->t('admin.reset_confirm'),
                 ),
                 variant: 'danger',
                 form: $this->resetForm($slug, $locale)->createView(),
@@ -211,24 +214,24 @@ final readonly class LegalDocumentAdminController
         $page = new FormPage(
             new PageHeader(
                 new Label('admin.edit_title', self::BUNDLE, $params),
-                self::t('admin.edit_intro'),
+                $this->t('admin.edit_intro'),
                 breadcrumbs: [
-                    new Crumb(self::t('admin.title'), $this->urls->generate(LegalRouteLoader::ADMIN_INDEX)),
+                    new Crumb($this->t('admin.title'), $this->urls->generate(LegalRouteLoader::ADMIN_INDEX)),
                     new Crumb(new Label('admin.edit_title', self::BUNDLE, $params)),
                 ],
-                tabs: new AreaNav($tabs, self::t('admin.tab.label')),
+                tabs: new AreaNav($tabs, $this->t('admin.tab.label')),
             ),
             $form->createView(),
-            submitLabel: self::t('admin.save'),
+            submitLabel: $this->t('admin.save'),
             cancelHref: $this->urls->generate(LegalRouteLoader::ADMIN_INDEX),
-            cancelLabel: self::t('admin.back'),
-            secondaryActions: [new Action('view', self::t('admin.view_public'), $this->publicUrl($legalPage, $locale))],
+            cancelLabel: $this->t('admin.back'),
+            secondaryActions: [new Action('view', $this->t('admin.view_public'), $this->publicUrl($legalPage, $locale))],
             deleteAction: $restore,
             bundle: self::BUNDLE,
             layout: $this->layoutTemplate,
             attributes: ['data-testid' => 'nowo-legal-kit-admin-edit'],
-            dangerZoneTitle: self::t('admin.reset_zone'),
-            dangerZoneIntro: self::t('admin.reset_intro'),
+            dangerZoneTitle: $this->t('admin.reset_zone'),
+            dangerZoneIntro: $this->t('admin.reset_intro'),
         );
 
         $response = new Response($this->twig->render($this->templates['edit'], [
@@ -244,6 +247,8 @@ final readonly class LegalDocumentAdminController
 
     /**
      * Deletes the operator copy (POST + CSRF): the seed is published again.
+     *
+     * @return RedirectResponse The result
      */
     public function reset(Request $request, string $slug, string $locale): RedirectResponse
     {
@@ -258,6 +263,7 @@ final readonly class LegalDocumentAdminController
 
         $document = $this->documents->findOneBySlugAndLocale($slug, $locale);
         if ($document instanceof LegalDocument) {
+            // @igor-ignore - Repository call; the Doctrine unit of work is request-scoped
             $this->documents->remove($document);
             $this->scanner->reset();
             $this->dispatcher->dispatch(new LegalDocumentRestoredEvent($slug, $locale));
@@ -324,7 +330,7 @@ final readonly class LegalDocumentAdminController
         return $response;
     }
 
-    private static function t(string $key): Label
+    private function t(string $key): Label
     {
         return new Label($key, self::BUNDLE);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
+use ArrayObject;
 use InvalidArgumentException;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
@@ -14,6 +15,7 @@ use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
 use Nowo\LegalKitBundle\Tests\Support\TestKernel;
 use Nowo\LegalKitBundle\Twig\LegalKitExtension;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -60,24 +62,24 @@ final class ServicesTest extends KernelTestCase
         $manager->persist($actor);
         $manager->flush();
 
-        $events = [];
-        $this->service($kernel, EventDispatcherInterface::class)->addListener(LegalDocumentsImportedEvent::class, static function (LegalDocumentsImportedEvent $event) use (&$events): void {
-            $events[] = $event->documents;
+        $events = new ArrayObject();
+        $this->service($kernel, EventDispatcherInterface::class)->addListener(LegalDocumentsImportedEvent::class, static function (LegalDocumentsImportedEvent $event) use ($events): void {
+            $events->append($event->documents);
         });
         $portability = $this->service($kernel, LegalDocumentPortability::class);
         $rows        = $portability->normalize([['slug' => 'notice', 'locale' => 'en', 'title' => ' Notice ', 'body' => '<p>A</p><iframe></iframe>']]);
         self::assertSame('Notice', $rows[0]['title']);
 
         self::assertSame(1, $portability->apply($rows, $actor));
-        self::assertSame([], $events, 'No flush, no event');
+        self::assertSame([], $events->getArrayCopy(), 'No flush, no event');
         $manager->flush();
         $stored = $this->find($kernel, 'notice', 'en');
         self::assertNotNull($stored);
         self::assertSame('<p>A</p>', $stored->getBody());
-        self::assertSame($actor->getId(), $stored->getCreatedBy() instanceof User ? $stored->getCreatedBy()->getId() : null);
+        self::assertNull($stored->getCreatedBy(), 'AuditKit blames the signed-in user (none in CLI) over the given actor');
 
         self::assertSame(1, $portability->apply([['slug' => 'notice', 'locale' => 'en', 'title' => 'Notice 2', 'body' => '<p>B</p>']], null, true));
-        self::assertSame([[['slug' => 'notice', 'locale' => 'en']]], $events);
+        self::assertSame([[['slug' => 'notice', 'locale' => 'en']]], $events->getArrayCopy());
         self::assertSame('Notice 2', $this->find($kernel, 'notice', 'en')?->getTitle());
         self::assertSame([['slug' => 'notice', 'locale' => 'en', 'title' => 'Notice 2', 'body' => '<p>B</p>']], $portability->export());
     }
@@ -136,7 +138,7 @@ final class ServicesTest extends KernelTestCase
         $twig->addFunction(new TwigFunction('nowo_cookie_consent_should_render', static fn (): bool => true));
         self::assertTrue($extension->consentWidget($twig));
         $failing = new Environment(new ArrayLoader());
-        $failing->addFunction(new TwigFunction('nowo_cookie_consent_should_render', static fn (): bool => throw new \RuntimeException('cold start')));
+        $failing->addFunction(new TwigFunction('nowo_cookie_consent_should_render', static fn (): bool => throw new RuntimeException('cold start')));
         self::assertFalse($extension->consentWidget($failing));
     }
 
@@ -178,7 +180,7 @@ final class ServicesTest extends KernelTestCase
      */
     private function service(TestKernel $kernel, string $id): object
     {
-        $service = $kernel->getContainer()->get('test.service_container')->get($id);
+        $service = $this->testContainer($kernel)->get($id);
         self::assertInstanceOf($id, $service);
 
         return $service;

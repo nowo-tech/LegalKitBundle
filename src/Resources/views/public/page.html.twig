@@ -18,11 +18,11 @@
 {% endblock %}
 
 {% block nowo_ui_content %}
-    <article class="nowo-legal-doc {{ nowo_ui_class('section', nowo_ui_bundle) }}" lang="{{ document.contentLocale }}" data-nowo-legal-source="{{ document.source }}" data-testid="nowo-legal-kit-page-{{ page.slug }}">
+    <article class="nowo-legal-doc {{ nowo_ui_class('section', nowo_ui_bundle) }}" lang="{{ document.contentLocale }}" data-nowo-legal-source="{{ document.source }}" data-testid="nowo-legal-kit-page-{{ page.slug }}"{{ nowo_ui_attrs('section', nowo_ui_bundle) }}>
         {# The body is sanitised (LegalHtmlSanitizerInterface) on every render; the title is always auto-escaped. #}
         {{ document.body|raw }}
         {% if document.isStored and document.updatedAt %}
-            <p class="nowo-legal-doc__meta {{ nowo_ui_class('muted', nowo_ui_bundle) }}">{{ 'public.last_updated'|trans({'%date%': document.updatedAt|date('Y-m-d')}, 'NowoLegalKitBundle', legal_locale) }}</p>
+            <p class="nowo-legal-doc__meta {{ nowo_ui_class('muted', nowo_ui_bundle) }}"{{ nowo_ui_attrs('muted', nowo_ui_bundle) }}>{{ 'public.last_updated'|trans({'%date%': document.updatedAt|date('Y-m-d')}, 'NowoLegalKitBundle', legal_locale) }}</p>
         {% endif %}
         {{ include('@NowoLegalKitBundle/public/_nav.html.twig', {current: page.slug, locale: legal_locale}, false) }}
     </article>

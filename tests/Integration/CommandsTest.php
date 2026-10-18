@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
+use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
+use Nowo\LegalKitBundle\Command\DoctorCommand;
+use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
+use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
 use Nowo\LegalKitBundle\Tests\Support\TestKernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Routing\RouterInterface;
 
 use function file_get_contents;
 use function file_put_contents;
@@ -81,7 +86,7 @@ final class CommandsTest extends KernelTestCase
         self::assertSame(Command::SUCCESS, $tester->execute([]));
 
         $this->store($kernel, 'terms', 'en', 'Terms', '<p>TODO-LEGAL</p>');
-        $scanner = $kernel->getContainer()->get('test.service_container')->get(LegalPlaceholderScanner::class);
+        $scanner = $this->testContainer($kernel)->get(LegalPlaceholderScanner::class);
         self::assertInstanceOf(LegalPlaceholderScanner::class, $scanner);
         $scanner->reset();
         self::assertSame(Command::FAILURE, $tester->execute([]));
@@ -90,7 +95,7 @@ final class CommandsTest extends KernelTestCase
     public function testAdaptSeedReplacesMarkers(): void
     {
         $kernel = $this->bootKernel(['locales' => ['en', 'es']]);
-        $map    = $this->file(json_encode(['en' => [['Operator legal name — replace', 'Acme Ltd']]]));
+        $map    = $this->file((string) json_encode(['en' => [['Operator legal name — replace', 'Acme Ltd']]]));
         $out    = $this->file('');
         $tester = $this->tester($kernel, 'app:ops-seed:adapt-legal');
 
@@ -228,5 +233,74 @@ final class CommandsTest extends KernelTestCase
         $this->files[] = $file;
 
         return $file;
+    }
+
+    public function testCommandsSkipPagesWithoutSeed(): void
+    {
+        $kernel = $this->bootKernel(['locales' => ['en', 'ca'], 'pages' => ['blank' => []], 'seed' => ['materialize' => true]], ['test_seed']);
+
+        $adapt = $this->tester($kernel, 'nowo:legal-kit:adapt-seed');
+        self::assertSame(Command::SUCCESS, $adapt->execute(['--replacements' => $this->file('{}')]));
+        $this->assertOnlyHostPagesInCa($adapt->getDisplay());
+
+        $seed = $this->tester($kernel, 'nowo:legal-kit:seed');
+        self::assertSame(Command::SUCCESS, $seed->execute([]));
+        self::assertNull($this->find($kernel, 'blank', 'en'), 'Empty seed bodies are not stored');
+        self::assertNull($this->find($kernel, 'privacy', 'ca'), 'No seed in ca');
+        self::assertSame('Acme notice', $this->find($kernel, 'notice', 'en')?->getTitle(), 'The host provider wins');
+
+        $check = $this->tester($kernel, 'nowo:legal-kit:check-placeholders');
+        $check->execute(['--locale' => 'ca']);
+        self::assertStringNotContainsString('privacy', $check->getDisplay());
+    }
+
+    public function testDoctorReportsMissingRoutesAndMarkerlessSeeds(): void
+    {
+        $tester = $this->tester($this->bootKernel(['locales' => ['en']], ['no_routes']), 'nowo:legal-kit:doctor');
+        self::assertSame(Command::FAILURE, $tester->execute([]));
+        self::assertStringContainsString('Route "legal_notice" is missing', $tester->getDisplay());
+
+        $tester = $this->tester($this->bootKernel(['locales' => ['en']], ['test_seed']), 'nowo:legal-kit:doctor');
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringContainsString('has no built-in marker', $tester->getDisplay());
+    }
+
+    public function testDoctorReportsCookieConsentRoutes(): void
+    {
+        $tester = $this->tester($this->bootKernel(['cookie_consent' => ['prepend_routes' => false]], ['cookie_consent']), 'nowo:legal-kit:doctor');
+
+        self::assertSame(Command::FAILURE, $tester->execute(['--strict' => true]));
+        self::assertStringContainsString('does not contain "legal_privacy"', $tester->getDisplay());
+    }
+
+    public function testDoctorReportsAMissingPrivacyRoute(): void
+    {
+        $container = $this->testContainer($this->bootKernel(['locales' => ['en']]));
+        $catalog   = $container->get(LegalPageCatalogInterface::class);
+        $locales   = $container->get(LegalLocales::class);
+        $seeds     = $container->get(LegalSeedRegistry::class);
+        $router    = $container->get('router');
+        self::assertInstanceOf(LegalPageCatalogInterface::class, $catalog);
+        self::assertInstanceOf(LegalLocales::class, $locales);
+        self::assertInstanceOf(LegalSeedRegistry::class, $seeds);
+        self::assertInstanceOf(RouterInterface::class, $router);
+        $routes = ['legal_notice', 'legal_privacy', 'legal_terms', 'legal_cookies'];
+
+        $tester = new CommandTester(new DoctorCommand($catalog, $locales, $seeds, $router, null, true, $routes, 'app_privacy'));
+        self::assertSame(Command::FAILURE, $tester->execute([]));
+        self::assertStringContainsString('privacy_route "app_privacy" does not exist', $tester->getDisplay());
+
+        $tester = new CommandTester(new DoctorCommand($catalog, $locales, $seeds, $router, null, true, $routes, 'legal_privacy'));
+        self::assertSame(Command::SUCCESS, $tester->execute(['--strict' => true]));
+    }
+
+    private function assertOnlyHostPagesInCa(string $json): void
+    {
+        $rows = json_decode($json, true);
+        self::assertIsArray($rows);
+        foreach ($rows as $row) {
+            self::assertIsArray($row);
+            self::assertTrue($row['locale'] !== 'ca' || $row['slug'] === 'blank', 'Only the host page has a ca seed');
+        }
     }
 }

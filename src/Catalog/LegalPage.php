@@ -34,6 +34,8 @@ final readonly class LegalPage
 
     /**
      * Name of the localized public route (`legal_privacy`).
+     *
+     * @return string Route name
      */
     public function routeName(): string
     {
@@ -42,6 +44,8 @@ final readonly class LegalPage
 
     /**
      * Name of the bare default-locale twin (`legal_privacy_unlocalized`).
+     *
+     * @return string Route name
      */
     public function unlocalizedRouteName(): string
     {
@@ -50,6 +54,8 @@ final readonly class LegalPage
 
     /**
      * Translation key (domain NowoLegalKitBundle) of the page label.
+     *
+     * @return string Translation key
      */
     public function labelKey(): string
     {

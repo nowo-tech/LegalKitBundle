@@ -8,16 +8,20 @@ use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Configuration as Doctrine
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use InvalidArgumentException;
 use Nowo\AuditKitBundle\NowoAuditKitBundle;
 use Nowo\Ckeditor5EditorBundle\NowoCkeditor5EditorBundle;
 use Nowo\CookieConsentBundle\NowoCookieConsentBundle;
 use Nowo\FormKitBundle\NowoFormKitBundle;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
+use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
 use Nowo\LegalKitBundle\Tests\Support\Entity\User;
+use Nowo\LegalKitBundle\Tests\Support\Seed\TestSeedProvider;
 use Nowo\OutboundUrlGuardBundle\NowoOutboundUrlGuardBundle;
 use Nowo\SeoKitBundle\SeoKitBundle;
 use Nowo\UiKitBundle\NowoUiKitBundle;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -29,12 +33,13 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
 use function dirname;
-use function in_array;
 use function getmypid;
 use function hash;
+use function in_array;
 use function serialize;
 use function sys_get_temp_dir;
 
@@ -48,6 +53,9 @@ use const PHP_VERSION_ID;
 final class TestKernel extends Kernel
 {
     use MicroKernelTrait;
+
+    /** Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, no route import. */
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes'];
 
     private readonly string $cacheKey;
 
@@ -80,7 +88,7 @@ final class TestKernel extends Kernel
         yield new NowoUiKitBundle();
         yield new NowoFormKitBundle();
         foreach ($this->extraBundles as $extra) {
-            if ($extra !== 'consent_stub') {
+            if (!in_array($extra, self::PSEUDO_OPTIONS, true)) {
                 yield $this->extraBundle($extra);
             }
         }
@@ -139,7 +147,7 @@ final class TestKernel extends Kernel
         $container->loadFromExtension('nowo_audit_kit', ['user_class' => User::class]);
         if ($this->withSecurity) {
             $container->loadFromExtension('security', [
-                'password_hashers' => [User::class => 'plaintext'],
+                'password_hashers' => [User::class => 'plaintext', InMemoryUser::class => 'plaintext'],
                 'providers'        => ['memory' => ['memory' => ['users' => [
                     'admin'  => ['password' => 'admin', 'roles' => ['ROLE_ADMIN']],
                     'editor' => ['password' => 'editor', 'roles' => ['ROLE_USER']],
@@ -147,8 +155,13 @@ final class TestKernel extends Kernel
                 'firewalls' => ['main' => ['lazy' => true, 'http_basic' => null, 'provider' => 'memory']],
             ]);
         }
+        // AuditKit autowires the PSR-20 clock (a Flex host aliases it through symfony/clock).
+        $container->setAlias(ClockInterface::class, 'clock');
         // A host access checker (security.access_checker: test.legal_kit.allow_all).
         $container->register('test.legal_kit.allow_all', AllowAllLegalKitAccessChecker::class);
+        if (in_array('test_seed', $this->extraBundles, true)) {
+            $container->register(TestSeedProvider::class, TestSeedProvider::class)->addTag(LegalSeedProviderInterface::TAG, ['priority' => 10]);
+        }
         if (in_array('consent_stub', $this->extraBundles, true)) {
             $container->register(ConsentStubTwigExtension::class, ConsentStubTwigExtension::class)->addTag('twig.extension');
         }
@@ -160,6 +173,9 @@ final class TestKernel extends Kernel
 
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
+        if (in_array('no_routes', $this->extraBundles, true)) {
+            return;
+        }
         $routes->import('.', 'nowo_legal_kit');
     }
 
@@ -170,7 +186,7 @@ final class TestKernel extends Kernel
             'cookie_consent'     => new NowoCookieConsentBundle(),
             'seo_kit'            => new SeoKitBundle(),
             'outbound_url_guard' => new NowoOutboundUrlGuardBundle(),
-            default              => throw new \InvalidArgumentException('Unknown test bundle ' . $name),
+            default              => throw new InvalidArgumentException('Unknown test bundle ' . $name),
         };
     }
 

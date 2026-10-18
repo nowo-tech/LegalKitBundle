@@ -16,6 +16,9 @@ use function html_entity_decode;
 use function preg_replace;
 use function strip_tags;
 
+use const ENT_HTML5;
+use const ENT_QUOTES;
+
 /**
  * Resolution order of a public page: stored row with text → seed of the locale → seed of `seed.fallback_locale`.
  * Tokens are resolved first, then the body is sanitised on every render (defence in depth for rows written by SQL /
@@ -42,6 +45,8 @@ final readonly class LegalDocumentResolver
 
     /**
      * The published page, or null when there is neither a stored row nor a seed.
+     *
+     * @return ?ResolvedLegalDocument The result
      */
     public function resolve(string $slug, string $locale): ?ResolvedLegalDocument
     {
@@ -80,7 +85,7 @@ final readonly class LegalDocumentResolver
      * Raw effective text (tokens kept) of a page: the stored row when it has text, else the seed; used by the
      * placeholder scanner. `$stored` avoids one query per page when the caller loaded the rows already.
      *
-     * @return array{title: string, body: string, source: 'stored'|'seed'|'fallback'}|null
+     * @return array{title: string, body: string, source: 'fallback'|'seed'|'stored'}|null
      */
     public function effective(string $slug, string $locale, ?LegalDocument $stored): ?array
     {
@@ -101,6 +106,8 @@ final readonly class LegalDocumentResolver
 
     /**
      * The seed (tokens kept, sanitised body) the editor starts from; null when there is none.
+     *
+     * @return ?LegalSeed The result
      */
     public function seedForEditor(string $slug, string $locale): ?LegalSeed
     {
@@ -114,10 +121,12 @@ final readonly class LegalDocumentResolver
 
     /**
      * Whether an HTML body has visible text.
+     *
+     * @return bool The answer
      */
     public static function hasText(string $html): bool
     {
-        $text = html_entity_decode(strip_tags($html), \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         return preg_replace('/[\s\x{00A0}\x{200B}]+/u', '', $text) !== '';
     }

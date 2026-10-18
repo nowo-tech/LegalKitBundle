@@ -25,7 +25,7 @@ final readonly class ResolvedLegalDocument
      * @param string $locale Requested locale
      * @param string $title Plain-text title (auto-escape on output)
      * @param string $body Sanitised HTML body (the only value printed with |raw)
-     * @param 'stored'|'seed'|'fallback' $source Where the text comes from
+     * @param 'fallback'|'seed'|'stored' $source Where the text comes from
      * @param string $contentLocale Locale the text is written in (`lang`, canonical)
      * @param DateTimeInterface|null $updatedAt Last update of the stored row (null: seed)
      */
@@ -42,6 +42,8 @@ final readonly class ResolvedLegalDocument
 
     /**
      * Whether an operator copy is published.
+     *
+     * @return bool The answer
      */
     public function isStored(): bool
     {

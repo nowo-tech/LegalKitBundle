@@ -50,6 +50,8 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
 
     /**
      * The inventory table HTML ('' without CookieConsent or without cookies).
+     *
+     * @return string The value
      */
     public function render(): string
     {
@@ -88,17 +90,17 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
             }
             $rows[] = [
                 'name'     => $cookie['name'],
-                'category' => self::string($cookie['category'] ?? ''),
-                'duration' => self::string($cookie['duration'] ?? ''),
-                'purpose'  => self::string($cookie['purpose'] ?? ''),
-                'provider' => self::string($cookie['provider'] ?? ''),
+                'category' => $this->string($cookie['category'] ?? ''),
+                'duration' => $this->string($cookie['duration'] ?? ''),
+                'purpose'  => $this->string($cookie['purpose'] ?? ''),
+                'provider' => $this->string($cookie['provider'] ?? ''),
             ];
         }
 
         return $rows;
     }
 
-    private static function string(mixed $value): string
+    private function string(mixed $value): string
     {
         return is_string($value) ? $value : '';
     }

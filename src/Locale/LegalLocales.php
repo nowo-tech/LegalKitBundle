@@ -6,7 +6,6 @@ namespace Nowo\LegalKitBundle\Locale;
 
 use InvalidArgumentException;
 
-use function array_values;
 use function explode;
 use function implode;
 use function in_array;
@@ -113,6 +112,8 @@ final readonly class LegalLocales
 
     /**
      * The default locale (bare URLs with the unprefixed style).
+     *
+     * @return string The value
      */
     public function defaultLocale(): string
     {
@@ -121,6 +122,8 @@ final readonly class LegalLocales
 
     /**
      * Whether a locale is enabled.
+     *
+     * @return bool The answer
      */
     public function has(string $locale): bool
     {
@@ -129,11 +132,13 @@ final readonly class LegalLocales
 
     /**
      * Route requirement matching exactly the enabled locales (`en|es|de`).
+     *
+     * @return string The value
      */
     public function requirement(): string
     {
         $quoted = [];
-        foreach (array_values($this->locales) as $locale) {
+        foreach ($this->locales as $locale) {
             $quoted[] = preg_quote($locale, '#');
         }
 

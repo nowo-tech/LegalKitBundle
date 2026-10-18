@@ -14,6 +14,8 @@ interface LegalHtmlSanitizerInterface
 {
     /**
      * Returns safe HTML (fails closed: unknown markup is unwrapped, dangerous markup removed).
+     *
+     * @return string Sanitised HTML
      */
     public function sanitize(string $html): string;
 }

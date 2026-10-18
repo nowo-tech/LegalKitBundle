@@ -12,6 +12,7 @@ use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use RuntimeException;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -33,6 +34,11 @@ use function str_contains;
 use function str_replace;
 use function trim;
 
+use const JSON_PRETTY_PRINT;
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
+
 /**
  * Builds ops-seed `legal_documents[]` from the seed of every page × locale and a replacements map
  * `{locale: [[from, to], …]}` (locales without an entry use `en`), so a fleet publishes its real identity while the
@@ -41,6 +47,7 @@ use function trim;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
+#[AsCommand(name: self::NAME, description: 'Render the legal seed, apply string replacements and emit the legal_documents JSON')]
 final class AdaptSeedCommand extends Command
 {
     public const string NAME = 'nowo:legal-kit:adapt-seed';
@@ -65,7 +72,6 @@ final class AdaptSeedCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Render the legal seed, apply string replacements and emit the legal_documents JSON')
             ->addOption('replacements', null, InputOption::VALUE_REQUIRED, 'JSON file: { "en": [["from", "to"], …], … }')
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Write the legal_documents JSON here (default: stdout)')
             ->addOption('require-clear-markers', null, InputOption::VALUE_NONE, 'Fail when a placeholder marker remains');
@@ -81,7 +87,7 @@ final class AdaptSeedCommand extends Command
             return Command::FAILURE;
         }
         try {
-            $replacements = self::readReplacements($mapPath);
+            $replacements = $this->readReplacements($mapPath);
         } catch (InvalidArgumentException|RuntimeException $e) {
             $io->error($e->getMessage());
 
@@ -116,7 +122,7 @@ final class AdaptSeedCommand extends Command
             }
         }
 
-        $json    = json_encode($documents, \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) . "\n";
+        $json    = json_encode($documents, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
         $outPath = $input->getOption('output');
         if (!is_string($outPath) || $outPath === '') {
             $output->write($json);
@@ -134,12 +140,12 @@ final class AdaptSeedCommand extends Command
     }
 
     /**
-     * @return array<string, list<array{0: string, 1: string}>>
-     *
      * @throws RuntimeException When the file cannot be read or is not JSON
      * @throws InvalidArgumentException When the structure is invalid
+     *
+     * @return array<string, list<array{0: string, 1: string}>>
      */
-    private static function readReplacements(string $path): array
+    private function readReplacements(string $path): array
     {
         if (!is_readable($path)) {
             throw new RuntimeException(sprintf('Cannot read %s', $path));
@@ -149,7 +155,7 @@ final class AdaptSeedCommand extends Command
             throw new RuntimeException(sprintf('Empty file %s', $path));
         }
         try {
-            $decoded = json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
+            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
             throw new RuntimeException(sprintf('Invalid JSON in %s: %s', $path, $e->getMessage()), 0, $e);
         }

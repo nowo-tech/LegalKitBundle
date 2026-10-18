@@ -25,6 +25,11 @@ use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 #[ORM\UniqueConstraint(name: 'uniq_legal_document_slug_locale', columns: ['slug', 'locale'])]
 #[ORM\Index(name: 'idx_legal_document_created_by', columns: ['created_by_id'])]
 #[ORM\Index(name: 'idx_legal_document_updated_by', columns: ['updated_by_id'])]
+// Column names fixed whatever the host naming strategy (the adopters' table uses created_at / updated_at).
+#[ORM\AttributeOverrides([
+    new ORM\AttributeOverride(name: 'createdAt', column: new ORM\Column(name: 'created_at', type: 'datetime_immutable', nullable: true)),
+    new ORM\AttributeOverride(name: 'updatedAt', column: new ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)),
+])]
 class LegalDocument implements AuditableInterface
 {
     use BlameableTrait;
@@ -64,6 +69,8 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Database id (null until flushed).
+     *
+     * @return ?int The count
      */
     public function getId(): ?int
     {
@@ -72,6 +79,8 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Page slug.
+     *
+     * @return string The value
      */
     public function getSlug(): string
     {
@@ -80,6 +89,8 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Locale code.
+     *
+     * @return string The value
      */
     public function getLocale(): string
     {
@@ -88,6 +99,8 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Plain-text title (always auto-escaped on output).
+     *
+     * @return string The value
      */
     public function getTitle(): string
     {
@@ -96,14 +109,19 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Sets the plain-text title.
+     *
+     * @return void Nothing (side effects only)
      */
     public function setTitle(string $title): void
     {
+        // @igor-ignore - Doctrine entity, not a container service
         $this->title = $title;
     }
 
     /**
      * Stored HTML body (sanitised on every write and again on render; tokens kept).
+     *
+     * @return string The value
      */
     public function getBody(): string
     {
@@ -112,9 +130,12 @@ class LegalDocument implements AuditableInterface
 
     /**
      * Sets the HTML body.
+     *
+     * @return void Nothing (side effects only)
      */
     public function setBody(string $body): void
     {
+        // @igor-ignore - Doctrine entity, not a container service
         $this->body = $body;
     }
 }

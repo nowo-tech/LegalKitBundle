@@ -42,6 +42,8 @@ final readonly class AdminAccessSubscriber implements EventSubscriberInterface
      * Denies admin routes when the checker refuses.
      *
      * @throws AccessDeniedException
+     *
+     * @return void Nothing (side effects only)
      */
     public function onKernelController(ControllerEvent $event): void
     {
@@ -49,7 +51,7 @@ final readonly class AdminAccessSubscriber implements EventSubscriberInterface
         $controller = $event->getController();
         $isAdmin    = (is_string($route) && str_starts_with($route, LegalRouteLoader::ADMIN_ROUTE_PREFIX))
             // Sub-requests (render(controller(…)), ESI) carry no admin route: guard the controller itself too.
-            || (is_array($controller) && ($controller[0] ?? null) instanceof LegalDocumentAdminController);
+            || (is_array($controller) && $controller[0] instanceof LegalDocumentAdminController);
         if (!$isAdmin) {
             return;
         }

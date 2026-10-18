@@ -24,6 +24,8 @@ final class TwigPathsPass implements CompilerPassInterface
      * filesystem loader; does nothing when Twig is not installed.
      *
      * @param ContainerBuilder $container The container being compiled
+     *
+     * @return void Nothing (side effects only)
      */
     public function process(ContainerBuilder $container): void
     {

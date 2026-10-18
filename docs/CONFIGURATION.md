@@ -44,7 +44,7 @@ nowo_legal_kit:
         ckeditor5_profile: legal
     sanitizer:
         outbound_url_guard: auto          # auto | true | false
-        ckeditor5_first_pass: auto        # auto | true | false
+        ckeditor5_first_pass: false       # true: CKEditor strict sanitiser before the allowlist
         allowed_elements: {}              # element => [attributes], merged into the allowlist
     placeholders:
         builtin_markers: true
@@ -117,8 +117,8 @@ with `class` (and per element: `href`, `title`, `rel`, `target`, `data-nowo-open
 `height`, `loading`, `colspan`, `rowspan`, `scope`). `allowed_elements` adds elements / attributes; `style`, `on*`,
 `srcdoc`, `formaction` and the removed elements (script, style, iframe, object, embed, svg, math, form controls,
 template, noscript…) can never be allowed. `outbound_url_guard: auto` drops private-network and cloud-metadata targets
-when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: auto` runs CKEditor's strict sanitiser first when the
-class is installed.
+when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: true` runs CKEditor's strict sanitiser first (off by
+default: the allowlist is the stricter one, and CKEditor's pass would drop the `data-nowo-open-consent` opener).
 
 ## Placeholders
 

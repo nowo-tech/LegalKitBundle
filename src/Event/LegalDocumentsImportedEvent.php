@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Event;
 
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Symfony\Contracts\EventDispatcher\Event;
 
 /**
  * Dispatched after an import / ops-seed apply flushed (public API, SemVer). With `flush: false` the host dispatches
- * nothing itself: the bundle dispatches it from {@see \Nowo\LegalKitBundle\Portability\LegalDocumentPortability::apply()}
+ * nothing itself: the bundle dispatches it from {@see LegalDocumentPortability::apply()}
  * only when it flushed.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>

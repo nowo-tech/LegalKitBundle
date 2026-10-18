@@ -13,8 +13,8 @@ use Nowo\LegalKitBundle\Token\LegalTokenRenderer;
 use Symfony\Contracts\Service\ResetInterface;
 
 use function array_merge;
-use function array_values;
 use function array_unique;
+use function array_values;
 use function str_contains;
 
 /**
@@ -92,6 +92,8 @@ final class LegalPlaceholderScanner implements ResetInterface
 
     /**
      * Whether any hit remains.
+     *
+     * @return bool The answer
      */
     public function hasPlaceholders(?string $locale = null): bool
     {
@@ -110,6 +112,8 @@ final class LegalPlaceholderScanner implements ResetInterface
 
     /**
      * Forgets memoised hits (kernel.reset; also call after editing a page in the same request).
+     *
+     * @return void Nothing (side effects only)
      */
     public function reset(): void
     {

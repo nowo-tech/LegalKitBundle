@@ -35,8 +35,10 @@ final class LegalRouteLoaderTest extends TestCase
         self::assertSame('/admin/legal/{slug}/{locale}', $edit->getPath());
         self::assertSame('notice|privacy', $edit->getRequirement('slug'));
         self::assertSame(['POST'], $routes->get(LegalRouteLoader::ADMIN_RESET)?->getMethods());
-        self::assertSame(LegalRouteLoader::ADMIN_INDEX, $routes->getAlias('admin_legal_index')?->getId());
-        self::assertTrue($routes->getAlias('admin_legal_index')?->isDeprecated());
+        $alias = $routes->getAlias('admin_legal_index');
+        self::assertNotNull($alias);
+        self::assertSame(LegalRouteLoader::ADMIN_INDEX, $alias->getId());
+        self::assertTrue($alias->isDeprecated());
     }
 
     public function testPrefixedStyleWithoutAdmin(): void

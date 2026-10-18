@@ -25,6 +25,8 @@ final class NowoLegalKitBundle extends Bundle
      * Registers the compiler passes (Twig paths, admin security, late integrations).
      *
      * @param ContainerBuilder $container The container being compiled
+     *
+     * @return void Nothing (side effects only)
      */
     public function build(ContainerBuilder $container): void
     {
