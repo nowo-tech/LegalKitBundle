@@ -51,10 +51,10 @@ Requirements: FR-001, FR-004.
 
 | File | Role |
 | --- | --- |
-| `src/Catalog/ConfiguredLegalPageCatalog.php` | ConfiguredLegalPageCatalog |
-| `src/Catalog/LegalPage.php` | LegalPage |
-| `src/Catalog/LegalPageCatalogInterface.php` | LegalPageCatalogInterface |
-| `src/Locale/LegalLocales.php` | LegalLocales |
+| `src/Catalog/ConfiguredLegalPageCatalog.php` | Catalogue from `pages` (enabled pages, order, default seed template) |
+| `src/Catalog/LegalPage.php` | Page value object: slug, path, nav, seed template, route names, label key |
+| `src/Catalog/LegalPageCatalogInterface.php` | Catalogue SPI (slugs, pages, has, page) |
+| `src/Locale/LegalLocales.php` | Locales from list / parameter / env, default first, route requirement |
 
 ## Storage
 
@@ -62,8 +62,8 @@ Requirements: FR-010.
 
 | File | Role |
 | --- | --- |
-| `src/Entity/LegalDocument.php` | LegalDocument |
-| `src/Repository/LegalDocumentRepository.php` | LegalDocumentRepository |
+| `src/Entity/LegalDocument.php` | `legal_document` mapping (AuditKit traits, explicit index names) |
+| `src/Repository/LegalDocumentRepository.php` | Lookups, one-query maps (scanner, admin matrix with editors), save / remove |
 
 ## Seed
 
@@ -71,10 +71,10 @@ Requirements: FR-012, FR-020, FR-021, FR-022.
 
 | File | Role |
 | --- | --- |
-| `src/Seed/LegalSeed.php` | LegalSeed |
-| `src/Seed/LegalSeedProviderInterface.php` | LegalSeedProviderInterface |
-| `src/Seed/LegalSeedRegistry.php` | LegalSeedRegistry |
-| `src/Seed/TwigSeedProvider.php` | TwigSeedProvider |
+| `src/Seed/LegalSeed.php` | Seed text value (title, body, locale, fallback flag) |
+| `src/Seed/LegalSeedProviderInterface.php` | Seed provider SPI (supports / title / body) |
+| `src/Seed/LegalSeedRegistry.php` | Provider chain + `seed.fallback_locale` |
+| `src/Seed/TwigSeedProvider.php` | Twig seed rendered with the translator switched to the target locale |
 
 ## Tokens
 
@@ -82,12 +82,12 @@ Requirements: FR-023, FR-072.
 
 | File | Role |
 | --- | --- |
-| `src/Token/BuiltinTokenResolver.php` | BuiltinTokenResolver |
-| `src/Token/CookieInventoryTokenResolver.php` | CookieInventoryTokenResolver |
-| `src/Token/LegalTokenContext.php` | LegalTokenContext |
-| `src/Token/LegalTokenRenderer.php` | LegalTokenRenderer |
-| `src/Token/LegalTokenResolverInterface.php` | LegalTokenResolverInterface |
-| `src/Token/LegalTokenValue.php` | LegalTokenValue |
+| `src/Token/BuiltinTokenResolver.php` | `%brand%`, `%last_updated%` |
+| `src/Token/CookieInventoryTokenResolver.php` | `%cookie_inventory%` from CookieConsent |
+| `src/Token/LegalTokenContext.php` | Token context (slug, locale, update date) |
+| `src/Token/LegalTokenRenderer.php` | Token chain: HTML / text rendering, unresolved names |
+| `src/Token/LegalTokenResolverInterface.php` | Token resolver SPI |
+| `src/Token/LegalTokenValue.php` | Text or trusted HTML token value |
 
 ## Sanitiser
 
@@ -95,9 +95,9 @@ Requirements: FR-030, FR-031.
 
 | File | Role |
 | --- | --- |
-| `src/Sanitizer/DomAllowlistSanitizer.php` | DomAllowlistSanitizer |
-| `src/Sanitizer/LegalHtmlSanitizerInterface.php` | LegalHtmlSanitizerInterface |
-| `src/Sanitizer/UrlPolicy.php` | UrlPolicy |
+| `src/Sanitizer/DomAllowlistSanitizer.php` | DOM allowlist sanitiser (+ optional CKEditor strict first pass) |
+| `src/Sanitizer/LegalHtmlSanitizerInterface.php` | Sanitiser SPI |
+| `src/Sanitizer/UrlPolicy.php` | href / src policy (+ optional OutboundUrlGuard) |
 
 ## Resolution
 
@@ -105,8 +105,8 @@ Requirements: FR-011, FR-032.
 
 | File | Role |
 | --- | --- |
-| `src/Document/LegalDocumentResolver.php` | LegalDocumentResolver |
-| `src/Document/ResolvedLegalDocument.php` | ResolvedLegalDocument |
+| `src/Document/LegalDocumentResolver.php` | stored → seed → fallback resolution; effective text; editor seed |
+| `src/Document/ResolvedLegalDocument.php` | Published document value object |
 
 ## Gate & portability
 
@@ -114,10 +114,10 @@ Requirements: FR-060, FR-061, FR-065.
 
 | File | Role |
 | --- | --- |
-| `src/Placeholder/BuiltinMarkers.php` | BuiltinMarkers |
-| `src/Placeholder/LegalPlaceholderScanner.php` | LegalPlaceholderScanner |
-| `src/Placeholder/PlaceholderHit.php` | PlaceholderHit |
-| `src/Portability/LegalDocumentPortability.php` | LegalDocumentPortability |
+| `src/Placeholder/BuiltinMarkers.php` | The 29 markers of the shipped seed |
+| `src/Placeholder/LegalPlaceholderScanner.php` | Marker / unresolved-token scanner (memoised, reset) |
+| `src/Placeholder/PlaceholderHit.php` | Hit value object |
+| `src/Portability/LegalDocumentPortability.php` | Export / normalize / apply of `legal_documents[]` |
 
 ## HTTP, routing & security
 
@@ -125,14 +125,14 @@ Requirements: FR-002, FR-003, FR-040…FR-045, FR-050.
 
 | File | Role |
 | --- | --- |
-| `src/Controller/Admin/LegalDocumentAdminController.php` | LegalDocumentAdminController |
-| `src/Controller/LegalPageController.php` | LegalPageController |
-| `src/EventSubscriber/AdminAccessSubscriber.php` | AdminAccessSubscriber |
-| `src/Form/LegalDocumentType.php` | LegalDocumentType |
-| `src/Routing/LegalRouteLoader.php` | LegalRouteLoader |
-| `src/Security/AllowAllLegalKitAccessChecker.php` | AllowAllLegalKitAccessChecker |
-| `src/Security/ConfigurableLegalKitAccessChecker.php` | ConfigurableLegalKitAccessChecker |
-| `src/Security/LegalKitAccessCheckerInterface.php` | LegalKitAccessCheckerInterface |
+| `src/Controller/Admin/LegalDocumentAdminController.php` | Admin index / edit / restore on UiKit view models |
+| `src/Controller/LegalPageController.php` | Public page, 301 / 302, cache headers, render event |
+| `src/EventSubscriber/AdminAccessSubscriber.php` | Enforces the checker on admin routes / controller |
+| `src/Form/LegalDocumentType.php` | Editor form (FormKit profile `legal_kit`, CKEditor 5 or textarea) |
+| `src/Routing/LegalRouteLoader.php` | Route type `nowo_legal_kit` (public, twins / bare, admin, legacy aliases) |
+| `src/Security/AllowAllLegalKitAccessChecker.php` | Demo-only checker (`allow_unauthenticated`) |
+| `src/Security/ConfigurableLegalKitAccessChecker.php` | Role checker (`security.access_roles`) |
+| `src/Security/LegalKitAccessCheckerInterface.php` | Access checker SPI |
 
 ## Events & integrations
 
@@ -140,14 +140,14 @@ Requirements: FR-051…FR-054, FR-063.
 
 | File | Role |
 | --- | --- |
-| `src/Event/LegalDocumentRestoredEvent.php` | LegalDocumentRestoredEvent |
-| `src/Event/LegalDocumentSavedEvent.php` | LegalDocumentSavedEvent |
-| `src/Event/LegalDocumentsImportedEvent.php` | LegalDocumentsImportedEvent |
-| `src/Event/LegalPageRenderEvent.php` | LegalPageRenderEvent |
-| `src/EventListener/ActionLogListener.php` | ActionLogListener |
-| `src/EventListener/SeoKitHeadListener.php` | SeoKitHeadListener |
-| `src/Seo/LegalSitemapProvider.php` | LegalSitemapProvider |
-| `src/Twig/LegalKitExtension.php` | LegalKitExtension |
+| `src/Event/LegalDocumentRestoredEvent.php` | Restored event |
+| `src/Event/LegalDocumentSavedEvent.php` | Saved event |
+| `src/Event/LegalDocumentsImportedEvent.php` | Imported event |
+| `src/Event/LegalPageRenderEvent.php` | Before-render event (head, alternates, template variables) |
+| `src/EventListener/ActionLogListener.php` | AuditKit action log of edits |
+| `src/EventListener/SeoKitHeadListener.php` | SeoKit title / canonical / hreflang |
+| `src/Seo/LegalSitemapProvider.php` | SeoKit sitemap entries |
+| `src/Twig/LegalKitExtension.php` | Twig API (links, hits, admin URL, consent widget, content locale, inventory) |
 
 ## Console
 
@@ -155,12 +155,12 @@ Requirements: FR-005, FR-013, FR-062, FR-066…FR-068, FR-073.
 
 | File | Role |
 | --- | --- |
-| `src/Command/AdaptSeedCommand.php` | AdaptSeedCommand |
-| `src/Command/CheckPlaceholdersCommand.php` | CheckPlaceholdersCommand |
-| `src/Command/DoctorCommand.php` | DoctorCommand |
-| `src/Command/ExportCommand.php` | ExportCommand |
-| `src/Command/ImportCommand.php` | ImportCommand |
-| `src/Command/SeedCommand.php` | SeedCommand |
+| `src/Command/AdaptSeedCommand.php` | `nowo:legal-kit:adapt-seed` |
+| `src/Command/CheckPlaceholdersCommand.php` | `nowo:legal-kit:check-placeholders` |
+| `src/Command/DoctorCommand.php` | `nowo:legal-kit:doctor` |
+| `src/Command/ExportCommand.php` | `nowo:legal-kit:export` |
+| `src/Command/ImportCommand.php` | `nowo:legal-kit:import` |
+| `src/Command/SeedCommand.php` | `nowo:legal-kit:seed` |
 
 ## Templates & stylesheet
 
@@ -168,18 +168,18 @@ Requirements: FR-021, FR-041…FR-044, FR-050, FR-051, FR-063, FR-072, FR-081.
 
 | File | Role |
 | --- | --- |
-| `src/Resources/public/css/nowo-legal-kit.css` | nowo-legal-kit |
-| `src/Resources/views/_cookie_inventory.html.twig` | _cookie_inventory |
-| `src/Resources/views/_footer_nav.html.twig` | _footer_nav |
-| `src/Resources/views/_placeholder_banner.html.twig` | _placeholder_banner |
-| `src/Resources/views/admin/edit.html.twig` | edit |
-| `src/Resources/views/admin/index.html.twig` | index |
-| `src/Resources/views/public/_nav.html.twig` | _nav |
-| `src/Resources/views/public/page.html.twig` | page |
-| `src/Resources/views/seed/cookies.html.twig` | cookies |
-| `src/Resources/views/seed/notice.html.twig` | notice |
-| `src/Resources/views/seed/privacy.html.twig` | privacy |
-| `src/Resources/views/seed/terms.html.twig` | terms |
+| `src/Resources/public/css/nowo-legal-kit.css` | Public page stylesheet |
+| `src/Resources/views/_cookie_inventory.html.twig` | Cookie table |
+| `src/Resources/views/_footer_nav.html.twig` | Footer navigation + Manage cookies |
+| `src/Resources/views/_placeholder_banner.html.twig` | Ops banner |
+| `src/Resources/views/admin/edit.html.twig` | Editor (form scaffold) |
+| `src/Resources/views/admin/index.html.twig` | Matrix (list scaffold) |
+| `src/Resources/views/public/_nav.html.twig` | Cross navigation |
+| `src/Resources/views/public/page.html.twig` | Public unique page |
+| `src/Resources/views/seed/cookies.html.twig` | Cookies seed body |
+| `src/Resources/views/seed/notice.html.twig` | Legal notice seed body |
+| `src/Resources/views/seed/privacy.html.twig` | Privacy seed body |
+| `src/Resources/views/seed/terms.html.twig` | Terms seed body |
 
 ## Translations
 
@@ -187,17 +187,17 @@ Requirements: FR-021, FR-082.
 
 | File | Role |
 | --- | --- |
-| `src/Resources/translations/NowoLegalKitBundle.de.yaml` | NowoLegalKitBundle.de |
-| `src/Resources/translations/NowoLegalKitBundle.en.yaml` | NowoLegalKitBundle.en |
-| `src/Resources/translations/NowoLegalKitBundle.es.yaml` | NowoLegalKitBundle.es |
-| `src/Resources/translations/NowoLegalKitBundle.fr.yaml` | NowoLegalKitBundle.fr |
-| `src/Resources/translations/NowoLegalKitBundle.it.yaml` | NowoLegalKitBundle.it |
-| `src/Resources/translations/NowoLegalKitBundle.nl.yaml` | NowoLegalKitBundle.nl |
-| `src/Resources/translations/NowoLegalKitBundle.pt.yaml` | NowoLegalKitBundle.pt |
-| `src/Resources/translations/NowoLegalKitSeed.de.yaml` | NowoLegalKitSeed.de |
-| `src/Resources/translations/NowoLegalKitSeed.en.yaml` | NowoLegalKitSeed.en |
-| `src/Resources/translations/NowoLegalKitSeed.es.yaml` | NowoLegalKitSeed.es |
-| `src/Resources/translations/NowoLegalKitSeed.fr.yaml` | NowoLegalKitSeed.fr |
-| `src/Resources/translations/NowoLegalKitSeed.it.yaml` | NowoLegalKitSeed.it |
-| `src/Resources/translations/NowoLegalKitSeed.nl.yaml` | NowoLegalKitSeed.nl |
-| `src/Resources/translations/NowoLegalKitSeed.pt.yaml` | NowoLegalKitSeed.pt |
+| `src/Resources/translations/NowoLegalKitBundle.de.yaml` | UI texts (de) |
+| `src/Resources/translations/NowoLegalKitBundle.en.yaml` | UI texts (en) |
+| `src/Resources/translations/NowoLegalKitBundle.es.yaml` | UI texts (es) |
+| `src/Resources/translations/NowoLegalKitBundle.fr.yaml` | UI texts (fr) |
+| `src/Resources/translations/NowoLegalKitBundle.it.yaml` | UI texts (it) |
+| `src/Resources/translations/NowoLegalKitBundle.nl.yaml` | UI texts (nl) |
+| `src/Resources/translations/NowoLegalKitBundle.pt.yaml` | UI texts (pt) |
+| `src/Resources/translations/NowoLegalKitSeed.de.yaml` | Seed scaffold texts (de) |
+| `src/Resources/translations/NowoLegalKitSeed.en.yaml` | Seed scaffold texts (en) |
+| `src/Resources/translations/NowoLegalKitSeed.es.yaml` | Seed scaffold texts (es) |
+| `src/Resources/translations/NowoLegalKitSeed.fr.yaml` | Seed scaffold texts (fr) |
+| `src/Resources/translations/NowoLegalKitSeed.it.yaml` | Seed scaffold texts (it) |
+| `src/Resources/translations/NowoLegalKitSeed.nl.yaml` | Seed scaffold texts (nl) |
+| `src/Resources/translations/NowoLegalKitSeed.pt.yaml` | Seed scaffold texts (pt) |

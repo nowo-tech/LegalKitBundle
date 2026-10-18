@@ -249,8 +249,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     private function prependCookieConsent(ContainerBuilder $container, array $raw): void
     {
         $pages = $raw['pages'] ?? null;
+        $pages = (is_array($pages) ? $pages : []) + array_fill_keys(Configuration::DEFAULT_PAGES, []);
         $slugs = [];
-        foreach (is_array($pages) ? $pages : array_fill_keys(Configuration::DEFAULT_PAGES, []) as $slug => $options) {
+        foreach ($pages as $slug => $options) {
             if (!is_array($options) || ($options['enabled'] ?? true) !== false) {
                 $slugs[] = (string) $slug;
             }

@@ -297,6 +297,13 @@ final class Configuration implements ConfigurationInterface
             ->end()
             ->validate()
                 ->always(static function (array $pages): array {
+                    // The four canonical pages always exist (disable one with enabled: false); extra slugs follow them.
+                    $merged = [];
+                    foreach (self::DEFAULT_PAGES as $default) {
+                        $merged[$default] = ($pages[$default] ?? []) + ['path' => $default, 'enabled' => true, 'nav' => true, 'seed_template' => null];
+                        unset($pages[$default]);
+                    }
+                    $pages = $merged + $pages;
                     foreach ($pages as $slug => $page) {
                         $slug = (string) $slug;
                         if (preg_match(self::SLUG_PATTERN, $slug) !== 1) {

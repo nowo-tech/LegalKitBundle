@@ -12,6 +12,8 @@ use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use PHPUnit\Framework\TestCase;
+
+use function array_slice;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
@@ -43,7 +45,9 @@ final class ExtensionTest extends TestCase
         self::assertSame([['profiles' => ['legal_kit' => ['alias' => 'host']]]], $container->getExtensionConfig('nowo_form_kit'));
         self::assertSame([['profiles' => ['legal' => ['preset' => 'minimal']]]], $container->getExtensionConfig('nowo_ckeditor5_editor'));
         $cookie = $container->getExtensionConfig('nowo_cookie_consent')[0];
-        self::assertSame(['legal_notice', 'legal_notice_unlocalized', 'legal_notice_bare'], $cookie['disabled_routes']);
+        self::assertSame(['legal_notice', 'legal_notice_unlocalized', 'legal_notice_bare'], array_slice($cookie['disabled_routes'], 0, 3));
+        self::assertContains('legal_cookies_unlocalized', $cookie['disabled_routes'], 'Canonical pages are always there');
+        self::assertNotContains('legal_privacy', $cookie['disabled_routes'], 'Disabled pages are left out');
         self::assertSame(['legal_*'], $cookie['render_routes']);
         self::assertArrayNotHasKey('privacy_route', $cookie, 'No privacy page, no privacy_route fallback');
         self::assertArrayHasKey('mappings', $container->getExtensionConfig('doctrine')[0]['orm']);

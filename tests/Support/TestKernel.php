@@ -122,11 +122,11 @@ final class TestKernel extends Kernel
             'form'                 => ['enabled' => true],
             'session'              => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'default_locale'       => 'en',
-            'translator'           => ['default_path' => '%kernel.project_dir%/tests/Support/translations', 'fallbacks' => ['en']],
+            'translator'           => ['fallbacks' => ['en']],
             'property_access'      => true,
             'validation'           => true,
         ]);
-        $container->loadFromExtension('twig', ['default_path' => '%kernel.project_dir%/tests/Support/templates', 'strict_variables' => true]);
+        $container->loadFromExtension('twig', ['strict_variables' => true]);
         $container->loadFromExtension('doctrine', [
             'dbal' => ['url' => 'sqlite:///:memory:'],
             'orm'  => $this->ormConfig() + ['mappings' => ['LegalKitTests' => [
