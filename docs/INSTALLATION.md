@@ -19,7 +19,9 @@
 - Doctrine ORM 3 with DoctrineBundle
 - `nowo-tech/audit-kit-bundle` ^1.7, `nowo-tech/ui-kit-bundle` ^2.4, `nowo-tech/form-kit-bundle` ^2.12 (installed
   with the bundle)
-- SecurityBundle for the admin pages (or `web_ui.enabled: false`)
+- SecurityBundle (AuditKit resolves the editor from the security token; the admin needs it unless
+  `web_ui.enabled: false`) and a PSR-20 clock service (`symfony/clock`, present in Flex applications) for AuditKit's
+  timestamps
 
 ## Install the package
 
@@ -90,7 +92,7 @@ The public pages must be anonymous-readable and the admin private (REQ-UI-002 â€
 # config/packages/security.yaml
 security:
     access_control:
-        - { path: ^/(?:[a-z]{2}(?:_[A-Z]{2})?/)?legal/, roles: PUBLIC_ACCESS }
+        - { path: '^/(?:[a-z]{2}(?:_[A-Z]{2})?/)?legal/', roles: PUBLIC_ACCESS }
         - { path: ^/admin/legal, roles: ROLE_ADMIN }
 ```
 

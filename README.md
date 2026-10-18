@@ -81,7 +81,7 @@ nowo_legal_kit:
 # config/packages/security.yaml
 security:
     access_control:
-        - { path: ^/(?:[a-z]{2}(?:_[A-Z]{2})?/)?legal/, roles: PUBLIC_ACCESS }
+        - { path: '^/(?:[a-z]{2}(?:_[A-Z]{2})?/)?legal/', roles: PUBLIC_ACCESS }
         - { path: ^/admin/legal, roles: ROLE_ADMIN }
 ```
 

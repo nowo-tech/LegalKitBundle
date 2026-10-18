@@ -216,7 +216,8 @@ recorded (`legal_document.saved|restored|imported`).
 When CookieConsentBundle is registered the bundle prepends every legal route to `disabled_routes` (no auto-open on
 legal pages, "Manage cookies" still works), adds `legal_*` to a host `render_routes` whitelist and — with
 CookieConsent 1.17+ — sets `privacy_route: legal_privacy` as the modal privacy link unless the host sets it. The
-cookies page's `%cookie_inventory%` renders the consent inventory, so both always match.
+cookies page's `%cookie_inventory%` renders the consent inventory (the database profile of the request, else the static
+`cookie_inventory` of the CookieConsent configuration), so both always match.
 
 ## SeoKit
 

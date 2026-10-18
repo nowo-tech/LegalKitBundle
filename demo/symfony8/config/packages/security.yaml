@@ -23,7 +23,7 @@ security:
                 target: /
     # REQ-UI-002: public legal pages anonymous, admin private (the bundle checks ROLE_ADMIN too).
     access_control:
-        - { path: ^/(?:[a-z]{2}/)?legal/, roles: PUBLIC_ACCESS }
+        - { path: '^/(?:[a-z]{2}/)?legal/', roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/ops, roles: ROLE_ADMIN }
         - { path: ^/, roles: PUBLIC_ACCESS }

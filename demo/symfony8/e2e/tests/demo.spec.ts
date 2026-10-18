@@ -32,8 +32,12 @@ test.describe('legal kit demo', () => {
     for (const slug of ['notice', 'privacy', 'terms', 'cookies', 'manage-cookies']) {
       await expect(footer.locator(`[data-nowo-legal-link="${slug}"]`)).toHaveCount(1);
     }
-    await footer.locator('[data-nowo-legal-link="privacy"]').click();
-    await expect(page).toHaveURL(/\/legal\/privacy$/);
+    // The consent modal opens on the home page: follow the footer link by its URL.
+    await expect(footer.locator('[data-nowo-legal-link="manage-cookies"]')).toHaveAttribute('data-nowo-open-consent', '');
+    const href = await footer.locator('[data-nowo-legal-link="privacy"]').getAttribute('href');
+    expect(href).toBe('/legal/privacy');
+    await page.goto(href ?? '/legal/privacy');
+    await expect(page.locator('#cookieconsent')).not.toBeVisible();
     await expect(page.locator('article h1')).toHaveText('Privacy policy');
     await expect(page.locator('article')).toContainText('Acme Cloud');
     await expect(page.locator('article nav a')).toHaveCount(3);

@@ -38,7 +38,30 @@ final class MysqlSchemaAdoptionTest extends KernelTestCase
             CONSTRAINT FK_legal_document_updated_by FOREIGN KEY (updated_by_id) REFERENCES user (id) ON DELETE SET NULL
         ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB';
 
+    /**
+     * Beacon's DDL without the legacy DBAL 3 `(DC2Type:…)` column comments: no change at all.
+     */
     public function testBeaconTableNeedsNoSchemaChange(): void
+    {
+        self::assertSame([], $this->pendingStatements(str_replace(" COMMENT '(DC2Type:datetime_immutable)'", '', self::BEACON_DDL)));
+    }
+
+    /**
+     * Beacon's DDL verbatim: DBAL 4 only drops the legacy type comments once (the host entity of the copy has the very
+     * same pending statement; no data change).
+     */
+    public function testVerbatimBeaconTableOnlyLosesTheLegacyTypeComments(): void
+    {
+        self::assertSame(
+            ['ALTER TABLE legal_document CHANGE created_at created_at DATETIME DEFAULT NULL, CHANGE updated_at updated_at DATETIME DEFAULT NULL'],
+            $this->pendingStatements(self::BEACON_DDL),
+        );
+    }
+
+    /**
+     * @return list<string> schema:update statements touching legal_document after loading the DDL
+     */
+    private function pendingStatements(string $ddl): array
     {
         self::bootKernel();
         $url = (string) $_ENV['ADOPTION_DATABASE_URL'];
@@ -58,14 +81,15 @@ final class MysqlSchemaAdoptionTest extends KernelTestCase
         $legal         = $manager->getClassMetadata(LegalDocument::class);
 
         $tool->createSchema([$user]);
-        $connection->executeStatement(self::BEACON_DDL);
+        $connection->executeStatement($ddl);
 
         $statements = array_values(array_filter(
             $tool->getUpdateSchemaSql([$user, $legal]),
             static fn (string $sql): bool => str_contains($sql, 'legal_document'),
         ));
-        self::assertSame([], $statements, 'doctrine:schema:update --dump-sql must be empty for legal_document');
-
         $connection->close();
+        self::ensureKernelShutdown();
+
+        return $statements;
     }
 }
