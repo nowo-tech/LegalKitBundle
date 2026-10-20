@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.1.0](#to-110)
 - [1.0.1 (2026-10-18)](#101-2026-10-18)
 - [1.0.0 (2026-10-18)](#100-2026-10-18)
   - [From a legal copy (`src/Shared/Legal`)](#from-a-legal-copy-srcsharedlegal)
@@ -12,6 +13,14 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.1.0
+
+From **1.0.1**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 No change is required.
 
