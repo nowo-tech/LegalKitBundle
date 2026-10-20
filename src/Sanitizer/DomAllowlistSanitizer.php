@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Sanitizer;
 
+use Dom\Attr;
+use Dom\Element;
+use Dom\HTMLDocument;
+use Dom\Node;
+use Dom\Text;
 use DOMAttr;
 use DOMDocument;
 use DOMElement;
@@ -15,6 +20,7 @@ use function array_merge;
 use function array_unique;
 use function array_values;
 use function assert;
+use function class_exists;
 use function in_array;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
@@ -30,6 +36,11 @@ use const LIBXML_NONET;
 /**
  * Canonical legal HTML sanitiser: optional CKEditor 5 strict pass, then a DOM allowlist (ported from
  * podologiapriego-web, plus `code`, `pre`, `mark`, `sup`, `sub`), then the {@see UrlPolicy}.
+ *
+ * On PHP 8.4+ the HTML is parsed with the HTML5 algorithm browsers use (`Dom\HTMLDocument`, fragment parsing in a
+ * `div` context) and always re-serialised, so the output means the same to the browser as to the allowlist
+ * (REQ-PBK-009: no parser-differential / mutation XSS); elements outside the HTML namespace are removed. PHP 8.3
+ * falls back to libxml's HTML 4 parser (`DOMDocument`) with the same allowlist.
  *
  * Unknown elements are unwrapped (their text stays); script-like and embedding elements are removed with their
  * content; comments are dropped; only allowlisted attributes survive (`class` is the only presentational one, never
@@ -98,20 +109,28 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
 
     private const string ROOT_ID = 'nowo-legal-kit-root';
 
+    private const string HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+
     /** @var array<string, list<string>> */
     private array $allowed;
+
+    /** Whether the HTML5 parser is used (PHP 8.4+, unless disabled). */
+    public bool $html5;
 
     /**
      * @param UrlPolicy $urlPolicy URL rules of href / src
      * @param array<string, list<string>> $extraElements `sanitizer.allowed_elements` (merged; removed elements stay removed)
      * @param Ckeditor5HtmlSanitizerInterface|null $firstPass Optional CKEditor 5 strict sanitiser run first
+     * @param bool|null $html5 HTML5 parser (`Dom\HTMLDocument`); null: whenever PHP provides it (8.4+)
      */
     public function __construct(
         private UrlPolicy $urlPolicy = new UrlPolicy(),
         array $extraElements = [],
         private ?Ckeditor5HtmlSanitizerInterface $firstPass = null,
+        ?bool $html5 = null,
     ) {
-        $allowed = self::ALLOWED_ELEMENTS;
+        $this->html5 = ($html5 ?? true) && class_exists(HTMLDocument::class);
+        $allowed     = self::ALLOWED_ELEMENTS;
         foreach ($extraElements as $element => $attributes) {
             $element = strtolower((string) $element);
             if (in_array($element, self::REMOVED_ELEMENTS, true)) {
@@ -139,6 +158,29 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
             return '';
         }
 
+        return $this->html5 ? $this->sanitizeHtml5($html) : $this->sanitizeLegacy($html);
+    }
+
+    /**
+     * HTML5 fragment parsing (the browser algorithm) in a `div` context, then the HTML5 serialiser.
+     */
+    private function sanitizeHtml5(string $html): string
+    {
+        $document = HTMLDocument::createEmpty();
+        $root     = $document->createElement('div');
+        $document->appendChild($root);
+        // A stray "</div>" cannot close the context element: fragment parsing ignores it.
+        $root->innerHTML = $html;
+        $this->sanitizeChildren($root);
+
+        return trim($root->innerHTML);
+    }
+
+    /**
+     * libxml HTML 4 parser (PHP 8.3).
+     */
+    private function sanitizeLegacy(string $html): string
+    {
         $document = new DOMDocument('1.0', 'UTF-8');
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML(
@@ -165,7 +207,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         return trim($out);
     }
 
-    private function sanitizeChildren(DOMNode $node): void
+    private function sanitizeChildren(DOMNode|Node $node): void
     {
         $children = [];
         foreach ($node->childNodes as $child) {
@@ -173,24 +215,26 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         }
 
         foreach ($children as $child) {
-            if ($child instanceof DOMText) {
-                continue; // text and CDATA content is escaped by saveHTML()
+            if ($child instanceof DOMText || $child instanceof Text) {
+                continue; // text and CDATA content is escaped by the serialiser
             }
-            if (!$child instanceof DOMElement) {
+            if (!$child instanceof DOMElement && !$child instanceof Element) {
                 $node->removeChild($child); // comments, processing instructions
 
                 continue;
             }
 
-            $tag = strtolower($child->tagName);
-            if (in_array($tag, self::REMOVED_ELEMENTS, true)) {
+            // HTML5 parser: foreign (SVG / MathML) content never reaches the output.
+            $foreign = $child instanceof Element && $child->namespaceURI !== self::HTML_NAMESPACE;
+            $tag     = strtolower($child instanceof Element ? $child->localName : $child->tagName);
+            if ($foreign || in_array($tag, self::REMOVED_ELEMENTS, true)) {
                 $node->removeChild($child);
 
                 continue;
             }
             if (!isset($this->allowed[$tag])) {
                 $this->sanitizeChildren($child);
-                while ($child->firstChild instanceof DOMNode) {
+                while ($child->firstChild instanceof DOMNode || $child->firstChild instanceof Node) {
                     $node->insertBefore($child->firstChild, $child);
                 }
                 $node->removeChild($child);
@@ -203,11 +247,11 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         }
     }
 
-    private function sanitizeAttributes(DOMElement $element, string $tag): void
+    private function sanitizeAttributes(DOMElement|Element $element, string $tag): void
     {
         $allowed = $this->allowed[$tag];
         $remove  = [];
-        /** @var DOMAttr $attribute DOMElement::attributes only yields DOMAttr */
+        /** @var Attr|DOMAttr $attribute The attributes map only yields attribute nodes */
         foreach ($element->attributes as $attribute) {
             $name = strtolower($attribute->name);
             if (!in_array($name, $allowed, true) || !$this->isSafeAttribute($tag, $name, $attribute->value)) {
@@ -221,7 +265,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         if ($tag === 'a' && $element->getAttribute('target') === '_blank') {
             $element->setAttribute('rel', 'noopener noreferrer');
         } elseif ($tag === 'a' && $element->hasAttribute('rel')) {
-            $element->setAttribute('rel', $this->safeRel($element->getAttribute('rel')));
+            $element->setAttribute('rel', $this->safeRel((string) $element->getAttribute('rel')));
         }
     }
 

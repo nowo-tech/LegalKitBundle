@@ -238,7 +238,7 @@ after the application override directory). `@NowoLegalKit/…` resolves to the s
 | `public/_nav.html.twig` | cross navigation | `current`, `locale` |
 | `_footer_nav.html.twig` | footer links + Manage cookies | `locale`, `attr` |
 | `_placeholder_banner.html.twig` | Ops banner | `locale`, `limit` |
-| `_cookie_inventory.html.twig` | cookie table | `cookies` |
+| `_cookie_inventory.html.twig` | cookie table | `nowo_legal_kit_cookie_category_label` (`cookie`, `category_label`); `cookies` |
 | `admin/index.html.twig` | admin matrix (list scaffold) | `nowo_ui_list_row` |
 | `admin/edit.html.twig` | editor (form scaffold) | `nowo_ui_form_body`, `nowo_ui_scripts` |
 | `seed/{notice,privacy,terms,cookies}.html.twig` | built-in bodies | `legal_slug`, `legal_locale` |
@@ -268,6 +268,19 @@ CSRF-only form behind an `Action`. Templates never contain raw `<form>` / `<inpu
 | `nowo_legal_kit_consent_widget()` | whether CookieConsent renders on this page |
 | `legal_kit_content_locale(slug, locale = null)` | locale the page text is shown in (null without text) |
 | `legal_kit_cookie_inventory()` | the cookie table HTML |
+
+| Filter | Returns |
+| --- | --- |
+| `html\|nowo_legal_kit_sanitize_html` | safe HTML through `LegalHtmlSanitizerInterface` (use it, never `\|raw`, to print legal HTML in host templates) |
+
+The category column of the cookie table shows `cookies.category.<key>` (domain `NowoLegalKitBundle`; shipped for
+`required`, `functionality`, `preferences`, `analytics`, `marketing`, `tracking`). To change only the label:
+
+```twig
+{# templates/bundles/NowoLegalKitBundle/_cookie_inventory.html.twig #}
+{% extends '@!NowoLegalKitBundle/_cookie_inventory.html.twig' %}
+{% block nowo_legal_kit_cookie_category_label %}{{ ('cookies.cat_' ~ cookie.category)|trans({}, 'messages') }}{% endblock %}
+```
 
 ## Extension points
 

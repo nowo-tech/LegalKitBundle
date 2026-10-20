@@ -7,12 +7,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.0.1] - 2026-10-18](#101---2026-10-18)
-  - [Fixed](#fixed)
-- [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added)
+  - [Changed](#changed)
+  - [Fixed](#fixed)
+  - [Security](#security)
+- [[1.0.1] - 2026-10-18](#101---2026-10-18)
+  - [Fixed](#fixed-1)
+- [[1.0.0] - 2026-10-18](#100---2026-10-18)
+  - [Added](#added-1)
 
 ## [Unreleased]
+
+### Added
+
+- Twig filter `nowo_legal_kit_sanitize_html` (safe HTML through `LegalHtmlSanitizerInterface`); the public page prints
+  the body with it instead of a bare `|raw`.
+- Block `nowo_legal_kit_cookie_category_label` in `_cookie_inventory.html.twig` (variables `cookie`,
+  `category_label`) so hosts override only the category label.
+- `NowoLegalKitBundle` translations `cookies.category.<key>` for the CookieConsent categories (`required`,
+  `functionality`, `preferences`, `analytics`, `marketing`, `tracking`) in en, es, de, nl, fr, it, pt.
+
+### Changed
+
+- `DomAllowlistSanitizer` parses with the HTML5 algorithm (`Dom\HTMLDocument` fragment parsing, HTML5 serialiser) on
+  PHP 8.4+, so the allowlist sees what the browser sees (REQ-PBK-009); foreign SVG / MathML content is removed. PHP
+  8.3 keeps libxml's parser. New constructor argument `html5` (null: automatic). Empty attributes are now written as
+  `attr=""` on PHP 8.4+.
+- `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` instead of `ParallelConfigFactory::detect()` (REQ-CS-001).
+
+### Fixed
+
+- The cookie inventory table (`%cookie_inventory%`) printed the raw CookieConsent category key (`required`,
+  `analytics`…) instead of a translated label; unknown keys still print as they are.
+
+### Security
+
+- Defence in depth for stored legal HTML (REQ-PBK-009): the body is sanitised again at render time in the template
+  (on top of the resolver pass), so markup written by SQL, restores or a custom resolver never reaches the page
+  unsanitised. Corpus extended with HTML5 named entities (`java&colon;script:`), SVG animation handlers, style
+  injection and raw-text elements.
 
 ## [1.0.1] - 2026-10-18
 

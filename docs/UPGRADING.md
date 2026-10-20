@@ -13,6 +13,22 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+No change is required.
+
+- **Render-time sanitising (REQ-PBK-009).** `public/page.html.twig` prints the body with
+  `|nowo_legal_kit_sanitize_html` instead of `|raw`. Overrides of that template that print `document.body|raw`
+  should switch to the filter. Cost: one more sanitiser pass per page view, about 1.5 ms for a 20 KB page on PHP 8.4
+  (HTML5 parser; about 5 ms with libxml on PHP 8.3). With `public.cache.shared_max_age` the cost is paid once per
+  cache entry.
+- **HTML5 parser on PHP 8.4+.** The sanitiser output can differ slightly from 1.0 (browser parsing rules, empty
+  attributes written as `attr=""`, SVG / MathML removed). Stored rows need no migration: they are re-sanitised on
+  every render.
+- **Cookie inventory labels.** The category column shows `cookies.category.<key>` (domain `NowoLegalKitBundle`).
+  Delete a host copy of `_cookie_inventory.html.twig` that only translated the category; to change just the label,
+  extend `@!NowoLegalKitBundle/_cookie_inventory.html.twig` and redefine `nowo_legal_kit_cookie_category_label`
+  (variables `cookie`, `category_label`). Custom categories: add `cookies.category.<key>` to the
+  `NowoLegalKitBundle` domain of the application.
+
 ## 1.0.1 (2026-10-18)
 
 No change for integrators (test kernel fix for Symfony 7.4). Hosts on Symfony 7.4 need a PSR-20 `clock` service for

@@ -53,3 +53,10 @@ cookies:
     category: Category
     duration: Duration
     purpose: Purpose
+  category:
+    required: Strictly necessary
+    functionality: Functionality
+    preferences: Preferences
+    analytics: Analytics
+    marketing: Marketing
+    tracking: Tracking

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
+use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Nowo\LegalKitBundle\Tests\Support\PageFixtures;
 use Nowo\UiKitBundle\Test\PageContractTestCase;
 use Nowo\UiKitBundle\Test\PageFixture;
 use Twig\Environment;
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 use function dirname;
@@ -51,6 +53,7 @@ final class PageContractTest extends PageContractTestCase
 
     protected function configureTwig(Environment $twig): void
     {
+        $twig->addFilter(new TwigFilter('nowo_legal_kit_sanitize_html', (new DomAllowlistSanitizer())->sanitize(...), ['is_safe' => ['html']]));
         $twig->addFunction(new TwigFunction('nowo_legal_kit_links', static fn (?string $locale = null): array => [
             ['slug' => 'notice', 'route' => 'legal_notice_unlocalized', 'url' => '/legal/notice', 'label' => 'Legal notice'],
             ['slug' => 'privacy', 'route' => 'legal_privacy_unlocalized', 'url' => '/legal/privacy', 'label' => 'Privacy policy'],

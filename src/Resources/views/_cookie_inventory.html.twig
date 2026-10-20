@@ -1,6 +1,9 @@
 {#
   Cookie inventory table (%cookie_inventory% token / legal_kit_cookie_inventory()), from the CookieConsent inventory.
   Variable: cookies (list of {name, category, duration, purpose, provider}). Values are auto-escaped.
+  The category cell shows the translated label (NowoLegalKitBundle cookies.category.<key>; unknown keys print as
+  they are). Override only the label with the nowo_legal_kit_cookie_category_label block (variables: cookie,
+  category_label).
 #}
 <div class="{{ nowo_ui_class('table_wrap', 'NowoLegalKitBundle') }}">
     <table class="nowo-legal-cookie-table {{ nowo_ui_class('table', 'NowoLegalKitBundle') }}">
@@ -14,9 +17,12 @@
         </thead>
         <tbody>
             {% for cookie in cookies %}
+                {% set category_key = 'cookies.category.' ~ cookie.category %}
+                {% set category_label = cookie.category is empty ? '' : category_key|trans({}, 'NowoLegalKitBundle') %}
+                {% set category_label = category_label == category_key ? cookie.category : category_label %}
                 <tr>
                     <td><code>{{ cookie.name }}</code></td>
-                    <td>{{ cookie.category }}</td>
+                    <td data-nowo-legal-cookie-category="{{ cookie.category }}">{% block nowo_legal_kit_cookie_category_label %}{{ category_label }}{% endblock %}</td>
                     <td>{{ cookie.duration }}</td>
                     <td>{{ cookie.purpose }}{% if cookie.provider %} ({{ cookie.provider }}){% endif %}</td>
                 </tr>

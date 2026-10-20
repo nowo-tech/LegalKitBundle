@@ -12,21 +12,26 @@ use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
+use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Nowo\LegalKitBundle\Token\CookieInventoryTokenResolver;
+use Stringable;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 use function is_callable;
+use function is_scalar;
 
 /**
  * Twig API of the kit (public, SemVer): footer links, placeholder hits (Ops banner), content locale, cookie
- * inventory table and the admin URL. Stateless; the request locale is read per call.
+ * inventory table, the admin URL and the `nowo_legal_kit_sanitize_html` filter (the only way the bundle prints legal
+ * HTML: it re-sanitises at render time instead of a bare `|raw`). Stateless; the request locale is read per call.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -43,6 +48,7 @@ final class LegalKitExtension extends AbstractExtension
      * @param UrlGeneratorInterface $urls URL generator
      * @param TranslatorInterface $translator Labels
      * @param RequestStack $requestStack Current request (locale)
+     * @param LegalHtmlSanitizerInterface $sanitizer Render-time sanitiser of `nowo_legal_kit_sanitize_html`
      * @param string $defaultLocaleStyle `routing.default_locale_style`
      * @param bool $webUiEnabled `web_ui.enabled`
      */
@@ -56,6 +62,7 @@ final class LegalKitExtension extends AbstractExtension
         private readonly UrlGeneratorInterface $urls,
         private readonly TranslatorInterface $translator,
         private readonly RequestStack $requestStack,
+        private readonly LegalHtmlSanitizerInterface $sanitizer,
         private readonly string $defaultLocaleStyle = 'unprefixed',
         private readonly bool $webUiEnabled = true,
     ) {
@@ -74,6 +81,31 @@ final class LegalKitExtension extends AbstractExtension
             new TwigFunction('legal_kit_cookie_inventory', $this->cookieInventory->render(...), ['is_safe' => ['html']]),
             new TwigFunction('nowo_legal_kit_consent_widget', $this->consentWidget(...), ['needs_environment' => true]),
         ];
+    }
+
+    /**
+     * @return list<TwigFilter> The Twig filters of the kit
+     */
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('nowo_legal_kit_sanitize_html', $this->sanitizeHtml(...), ['is_safe' => ['html']]),
+        ];
+    }
+
+    /**
+     * Legal HTML sanitised by {@see LegalHtmlSanitizerInterface} (REQ-PBK-009 defence in depth: stored markup that
+     * bypassed the save-time pass never reaches the page). Null / non-scalar values print nothing.
+     *
+     * @return string Safe HTML
+     */
+    public function sanitizeHtml(mixed $html): string
+    {
+        if ($html instanceof Stringable) {
+            $html = (string) $html;
+        }
+
+        return is_scalar($html) ? $this->sanitizer->sanitize((string) $html) : '';
     }
 
     /**

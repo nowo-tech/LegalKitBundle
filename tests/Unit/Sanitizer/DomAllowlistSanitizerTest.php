@@ -9,7 +9,10 @@ use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Nowo\LegalKitBundle\Sanitizer\UrlPolicy;
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
+
+use const PHP_VERSION_ID;
 
 /**
  * XSS corpus (spec 155 "Security"): every vector fails closed.
@@ -64,12 +67,64 @@ final class DomAllowlistSanitizerTest extends TestCase
         yield 'backslash host' => ['<a href="/\\evil.tld">x</a><img src="\\\\evil.tld/p.png">', '<a>x</a><img>'];
         yield 'unbalanced wrapper close' => ['<p>a</p></div><p>b</p><script>x</script>', '<p>a</p><p>b</p>'];
         yield 'unicode' => ['<p>Política — “ñ” €</p>', '<p>Política — “ñ” €</p>'];
+        // REQ-PBK-009 vectors (stored markup that bypassed the save-time pass)
+        yield 'javascript named entity' => ['<a href="javascript&colon;alert(1)">x</a><a href="java&Tab;script:alert(1)">y</a>', '<a>x</a><a>y</a>'];
+        yield 'svg animation' => ['<svg><animate onbegin="alert(1)" attributeName="x"/><a xlink:href="javascript:alert(1)">s</a></svg><p>z</p>', '<p>z</p>'];
+        yield 'style injection' => ['<p style="color:red">a</p><style>@import url(//evil.tld/x.css)</style><div class="x" style="position:fixed">b</div>', '<p>a</p><div class="x">b</div>'];
+        yield 'raw text elements' => ['<xmp><script>alert(1)</script></xmp><noembed><img src=x onerror=alert(1)></noembed><template><img src=x onerror=alert(1)></template><p>t</p>', '<p>t</p>'];
+        yield 'mutation via select' => ['<select><template><style><!--</style><a rel="--></style></template></select><img src=x onerror=alert(1)>">', ''];
+        yield 'handlers everywhere' => ['<a href="/x" onfocus="a()" autofocus>a</a><td onmouseover="b()">c</td>', '<a href="/x">a</a>c'];
     }
+
+    /**
+     * Expectations that differ with the HTML5 serialiser (empty attributes are written as `=""`).
+     *
+     * @var array<string, string>
+     */
+    private const array HTML5_EXPECTED = [
+        'consent opener' => '<a href="#" data-nowo-open-consent="">x</a><a>y</a>',
+    ];
+
+    /**
+     * Expectations of libxml's HTML 4 parser where it differs (still inert): it does not know HTML5 named entities
+     * (`&colon;` stays text, so the URL is relative) and keeps a stray `td`.
+     *
+     * @var array<string, string>
+     */
+    private const array LEGACY_EXPECTED = [
+        'javascript named entity' => '<a href="javascript&amp;colon;alert(1)">x</a><a>y</a>',
+        'handlers everywhere'     => '<a href="/x">a</a><td>c</td>',
+    ];
 
     #[DataProvider('corpus')]
     public function testCorpus(string $input, string $expected): void
     {
-        self::assertSame($expected, (new DomAllowlistSanitizer())->sanitize($input));
+        self::assertSame(self::LEGACY_EXPECTED[$this->dataName()] ?? $expected, (new DomAllowlistSanitizer(html5: false))->sanitize($input), 'libxml parser (PHP 8.3)');
+
+        $html5 = new DomAllowlistSanitizer(html5: true);
+        if (!$html5->html5) {
+            return; // PHP 8.3: no Dom\HTMLDocument
+        }
+        self::assertSame(self::HTML5_EXPECTED[$this->dataName()] ?? $expected, $html5->sanitize($input), 'HTML5 parser (PHP 8.4+)');
+    }
+
+    public function testHtml5ParserIsTheDefaultWhenAvailable(): void
+    {
+        self::assertSame(PHP_VERSION_ID >= 80400, (new DomAllowlistSanitizer())->html5);
+        self::assertFalse((new DomAllowlistSanitizer(html5: false))->html5);
+    }
+
+    #[RequiresPhp('>= 8.4')]
+    public function testHtml5ParserSeesWhatTheBrowserSees(): void
+    {
+        $sanitizer = new DomAllowlistSanitizer(html5: true);
+
+        // libxml keeps "<p>" inside "<a>" and nests tables differently; the HTML5 parser applies the browser's rules.
+        self::assertSame('<p>a</p><p>b</p>', $sanitizer->sanitize('<p>a<p>b'));
+        self::assertSame('<table><tbody><tr><td>x</td></tr></tbody></table>', $sanitizer->sanitize('<table><tr><td>x</table>'));
+        // Re-sanitising is idempotent (render-time pass over a body already sanitised on save).
+        $once = $sanitizer->sanitize('<p class="lead">Hola <a href="https://example.com" target="_blank">x</a></p><ul><li>a</li></ul>');
+        self::assertSame($once, $sanitizer->sanitize($once));
     }
 
     public function testExtraElementsAreMergedButDangerousOnesStayRemoved(): void

@@ -53,3 +53,10 @@ cookies:
     category: Categoría
     duration: Duración
     purpose: Finalidad
+  category:
+    required: Estrictamente necesarias
+    functionality: Funcionalidad
+    preferences: Preferencias
+    analytics: Analítica
+    marketing: Marketing
+    tracking: Seguimiento

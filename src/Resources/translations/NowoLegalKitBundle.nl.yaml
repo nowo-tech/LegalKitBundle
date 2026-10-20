@@ -53,3 +53,10 @@ cookies:
     category: Categorie
     duration: Duur
     purpose: Doel
+  category:
+    required: Strikt noodzakelijk
+    functionality: Functionaliteit
+    preferences: Voorkeuren
+    analytics: Analyse
+    marketing: Marketing
+    tracking: Tracking

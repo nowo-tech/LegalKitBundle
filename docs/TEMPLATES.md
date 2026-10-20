@@ -26,8 +26,8 @@ The public legal page has no list / form / show shape: it is prose with a cross 
 
 - `@NowoLegalKitBundle/public/page.html.twig` — extends `public.layout_template ?? nowo_ui_layout.guest`, fills
   `nowo_ui_document_title` (document title), `nowo_ui_styles` (`css/nowo-legal-kit.css`, asset package
-  `nowo_legal_kit`) and `nowo_ui_content` (`<article class="nowo-legal-doc">` with the sanitised body, the meta line and
-  the cross navigation). Variables: `page` (`LegalPage`), `document` (`ResolvedLegalDocument`), `alternates`,
+  `nowo_legal_kit`) and `nowo_ui_content` (`<article class="nowo-legal-doc">` with the body printed through
+  `|nowo_legal_kit_sanitize_html` — never `|raw` —, the meta line and the cross navigation). Variables: `page` (`LegalPage`), `document` (`ResolvedLegalDocument`), `alternates`,
   `layout_template`, `legal_locale` + `LegalPageRenderEvent` variables. No JavaScript.
 
 ## Partials
@@ -37,7 +37,7 @@ The public legal page has no list / form / show shape: it is prose with a cross 
 | `public/_nav.html.twig` | cross navigation (`current`, `locale`) |
 | `_footer_nav.html.twig` | footer links + Manage cookies (`locale`, `attr`) |
 | `_placeholder_banner.html.twig` | Ops banner (`locale`, `limit`) |
-| `_cookie_inventory.html.twig` | cookie table of `%cookie_inventory%` (`cookies`) |
+| `_cookie_inventory.html.twig` | cookie table of `%cookie_inventory%` (`cookies`); block `nowo_legal_kit_cookie_category_label` |
 | `seed/*.html.twig` | built-in bodies (`legal_slug`, `legal_locale`) |
 
 The bundle ships no local copy of UiKit partials (pagination, flashes, confirm, modal, empty state).
