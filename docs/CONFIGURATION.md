@@ -99,7 +99,7 @@ provider), plus the label `page.<slug>` in the `NowoLegalKitBundle` domain.
 
 ## Seed
 
-The seed is the generic scaffold rendered by `TwigSeedProvider` (domain `NowoLegalKitSeed`). `materialize: true`
+The seed is the generic scaffold rendered by `TwigSeedProvider` (domain `NowoLegalKitSeed`). The seed has its own translation domain on purpose (REQ-I18N-003 exception): it holds long legal scaffold text that hosts override key by key or drop entirely, while the UI strings stay in `NowoLegalKitBundle`; keeping them apart lets a host replace the whole seed without touching the admin / page UI catalogue. `materialize: true`
 reproduces "rows seeded at install" (`bin/console nowo:legal-kit:seed --missing-only`, never overwrites). Restore
 deletes the row in both modes. `fallback_locale` shows that locale's seed when none exists for the requested one (the
 page then declares `lang` = the fallback locale, request attribute `_content_locale`).

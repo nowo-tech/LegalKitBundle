@@ -19,6 +19,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `nowo:legal-kit:import` and `nowo:legal-kit:seed` log their start / outcome with counts only through the autowired PSR-3 logger; runtime dependency `psr/log` (REQ-OBS-001).
+- CI: Symfony 8.0 cell dropped (end of maintenance, advisories) and every `symfony/*` package pinned to the cell minor (REQ-SF-002).
+- Demo `release-check` refreshes the bundle (`update-bundle`) before its tests (REQ-DEMO-007).
+- Docs: why the seed uses its own `NowoLegalKitSeed` domain (REQ-I18N-003).
+- `.scripts/check-no-cursor-coauthor.sh` accepts git worktrees (REQ-GIT-001).
+
 ## [1.1.0] - 2026-10-20
 
 Render-time sanitising of the legal body with the HTML5 parser (REQ-PBK-009, Twig filter nowo_legal_kit_sanitize_html) and translated cookie category labels with an override block. See [UPGRADING](UPGRADING.md#to-110).

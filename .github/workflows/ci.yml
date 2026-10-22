@@ -41,10 +41,10 @@ jobs:
       max-parallel: 4
       matrix:
         php: ['8.3', '8.4', '8.5']
-        symfony: ['7.4', '8.0', '8.1', '8.2']
+        # REQ-SF-002: Symfony 8.0 reached end of maintenance (July 2026) and every 8.0.x release has security
+        # advisories that Composer refuses to install, so its cell is dropped (composer.json keeps allowing ^8.0).
+        symfony: ['7.4', '8.1', '8.2']
         exclude:
-          - php: '8.3'
-            symfony: '8.0'
           - php: '8.3'
             symfony: '8.1'
           - php: '8.3'
@@ -94,17 +94,11 @@ jobs:
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
           chmod +x .scripts/retry.sh
-          composer require \
-            "symfony/config:^${{ matrix.symfony }}" \
-            "symfony/dependency-injection:^${{ matrix.symfony }}" \
-            "symfony/framework-bundle:^${{ matrix.symfony }}" \
-            "symfony/http-kernel:^${{ matrix.symfony }}" \
-            --no-interaction --no-update
-          composer require --dev \
-            "symfony/security-bundle:^${{ matrix.symfony }}" \
-            "symfony/twig-bundle:^${{ matrix.symfony }}" \
-            "symfony/yaml:^${{ matrix.symfony }}" \
-            --no-interaction --no-update
+          # REQ-SF-002: pin every symfony/* package of composer.json to the cell's minor (no caret drift).
+          PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '.require | keys[] | select(startswith("symfony/")) | . + ":" + $c' composer.json)
+          DEV_PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '."require-dev" | keys[] | select(startswith("symfony/")) | . + ":" + $c' composer.json)
+          composer require $PACKAGES --no-interaction --no-update
+          [ -z "$DEV_PACKAGES" ] || composer require --dev $DEV_PACKAGES --no-interaction --no-update
           ./.scripts/retry.sh -- composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
       - name: Composer audit (Critical/High)
         run: composer audit --locked

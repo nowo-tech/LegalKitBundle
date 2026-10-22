@@ -55,7 +55,10 @@ The bundle ships no secret, stores none and signs nothing (CSRF tokens come from
 
 ## Logging
 
-The bundle logs nothing itself. With the AuditKit action log enabled, edits are recorded with `{slug, locale}` only.
+The writing console commands log through the autowired `Psr\Log\LoggerInterface` (REQ-OBS-001), with counts only:
+`nowo:legal-kit:import` (info: start with `rows`, end with `written`; warning: rejected file with the exception
+class) and `nowo:legal-kit:seed` (info: `inserted`, `locales`). Titles, bodies and file paths are never logged. With
+the AuditKit action log enabled, admin edits are recorded with `{slug, locale}` only.
 
 ## Dependencies
 

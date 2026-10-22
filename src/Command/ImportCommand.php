@@ -7,6 +7,8 @@ namespace Nowo\LegalKitBundle\Command;
 use InvalidArgumentException;
 use JsonException;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -39,9 +41,11 @@ final class ImportCommand extends Command
 
     /**
      * @param LegalDocumentPortability $portability Export / import
+     * @param LoggerInterface $logger Start / outcome of writes (REQ-OBS-001; never the document content)
      */
     public function __construct(
         private readonly LegalDocumentPortability $portability,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
         parent::__construct(self::NAME);
     }
@@ -70,6 +74,7 @@ final class ImportCommand extends Command
             }
             $rows = $this->portability->normalize($decoded);
         } catch (JsonException|InvalidArgumentException $e) {
+            $this->logger->warning('Legal documents import rejected.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'import', 'exception' => $e::class]);
             $io->error($e->getMessage());
 
             return Command::FAILURE;
@@ -81,7 +86,9 @@ final class ImportCommand extends Command
             return Command::SUCCESS;
         }
 
+        $this->logger->info('Legal documents import started.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'import', 'rows' => count($rows)]);
         $written = $this->portability->apply($rows, null, true);
+        $this->logger->info('Legal documents imported.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'import', 'written' => $written]);
         $io->success(sprintf('Imported %d legal document(s).', $written));
 
         return Command::SUCCESS;

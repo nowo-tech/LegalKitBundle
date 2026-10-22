@@ -67,7 +67,9 @@ test-e2e-all: test-e2e-symfony8
 
 # Sequential (safe under make -j): PHPUnit (stack up) → Playwright e2e while the stack is still up
 # (REQ-DEMO-013) → release-verify (fresh up → HTTP 200 → down, REQ-TEST-011).
+# REQ-DEMO-007: refresh the path-installed bundle before the demo checks.
 release-check:
+	@$(MAKE) update-bundle-symfony8
 	@$(MAKE) test-all
 	@$(MAKE) test-e2e-all
 	@$(MAKE) release-verify

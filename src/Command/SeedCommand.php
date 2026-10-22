@@ -13,6 +13,8 @@ use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -42,6 +44,7 @@ final class SeedCommand extends Command
      * @param LegalHtmlSanitizerInterface $sanitizer Sanitiser
      * @param EntityManagerInterface $entityManager Unit of work
      * @param bool $materialize `seed.materialize`
+     * @param LoggerInterface $logger Outcome of the seed write (REQ-OBS-001; never the document content)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -51,6 +54,7 @@ final class SeedCommand extends Command
         private readonly LegalHtmlSanitizerInterface $sanitizer,
         private readonly EntityManagerInterface $entityManager,
         private readonly bool $materialize = false,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
         parent::__construct(self::NAME);
     }
@@ -95,6 +99,7 @@ final class SeedCommand extends Command
             }
         }
         $this->entityManager->flush();
+        $this->logger->info('Legal seed materialized.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'seed', 'inserted' => $inserted, 'locales' => $locales]);
         $io->success(sprintf('%d legal document(s) inserted.', $inserted));
 
         return Command::SUCCESS;
