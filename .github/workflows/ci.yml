@@ -94,9 +94,10 @@ jobs:
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
           chmod +x .scripts/retry.sh
-          # REQ-SF-002: pin every symfony/* package of composer.json to the cell's minor (no caret drift).
-          PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '.require | keys[] | select(startswith("symfony/")) | . + ":" + $c' composer.json)
-          DEV_PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '."require-dev" | keys[] | select(startswith("symfony/")) | . + ":" + $c' composer.json)
+          # REQ-SF-002: pin every symfony/* framework package of composer.json to the cell's minor (no caret drift);
+          # contracts / polyfills / UX packages have their own versioning and are left to the solver.
+          PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '.require | keys[] | select(startswith("symfony/") and (contains("-contracts") | not) and (startswith("symfony/polyfill") | not) and (startswith("symfony/ux-") | not)) | . + ":" + $c' composer.json)
+          DEV_PACKAGES=$(jq -r --arg c '${{ matrix.symfony }}.*' '."require-dev" | keys[] | select(startswith("symfony/") and (contains("-contracts") | not) and (startswith("symfony/polyfill") | not) and (startswith("symfony/ux-") | not)) | . + ":" + $c' composer.json)
           composer require $PACKAGES --no-interaction --no-update
           [ -z "$DEV_PACKAGES" ] || composer require --dev $DEV_PACKAGES --no-interaction --no-update
           ./.scripts/retry.sh -- composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
