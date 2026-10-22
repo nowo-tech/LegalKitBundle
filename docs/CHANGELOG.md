@@ -7,9 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
+  - [Changed](#changed)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
   - [Added](#added)
-  - [Changed](#changed)
+  - [Changed](#changed-1)
   - [Fixed](#fixed)
   - [Security](#security)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
@@ -18,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-1)
 
 ## [Unreleased]
+
+## [1.1.1] - 2026-10-22
+
+Wave-2 REQ compliance: logged import and seed commands, pinned CI matrix, demo release-check refreshes the bundle. See [UPGRADING](UPGRADING.md#to-111).
 
 ### Changed
 
