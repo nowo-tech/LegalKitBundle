@@ -28,11 +28,17 @@ final readonly class BuiltinTokenResolver implements LegalTokenResolverInterface
     ) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function names(): array
     {
         return ['brand', 'last_updated'];
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function resolve(string $name, LegalTokenContext $context): ?string
     {
         return match ($name) {

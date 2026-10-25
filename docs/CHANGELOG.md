@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Developer tooling (REQ-CS-001):** `make validate-phpdoc` is read-only and now part of `make release-check`: it fails when a class or public method in `src/` has no PHPDoc block (the former `@return` check asked for tags that `cs-fix` (`no_superfluous_phpdoc_tags`) removes; `make fix-phpdoc` is gone). Added the 22 missing docblocks.
+
 ## [1.1.1] - 2026-10-22
 
 Wave-2 REQ compliance: logged import and seed commands, pinned CI matrix, demo release-check refreshes the bundle. See [UPGRADING](UPGRADING.md#to-111).

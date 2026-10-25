@@ -33,6 +33,9 @@ final readonly class AdminAccessSubscriber implements EventSubscriberInterface
     ) {
     }
 
+    /**
+     * Listens to the controller event to guard the admin routes.
+     */
     public static function getSubscribedEvents(): array
     {
         return [KernelEvents::CONTROLLER => ['onKernelController', 0]];

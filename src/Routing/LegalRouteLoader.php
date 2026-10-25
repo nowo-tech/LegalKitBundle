@@ -72,6 +72,9 @@ final class LegalRouteLoader extends Loader
         parent::__construct();
     }
 
+    /**
+     * Builds the public routes of every configured legal page, one per locale, plus the admin routes.
+     */
     public function load(mixed $resource, ?string $type = null): RouteCollection
     {
         $routes  = new RouteCollection();
@@ -104,6 +107,9 @@ final class LegalRouteLoader extends Loader
         return $routes;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(mixed $resource, ?string $type = null): bool
     {
         return $type === self::TYPE;

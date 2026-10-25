@@ -148,6 +148,9 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         $this->allowed = $allowed;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function sanitize(string $html): string
     {
         if ($this->firstPass instanceof Ckeditor5HtmlSanitizerInterface) {

@@ -43,11 +43,17 @@ final readonly class CookieInventoryTokenResolver implements LegalTokenResolverI
     ) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function names(): array
     {
         return ['cookie_inventory'];
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function resolve(string $name, LegalTokenContext $context): ?LegalTokenValue
     {
         if ($name !== 'cookie_inventory') {

@@ -26,6 +26,9 @@ use function is_string;
  */
 final class SecurityPass implements CompilerPassInterface
 {
+    /**
+     * Removes the admin access subscriber when the web UI is disabled; otherwise picks the access checker (custom, allow-all or role-based, which needs SecurityBundle).
+     */
     public function process(ContainerBuilder $container): void
     {
         $prefix = Configuration::ALIAS . '.';

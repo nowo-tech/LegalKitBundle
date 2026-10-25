@@ -25,6 +25,9 @@ final readonly class ConfigurableLegalKitAccessChecker implements LegalKitAccess
     ) {
     }
 
+    /**
+     * Grants access when the user has one of the configured roles.
+     */
     public function canAccess(): bool
     {
         foreach ($this->accessRoles as $role) {

@@ -12,6 +12,9 @@ namespace Nowo\LegalKitBundle\Security;
  */
 final readonly class AllowAllLegalKitAccessChecker implements LegalKitAccessCheckerInterface
 {
+    /**
+     * Always grants access.
+     */
     public function canAccess(): bool
     {
         return true;

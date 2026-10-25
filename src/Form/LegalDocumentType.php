@@ -62,6 +62,9 @@ final class LegalDocumentType extends FormKitAbstractType
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     #[Override]
     public function configureOptions(OptionsResolver $resolver): void
     {
@@ -75,6 +78,9 @@ final class LegalDocumentType extends FormKitAbstractType
         $resolver->setAllowedTypes('ckeditor5_profile', 'string');
     }
 
+    /**
+     * {@inheritDoc}
+     */
     #[Override]
     public function getBlockPrefix(): string
     {

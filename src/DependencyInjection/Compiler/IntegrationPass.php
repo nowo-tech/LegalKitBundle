@@ -28,6 +28,9 @@ final class IntegrationPass implements CompilerPassInterface
     /** Route requirement used when the locales come from an env var (unknown until runtime); the controllers 404 any locale that is not enabled. */
     public const string GENERIC_LOCALE_REQUIREMENT = '[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,4})?';
 
+    /**
+     * Wires the optional integrations: the action log listener, the locale route requirement and the doctor command inputs read from CookieConsent.
+     */
     public function process(ContainerBuilder $container): void
     {
         if ($container->hasDefinition(ActionLogRecorder::class) && !$container->hasDefinition(ActionLogListener::class)) {

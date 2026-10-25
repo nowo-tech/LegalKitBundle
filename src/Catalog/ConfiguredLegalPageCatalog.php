@@ -46,21 +46,33 @@ final readonly class ConfiguredLegalPageCatalog implements LegalPageCatalogInter
         $this->pages = $list;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function slugs(): array
     {
         return array_map(strval(...), array_keys($this->pages));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function pages(): array
     {
         return array_values($this->pages);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function has(string $slug): bool
     {
         return isset($this->pages[$slug]);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function page(string $slug): LegalPage
     {
         return $this->pages[$slug] ?? throw new OutOfBoundsException(sprintf('Unknown legal page "%s".', $slug));

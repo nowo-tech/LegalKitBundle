@@ -36,6 +36,9 @@ final readonly class TwigSeedProvider implements LegalSeedProviderInterface
     ) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(string $slug, string $locale): bool
     {
         if (!$this->catalog->has($slug)) {
@@ -48,11 +51,17 @@ final readonly class TwigSeedProvider implements LegalSeedProviderInterface
         return $this->translator->getCatalogue($locale)->defines($slug . '.title', self::DOMAIN);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function title(string $slug, string $locale): string
     {
         return $this->translator->trans($slug . '.title', [], self::DOMAIN, $locale);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function body(string $slug, string $locale): string
     {
         $template = $this->catalog->page($slug)->seedTemplate;

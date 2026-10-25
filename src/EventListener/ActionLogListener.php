@@ -34,6 +34,9 @@ final readonly class ActionLogListener implements EventSubscriberInterface
     ) {
     }
 
+    /**
+     * Records saved, restored and imported legal documents in the action log.
+     */
     public static function getSubscribedEvents(): array
     {
         return [
