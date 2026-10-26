@@ -6720,16 +6720,16 @@
         },
         {
             "name": "nowo-tech/outbound-url-guard-bundle",
-            "version": "v1.2.0",
+            "version": "v1.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/OutboundUrlGuard.git",
-                "reference": "443220a8a49f7806db09b2dee3d231c823924b6b"
+                "reference": "3ff6a72a3aa45833ed29ab4a461e449a6578cefb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/OutboundUrlGuard/zipball/443220a8a49f7806db09b2dee3d231c823924b6b",
-                "reference": "443220a8a49f7806db09b2dee3d231c823924b6b",
+                "url": "https://api.github.com/repos/nowo-tech/OutboundUrlGuard/zipball/3ff6a72a3aa45833ed29ab4a461e449a6578cefb",
+                "reference": "3ff6a72a3aa45833ed29ab4a461e449a6578cefb",
                 "shasum": ""
             },
             "require": {
@@ -6806,7 +6806,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-13T13:53:34+00:00"
+            "time": "2026-10-21T13:33:21+00:00"
         },
         {
             "name": "nowo-tech/phpstan-frankenphp",
