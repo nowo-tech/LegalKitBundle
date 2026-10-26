@@ -248,16 +248,16 @@
         },
         {
             "name": "doctrine/doctrine-bundle",
-            "version": "3.3.2",
+            "version": "3.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/doctrine/DoctrineBundle.git",
-                "reference": "e6cd6aca912a5701fdc9bf4f0ad8f18f3f1448ed"
+                "reference": "a371e286af45e4971535361f9c1aa2653e37f52f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/doctrine/DoctrineBundle/zipball/e6cd6aca912a5701fdc9bf4f0ad8f18f3f1448ed",
-                "reference": "e6cd6aca912a5701fdc9bf4f0ad8f18f3f1448ed",
+                "url": "https://api.github.com/repos/doctrine/DoctrineBundle/zipball/a371e286af45e4971535361f9c1aa2653e37f52f",
+                "reference": "a371e286af45e4971535361f9c1aa2653e37f52f",
                 "shasum": ""
             },
             "require": {
@@ -291,6 +291,7 @@
                 "symfony/doctrine-messenger": "^6.4 || ^7.0 || ^8.0",
                 "symfony/expression-language": "^6.4 || ^7.0 || ^8.0",
                 "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+                "symfony/lock": "^6.4 || ^7.0 || ^8.0",
                 "symfony/messenger": "^6.4 || ^7.0 || ^8.0",
                 "symfony/property-info": "^6.4 || ^7.0 || ^8.0",
                 "symfony/runtime": "^6.4 || ^7.0 || ^8.0",
@@ -346,7 +347,7 @@
             ],
             "support": {
                 "issues": "https://github.com/doctrine/DoctrineBundle/issues",
-                "source": "https://github.com/doctrine/DoctrineBundle/tree/3.3.2"
+                "source": "https://github.com/doctrine/DoctrineBundle/tree/3.3.3"
             },
             "funding": [
                 {
@@ -362,7 +363,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-09T11:58:04+00:00"
+            "time": "2026-10-24T21:36:43+00:00"
         },
         {
             "name": "doctrine/event-manager",
@@ -1026,16 +1027,16 @@
         },
         {
             "name": "nowo-tech/form-kit-bundle",
-            "version": "v2.12.0",
+            "version": "v2.13.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/FormKitBundle.git",
-                "reference": "92ef7e392f0eacd38a42f6472ef51898b83604ee"
+                "reference": "4092f7423c47a4f5b0afce3e1c4db64a5a003fed"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/FormKitBundle/zipball/92ef7e392f0eacd38a42f6472ef51898b83604ee",
-                "reference": "92ef7e392f0eacd38a42f6472ef51898b83604ee",
+                "url": "https://api.github.com/repos/nowo-tech/FormKitBundle/zipball/4092f7423c47a4f5b0afce3e1c4db64a5a003fed",
+                "reference": "4092f7423c47a4f5b0afce3e1c4db64a5a003fed",
                 "shasum": ""
             },
             "require": {
@@ -1056,12 +1057,15 @@
                 "friendsofphp/php-cs-fixer": "^3.95.11",
                 "igor-php/igor-php": "^0.10.0",
                 "nowo-tech/phpstan-frankenphp": "^1.0",
+                "nowo-tech/ui-kit-bundle": "^2.5.3",
                 "phpstan/extension-installer": "^1.2",
                 "phpstan/phpstan": "^2.0",
                 "phpstan/phpstan-phpunit": "^2.0",
                 "phpstan/phpstan-symfony": "^2.0",
                 "phpunit/phpunit": "^10.0",
                 "rector/rector": "^2.0",
+                "symfony/css-selector": "^7.4 || ^8.0",
+                "symfony/dom-crawler": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "^7.4 || ^8.0",
                 "symfony/security-csrf": "^7.4 || ^8.0",
                 "vincentlanglet/twig-cs-fixer": "^4.0"
@@ -1079,6 +1083,7 @@
                 "nowo-tech/slide-to-confirm-bundle": "For addSlideToConfirm() / addSlideToConfirmField() / addSlideToConfirmFieldType()",
                 "nowo-tech/tag-input-bundle": "For addTagInput() / addTagInputField() / addTagInputFieldType()",
                 "nowo-tech/tiptap-editor-bundle": "For addTiptapEditor() / addTiptapEditorField() / addTiptapEditorFieldType()",
+                "nowo-tech/ui-kit-bundle": "^2.5.3: locale tabs (locale_tabs option, TranslatableMapType, _locale_tabs include) render through the UiKit locale_tabs partial (WAI-ARIA tabs, no-JS fieldsets, keyboard, browser validation, Live Component safe); without it FormKit keeps its neutral markup",
                 "symfony/ux-autocomplete": "Entity autocomplete fields; use addAutocompleteField() / addAutocompleteFieldType() with your autocomplete FormType FQCN",
                 "symfony/ux-cropperjs": "For addCropper() / addCropperField() / addCropperFieldType() (image crop widget)",
                 "symfony/ux-dropzone": "For addDropzone() / addDropzoneField() / addDropzoneFieldType() (drag-and-drop file upload)",
@@ -1131,20 +1136,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-13T14:36:41+00:00"
+            "time": "2026-10-25T11:33:57+00:00"
         },
         {
             "name": "nowo-tech/ui-kit-bundle",
-            "version": "v2.4.0",
+            "version": "v2.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/UiKitBundle.git",
-                "reference": "39b692aa067e03c90863e85e48f3320460d53744"
+                "reference": "faff7d4c5103230fa2ea602b0c49caa49f0847bd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/39b692aa067e03c90863e85e48f3320460d53744",
-                "reference": "39b692aa067e03c90863e85e48f3320460d53744",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/faff7d4c5103230fa2ea602b0c49caa49f0847bd",
+                "reference": "faff7d4c5103230fa2ea602b0c49caa49f0847bd",
                 "shasum": ""
             },
             "require": {
@@ -1225,7 +1230,7 @@
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
                 "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-10-18T19:37:48+00:00"
+            "time": "2026-10-25T19:48:30+00:00"
         },
         {
             "name": "psr/cache",
@@ -6629,24 +6634,24 @@
         },
         {
             "name": "nowo-tech/cookie-consent-bundle",
-            "version": "v1.17.0",
+            "version": "v1.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/CookieConsentBundle.git",
-                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40"
+                "reference": "5a53215fb3b52e5ec54945b1df5f0dec7f666bed"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/d13247d600d6b23564da7f9ae64634d5e6fd2e40",
-                "reference": "d13247d600d6b23564da7f9ae64634d5e6fd2e40",
+                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/5a53215fb3b52e5ec54945b1df5f0dec7f666bed",
+                "reference": "5a53215fb3b52e5ec54945b1df5f0dec7f666bed",
                 "shasum": ""
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.10 || ^3.0",
                 "doctrine/orm": "^3.7",
                 "ext-dom": "*",
-                "nowo-tech/form-kit-bundle": "^2.9",
-                "nowo-tech/ui-kit-bundle": "^2.2",
+                "nowo-tech/form-kit-bundle": "^2.13",
+                "nowo-tech/ui-kit-bundle": "^2.5.1",
                 "php": ">=8.2 <8.6",
                 "psr/clock": "^1.0",
                 "psr/log": "^1.0 || ^2 || ^3",
@@ -6716,7 +6721,7 @@
                 "issues": "https://github.com/nowo-tech/CookieConsentBundle/issues",
                 "source": "https://github.com/nowo-tech/CookieConsentBundle"
             },
-            "time": "2026-10-18T21:35:40+00:00"
+            "time": "2026-10-21T13:29:17+00:00"
         },
         {
             "name": "nowo-tech/outbound-url-guard-bundle",
