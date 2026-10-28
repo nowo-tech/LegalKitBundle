@@ -7,19 +7,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+  - [Security](#security)
   - [Changed](#changed)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
+  - [Changed](#changed-1)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
   - [Added](#added)
-  - [Changed](#changed-1)
+  - [Changed](#changed-2)
   - [Fixed](#fixed)
-  - [Security](#security)
+  - [Security](#security-1)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-1)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-1)
 
 ## [Unreleased]
+
+## [1.2.0] - 2026-10-28
+
+Security: admin CSRF fails closed; the opt-in shared cache skips visitors with a session. See [UPGRADING](UPGRADING.md#to-120).
 
 ### Security
 
