@@ -147,7 +147,10 @@ final readonly class LegalPageController
 
     private function cache(Response $response, ResolvedLegalDocument $document, Request $request): Response
     {
-        if ($this->sharedMaxAge > 0) {
+        // Shared caching only for visitors without a session cookie: a visitor who already has a session may see a
+        // personalised layout (flashes, user menu, logout CSRF token), so that render stays private. A session the
+        // layout starts for an anonymous visitor carries nothing personal yet, so it does not block caching.
+        if ($this->sharedMaxAge > 0 && !$request->hasPreviousSession()) {
             $response->setPublic();
             $response->setSharedMaxAge($this->sharedMaxAge);
             // Opt-in shared cache: keep these headers even when the layout touched the session (flashes).

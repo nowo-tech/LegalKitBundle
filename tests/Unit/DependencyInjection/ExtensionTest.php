@@ -15,7 +15,10 @@ use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
 use PHPUnit\Framework\TestCase;
+use stdClass;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 
@@ -92,10 +95,34 @@ final class ExtensionTest extends TestCase
 
     public function testSecurityPassAliasesAHostChecker(): void
     {
-        $container = $this->loaded(['security' => ['access_checker' => 'app.checker']]);
+        $container = $this->withFormCsrf($this->loaded(['security' => ['access_checker' => 'app.checker']]));
         (new SecurityPass())->process($container);
 
         self::assertSame('app.checker', (string) $container->getAlias(LegalKitAccessCheckerInterface::class));
+    }
+
+    public function testSecurityPassRefusesTheAdminWithoutFormCsrf(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('form CSRF');
+        (new SecurityPass())->process($this->loaded(['security' => ['access_checker' => 'app.checker']]));
+    }
+
+    public function testSecurityPassRefusesTheAdminWhenFormCsrfIsDisabled(): void
+    {
+        $container = $this->withFormCsrf($this->loaded(['security' => ['access_checker' => 'app.checker']]));
+        $container->setParameter('form.type_extension.csrf.enabled', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        (new SecurityPass())->process($container);
+    }
+
+    private function withFormCsrf(ContainerBuilder $container): ContainerBuilder
+    {
+        $container->setDefinition('security.csrf.token_manager', new Definition(stdClass::class));
+        $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));
+
+        return $container;
     }
 
     public function testSecurityPassWithoutWebUiRemovesTheSubscriber(): void

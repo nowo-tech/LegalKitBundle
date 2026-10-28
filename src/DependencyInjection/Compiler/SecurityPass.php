@@ -19,7 +19,7 @@ use function is_string;
 /**
  * Wires the admin access checker (REQ-UI-002): a host `security.access_checker`, the role checker, or — only with
  * `allow_unauthenticated` — the allow-all checker. Fails the build when the admin UI is enabled without
- * SecurityBundle and without `allow_unauthenticated`.
+ * SecurityBundle and without `allow_unauthenticated`, or without form CSRF protection.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -36,6 +36,13 @@ final class SecurityPass implements CompilerPassInterface
             $container->removeDefinition(AdminAccessSubscriber::class);
 
             return;
+        }
+
+        // Save / restore go through Symfony forms: without form CSRF they would accept cross-site posts (fail closed).
+        $formCsrfDisabled = $container->hasParameter('form.type_extension.csrf.enabled')
+            && $container->getParameter('form.type_extension.csrf.enabled') === false;
+        if (!$container->has('security.csrf.token_manager') || !$container->hasDefinition('form.type_extension.csrf') || $formCsrfDisabled) {
+            throw new InvalidConfigurationException('nowo_legal_kit admin UI requires form CSRF protection: enable framework.csrf_protection and framework.form.csrf_protection (composer require symfony/security-csrf), or set web_ui.enabled: false.');
         }
 
         $allowUnauthenticated = (bool) $container->getParameter($prefix . 'security.allow_unauthenticated');

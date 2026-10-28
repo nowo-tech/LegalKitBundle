@@ -21,6 +21,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Admin CSRF fails closed.** With the admin UI enabled the container refuses to compile without
+  `security.csrf.token_manager` + `form.type_extension.csrf`, or with `framework.form.csrf_protection: false`
+  (`SecurityPass`): save / restore would otherwise accept cross-site posts.
+- **Opt-in shared cache never stores a personalised page.** With `public.cache.shared_max_age`, a page was made
+  `public` and Symfony's session auto-private was suppressed even for visitors with a session (layout flashes, user
+  menu, logout CSRF token). Visitors that send a session cookie now get a `private` response.
+
 ### Changed
 
 - **Developer tooling (REQ-CS-001):** `make validate-phpdoc` is read-only and now part of `make release-check`: it fails when a class or public method in `src/` has no PHPDoc block (the former `@return` check asked for tags that `cs-fix` (`no_superfluous_phpdoc_tags`) removes; `make fix-phpdoc` is gone). Added the 22 missing docblocks.

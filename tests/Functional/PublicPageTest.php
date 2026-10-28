@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Functional;
 
 use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
+use Symfony\Component\BrowserKit\Cookie;
 
 /**
  * Public legal pages: seed and stored text, default-locale URL styles, fallback locale, cache headers.
@@ -110,6 +111,17 @@ final class PublicPageTest extends KernelTestCase
         self::assertStringContainsString('public', $cacheControl);
         self::assertStringContainsString('s-maxage=300', $cacheControl);
         self::assertStringContainsString('max-age=60', $cacheControl);
+    }
+
+    public function testSharedCacheIsNeverUsedForARenderWithASession(): void
+    {
+        $client = $this->client($this->bootKernel(['public' => ['cache' => ['max_age' => 60, 'shared_max_age' => 300]]]));
+        $client->getCookieJar()->set(new Cookie('MOCKSESSID', 'abc'));
+        $client->request('GET', '/legal/notice');
+
+        $cacheControl = (string) $client->getResponse()->headers->get('Cache-Control');
+        self::assertStringContainsString('private', $cacheControl);
+        self::assertStringNotContainsString('s-maxage', $cacheControl);
     }
 
     public function testFallbackLocaleServesTheFallbackSeed(): void
