@@ -15,6 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
 use function is_string;
+use function str_starts_with;
 
 /**
  * Wires the admin access checker (REQ-UI-002): a host `security.access_checker`, the role checker, or — only with
@@ -54,6 +55,7 @@ final class SecurityPass implements CompilerPassInterface
             return;
         }
         if ($allowUnauthenticated) {
+            $this->refuseAllowUnauthenticatedInProduction($container);
             $container->setAlias(LegalKitAccessCheckerInterface::class, AllowAllLegalKitAccessChecker::class);
 
             return;
@@ -65,5 +67,20 @@ final class SecurityPass implements CompilerPassInterface
         $container->register(ConfigurableLegalKitAccessChecker::class, ConfigurableLegalKitAccessChecker::class)
             ->setArguments([new Reference('security.authorization_checker'), '%' . $prefix . 'security.access_roles%']);
         $container->setAlias(LegalKitAccessCheckerInterface::class, ConfigurableLegalKitAccessChecker::class);
+    }
+
+    /**
+     * `allow_unauthenticated` opens the legal documents admin to anonymous users: a dev / demo switch, refused in the prod environment and in
+     * any non-debug kernel outside the test environments (test*), as in ContactFormBundle.
+     */
+    private function refuseAllowUnauthenticatedInProduction(ContainerBuilder $container): void
+    {
+        $environment = $container->hasParameter('kernel.environment') ? $container->getParameter('kernel.environment') : '';
+        $environment = is_string($environment) ? $environment : '';
+        $debug       = $container->hasParameter('kernel.debug') ? (bool) $container->getParameter('kernel.debug') : true;
+
+        if ($environment === 'prod' || (!$debug && !str_starts_with($environment, 'test'))) {
+            throw new InvalidConfigurationException('nowo_legal_kit.security.allow_unauthenticated is a dev/demo switch: it opens the legal documents admin to anonymous users and is refused in the prod environment and in non-debug kernels (test* environments excepted).');
+        }
     }
 }

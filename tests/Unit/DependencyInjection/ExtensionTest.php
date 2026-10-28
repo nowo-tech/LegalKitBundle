@@ -11,6 +11,7 @@ use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
+use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
@@ -123,6 +124,29 @@ final class ExtensionTest extends TestCase
         $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));
 
         return $container;
+    }
+
+    public function testSecurityPassRefusesAllowUnauthenticatedInProduction(): void
+    {
+        $container = $this->withFormCsrf($this->loaded(['security' => ['allow_unauthenticated' => true]]));
+        $container->setParameter('kernel.environment', 'prod');
+        $container->setParameter('kernel.debug', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('dev/demo switch');
+        (new SecurityPass())->process($container);
+    }
+
+    public function testSecurityPassKeepsAllowUnauthenticatedInDevAndTest(): void
+    {
+        foreach ([['dev', true], ['test', false]] as [$environment, $debug]) {
+            $container = $this->withFormCsrf($this->loaded(['security' => ['allow_unauthenticated' => true]]));
+            $container->setParameter('kernel.environment', $environment);
+            $container->setParameter('kernel.debug', $debug);
+            (new SecurityPass())->process($container);
+
+            self::assertSame(AllowAllLegalKitAccessChecker::class, (string) $container->getAlias(LegalKitAccessCheckerInterface::class));
+        }
     }
 
     public function testSecurityPassWithoutWebUiRemovesTheSubscriber(): void

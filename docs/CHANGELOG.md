@@ -24,6 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **`allow_unauthenticated` refused in production.** The switch opens the legal documents admin to anonymous users; the
+  container now refuses to compile with it in the `prod` environment or in any non-debug kernel outside `test*`
+  environments (as ContactFormBundle).
+
 ## [1.2.0] - 2026-10-28
 
 Security: admin CSRF fails closed; the opt-in shared cache skips visitors with a session. See [UPGRADING](UPGRADING.md#to-120).
