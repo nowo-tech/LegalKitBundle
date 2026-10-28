@@ -22,6 +22,8 @@
 - SecurityBundle (AuditKit resolves the editor from the security token; the admin needs it unless
   `web_ui.enabled: false`) and a PSR-20 clock service (`symfony/clock`, present in Flex applications) for AuditKit's
   timestamps
+- Twig Extra: `twig/extra-bundle` and `twig/string-extra` (required by the bundle and installed with it, REQ-TWIG-004).
+  Without Flex, register `Twig\Extra\TwigExtraBundle\TwigExtraBundle` too
 
 ## Install the package
 
@@ -33,7 +35,9 @@ composer require nowo-tech/ckeditor5-editor-bundle nowo-tech/cookie-consent-bund
 
 ## Register the bundles
 
-Symfony Flex registers them. Without Flex:
+With Symfony Flex the package recipe (`.symfony/recipe/nowo-tech/legal-kit-bundle/1.0/`) registers
+`NowoLegalKitBundle` and copies `config/packages/nowo_legal_kit.yaml` and `config/routes/nowo_legal_kit.yaml`
+(review them: `security.access_roles`, `routing.*`). Without Flex:
 
 ```php
 // config/bundles.php
@@ -43,6 +47,7 @@ return [
     Nowo\UiKitBundle\NowoUiKitBundle::class => ['all' => true],
     Nowo\FormKitBundle\NowoFormKitBundle::class => ['all' => true],
     Nowo\LegalKitBundle\NowoLegalKitBundle::class => ['all' => true],
+    Twig\Extra\TwigExtraBundle\TwigExtraBundle::class => ['all' => true],
 ];
 ```
 

@@ -1,8 +1,8 @@
 # Legal Kit Bundle — baseline code inventory
 
 **Package**: `nowo-tech/legal-kit-bundle`  
-**Last audited**: 2026-10-18  
-**Production units**: **81/81**  
+**Last audited**: 2026-10-28  
+**Production units**: **82/82**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.css' \) | wc -l`
 
 ## Scope notes
@@ -25,9 +25,9 @@
 | HTTP, routing & security | 8 |
 | Events & integrations | 8 |
 | Console | 6 |
-| Templates & stylesheet | 12 |
+| Templates & stylesheet | 13 |
 | Translations | 14 |
-| **Total** | **81** |
+| **Total** | **82** |
 
 
 ## Bundle, configuration & DI
@@ -172,6 +172,7 @@ Requirements: FR-021, FR-041…FR-044, FR-050, FR-051, FR-063, FR-072, FR-081.
 | `src/Resources/views/_cookie_inventory.html.twig` | Cookie table |
 | `src/Resources/views/_footer_nav.html.twig` | Footer navigation + Manage cookies |
 | `src/Resources/views/_placeholder_banner.html.twig` | Ops banner |
+| `src/Resources/views/admin/_ckeditor_script.html.twig` | CKEditor 5 script of the editor page (bundle asset, no CDN; only with `editor.type` ckeditor5) — FR-043 |
 | `src/Resources/views/admin/edit.html.twig` | Editor (form scaffold) |
 | `src/Resources/views/admin/index.html.twig` | Matrix (list scaffold) |
 | `src/Resources/views/public/_nav.html.twig` | Cross navigation |

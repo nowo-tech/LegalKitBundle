@@ -103,6 +103,7 @@ Then open **/admin/legal**, replace the bracketed placeholders in every locale a
 - Symfony 7.4, 8.0 and 8.1+ (FrameworkBundle, TwigBundle, Form, Validator, Security for the admin)
 - Doctrine ORM 3 + DoctrineBundle; `nowo-tech/audit-kit-bundle` ^1.7 (user class configured),
   `nowo-tech/ui-kit-bundle` ^2.4, `nowo-tech/form-kit-bundle` ^2.12
+- Twig Extra (`twig/extra-bundle`, `twig/string-extra`; installed with the bundle, register `TwigExtraBundle` without Flex)
 - Optional: `nowo-tech/cookie-consent-bundle` ^1.17, `nowo-tech/ckeditor5-editor-bundle` ^1.9,
   `nowo-tech/outbound-url-guard-bundle` ^1.2, `nowo-tech/seo-kit-bundle` ^1.14, `nowo-tech/routing-kit-bundle` ^1.10
 
@@ -138,7 +139,6 @@ Playwright end-to-end tests and the README screenshots: `make -C demo/symfony8 t
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Usage](docs/USAGE.md)
-- [Templates (UiKit page contract)](docs/TEMPLATES.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Changelog](docs/CHANGELOG.md)
@@ -151,6 +151,7 @@ Playwright end-to-end tests and the README screenshots: `make -C demo/symfony8 t
 
 ### Additional documentation
 
+- [Templates (UiKit page contract)](docs/TEMPLATES.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [PSR evaluation](docs/PSR.md)
 - [Coverage policy](docs/COVERAGE.md)
