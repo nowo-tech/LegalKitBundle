@@ -7,8 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+- [[1.3.0] - 2026-10-28](#130---2026-10-28)
   - [Security](#security)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+  - [Security](#security-1)
   - [Changed](#changed)
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-1)
@@ -16,13 +18,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added)
   - [Changed](#changed-2)
   - [Fixed](#fixed)
-  - [Security](#security-1)
+  - [Security](#security-2)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-1)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-1)
 
 ## [Unreleased]
+
+## [1.3.0] - 2026-10-28
+
+Security: allow_unauthenticated is refused in production (prod or non-debug kernels). See [UPGRADING](UPGRADING.md#to-130).
 
 ### Security
 
