@@ -100,7 +100,12 @@ return static function (ContainerConfigurator $container): void {
             param('nowo_legal_kit.routing.legacy_admin_aliases'),
         ]);
 
+    // Controllers are not autoconfigured (REQ-SF-004 rule 7): on Symfony >= 7.3 a #[Route] class is autoconfigured
+    // with the routing.controller tag, and the host's `routing.controllers` resource would then expose the admin
+    // routes without the host importing the `nowo_legal_kit` route type (bypassing web_ui.enabled / path_prefix).
     $services->set(LegalPageController::class)
+        ->autoconfigure(false)
+        ->tag('controller.service_arguments')
         ->public()
         ->arg('$template', param('nowo_legal_kit.web_ui.templates.public_page'))
         ->arg('$layoutTemplate', param('nowo_legal_kit.public.layout_template'))
@@ -110,6 +115,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$dispatcher', service('event_dispatcher'));
 
     $services->set(LegalDocumentAdminController::class)
+        ->autoconfigure(false)
+        ->tag('controller.service_arguments')
         ->public()
         ->arg('$templates', param('nowo_legal_kit.web_ui.templates'))
         ->arg('$layoutTemplate', param('nowo_legal_kit.web_ui.layout_template'))

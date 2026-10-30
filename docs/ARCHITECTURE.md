@@ -53,8 +53,8 @@ One table `legal_document` (see [INSTALLATION.md](INSTALLATION.md#database-table
 - **Tokens at render time.** Stored copies stay linked to configuration (brand, company profile).
 - **Soft integrations.** CookieConsent, SeoKit, CKEditor, OutboundUrlGuard and the AuditKit action log are detected
   by registered bundle / service; nothing breaks without them.
-- **Attributes for wiring.** Commands (`#[AsCommand]`, legacy aliases included), controllers (`#[AsController]`,
-  admin `#[Route]`), subscribers (autoconfigured `EventSubscriberInterface`) and tags (`#[AsTaggedItem]`,
+- **Attributes for wiring.** Commands (`#[AsCommand]`, legacy aliases included), controllers (admin `#[Route]`;
+  registered explicitly, not autoconfigured, so the routes stay opt-in), subscribers (autoconfigured `EventSubscriberInterface`) and tags (`#[AsTaggedItem]`,
   `#[AutoconfigureTag]`) are declared on the classes (REQ-SF-003); the services registered only when an option or an optional bundle is present (table prefix
   listener, SeoKit bridges, action log listener) are tagged where they are registered.
 - **Stable public contract.** Route names `legal_<slug>` and URLs are the contract of REQ-CC-003; the old admin route
