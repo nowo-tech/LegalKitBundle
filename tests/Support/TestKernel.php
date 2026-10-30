@@ -57,8 +57,11 @@ final class TestKernel extends Kernel
 {
     use MicroKernelTrait;
 
-    /** Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, no route import. */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes'];
+    /**
+     * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, no route import, only the
+     * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import).
+     */
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers'];
 
     private readonly string $cacheKey;
 
@@ -193,6 +196,11 @@ final class TestKernel extends Kernel
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         if (in_array('no_routes', $this->extraBundles, true)) {
+            return;
+        }
+        if (in_array('host_controllers', $this->extraBundles, true)) {
+            $routes->import('routing.controllers');
+
             return;
         }
         $routes->import('.', 'nowo_legal_kit');

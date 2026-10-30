@@ -17,6 +17,10 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+From **1.3.0**: no action needed if you import the `nowo_legal_kit` route type (see [INSTALLATION](INSTALLATION.md)).
+If the admin was reachable in your app only through the default `routing.controllers` import (Symfony >= 7.3), import
+the route type explicitly; with `web_ui.enabled: false` the admin routes are no longer registered at all.
+
 ## To 1.3.0
 
 From **1.2.0**:

@@ -26,6 +26,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Admin routes registered without the route import:** on Symfony >= 7.3 the `#[Route]` attributes (plus
+  `#[AsController]`) on the autoconfigured `LegalDocumentAdminController` gave it the `routing.controller` tag, so the
+  host's default `controllers: { resource: routing.controllers }` registered `nowo_legal_kit_admin_index`,
+  `nowo_legal_kit_admin_edit` and `nowo_legal_kit_admin_reset` even when the host never imported the
+  `nowo_legal_kit` route type, and regardless of `web_ui.enabled` (access was still enforced by
+  `AdminAccessSubscriber`). `LegalDocumentAdminController` and `LegalPageController` are no longer autoconfigured
+  and no longer carry `#[AsController]` (explicit `controller.service_arguments` tag); the routes exist only through
+  the documented import (REQ-SF-004 rule 7). Regression test with a kernel that only loads `routing.controllers`.
+
 ## [1.3.0] - 2026-10-28
 
 Security: allow_unauthenticated is refused in production (prod or non-debug kernels). See [UPGRADING](UPGRADING.md#to-130).
