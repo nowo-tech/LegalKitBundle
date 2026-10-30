@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.3.1] - 2026-10-30](#131---2026-10-30)
+  - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
   - [Security](#security)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
@@ -17,14 +19,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
   - [Added](#added)
   - [Changed](#changed-2)
-  - [Fixed](#fixed)
+  - [Fixed](#fixed-1)
   - [Security](#security-2)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
-  - [Fixed](#fixed-1)
+  - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-1)
 
 ## [Unreleased]
+
+## [1.3.1] - 2026-10-30
+
+Bundle routes are opt-in again: controllers are no longer autoconfigured, so a host's routing.controllers import does not expose them (REQ-SF-004 rule 7). See [UPGRADING](UPGRADING.md#to-131).
 
 ### Fixed
 
