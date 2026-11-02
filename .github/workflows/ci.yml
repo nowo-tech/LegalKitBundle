@@ -91,6 +91,9 @@ jobs:
           composer config minimum-stability dev
           composer config prefer-stable true
 
+      - name: Override Composer platform PHP (composer.json pins the minimum PHP for the lock)
+        run: composer config platform.php "${{ matrix.php }}.99"
+
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
           chmod +x .scripts/retry.sh
