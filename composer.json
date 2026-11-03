@@ -89,7 +89,7 @@
         "symfony/dom-crawler": "^7.4 || ^8.0",
         "symfony/security-bundle": "^7.4 || ^8.0",
         "symfony/yaml": "^7.4 || ^8.0",
-        "vincentlanglet/twig-cs-fixer": "^3.0"
+        "vincentlanglet/twig-cs-fixer": "^3.0 || ^4.0"
     },
     "suggest": {
         "nowo-tech/cookie-consent-bundle": "^1.17 — legal routes prepended to disabled_routes / render_routes, legal_privacy as the modal privacy_route fallback, %cookie_inventory% token from the consent inventory",
