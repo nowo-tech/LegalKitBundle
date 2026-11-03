@@ -10,6 +10,9 @@ includes:
 
 parameters:
     level: 8
+    # composer.json pins config.platform.php to the 8.3 floor, which PHPStan would otherwise use as its PHP version
+    # and then report the PHP 8.4 Dom\HTMLDocument API (guarded by class_exists() in DomAllowlistSanitizer) as unknown.
+    phpVersion: 80400
     paths:
         - src
         - tests
