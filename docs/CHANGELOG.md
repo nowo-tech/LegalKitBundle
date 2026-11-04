@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[Unreleased]](#unreleased)
   - [Added](#added)
   - [Changed](#changed)
+- [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
@@ -66,6 +67,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `symfony/clock` and `psr/clock` are runtime dependencies (version and acceptance timestamps).
 - `LegalDocumentSavedEvent`, `ResolvedLegalDocument`, `LegalPage`, `LegalDocumentResolver` and the admin controller
   get appended optional arguments (BC). `TablePrefixListener` also prefixes the new tables.
+
+## [1.3.2] - 2026-11-04
 
 ### Security
 

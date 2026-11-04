@@ -6,6 +6,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 - [Unreleased](#unreleased)
   - [To 1.4.0 (versions and re-acceptance)](#to-140-versions-and-re-acceptance)
+- [To 1.3.2](#to-132)
 - [To 1.3.1](#to-131)
 - [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
@@ -50,6 +51,14 @@ Nothing changes until you opt in: no new column, table, route, listener or admin
 - PHP: appended optional arguments only (`LegalDocumentSavedEvent`, `ResolvedLegalDocument`, `LegalPage`,
   `LegalDocumentResolver`, `LegalDocumentAdminController`, `LegalKitExtension`, `SeedCommand`, `DoctorCommand`,
   `LegalDocumentPortability`). `LegalKitAccessCheckerInterface` is unchanged.
+
+## To 1.3.2
+
+From **1.3.1**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 ## To 1.3.1
 
