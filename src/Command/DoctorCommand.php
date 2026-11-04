@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Command;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\BuiltinMarkers;
+use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -49,6 +50,7 @@ final class DoctorCommand extends Command
      * @param list<string> $disabledRoutes `nowo_cookie_consent.disabled_routes`
      * @param string|null $privacyRoute CookieConsent config privacy_route fallback (1.17+)
      * @param bool $builtinMarkers `placeholders.builtin_markers`
+     * @param ?LegalDocumentRepository $documents Stored rows (versioning on: rows without a seed base)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -60,6 +62,7 @@ final class DoctorCommand extends Command
         private readonly array $disabledRoutes = [],
         private readonly ?string $privacyRoute = null,
         private readonly bool $builtinMarkers = true,
+        private readonly ?LegalDocumentRepository $documents = null,
     ) {
         parent::__construct(self::NAME);
     }
@@ -120,6 +123,16 @@ final class DoctorCommand extends Command
                     $warnings[] = sprintf('The legal notice seed for "%s" has no built-in marker: set placeholders.builtin_markers: false and add your own extra_markers.', $locale);
                 }
             }
+        }
+
+        foreach ($this->catalog->pages() as $page) {
+            if ($page->slug === 'cookies' && $page->requiresAcceptance()) {
+                $warnings[] = 'pages.cookies.acceptance is not "none": cookie consent belongs to CookieConsentBundle, not to an acceptance of the cookie notice.';
+            }
+        }
+        $withoutBase = $this->documents?->countWithoutSeedBase() ?? 0;
+        if ($withoutBase > 0) {
+            $warnings[] = sprintf('Stored legal copies without a seed base: %d. Run nowo:legal-kit:upgrade-seed --from=<revision> (with a snapshot of that revision).', $withoutBase);
         }
 
         foreach ($errors as $error) {

@@ -26,7 +26,7 @@ final readonly class ConfiguredLegalPageCatalog implements LegalPageCatalogInter
     private array $pages;
 
     /**
-     * @param array<string, array{path?: string|null, enabled?: bool, nav?: bool, seed_template?: string|null}> $pages Processed `pages` configuration
+     * @param array<string, array{path?: string|null, enabled?: bool, nav?: bool, seed_template?: string|null, acceptance?: string|null}> $pages Processed `pages` configuration
      */
     public function __construct(array $pages)
     {
@@ -41,6 +41,7 @@ final readonly class ConfiguredLegalPageCatalog implements LegalPageCatalogInter
                 $options['path'] ?? $slug,
                 $options['nav'] ?? true,
                 $options['seed_template'] ?? sprintf(self::SEED_TEMPLATE, $slug),
+                $options['acceptance'] ?? self::defaultAcceptance($slug),
             );
         }
         $this->pages = $list;
@@ -76,5 +77,19 @@ final readonly class ConfiguredLegalPageCatalog implements LegalPageCatalogInter
     public function page(string $slug): LegalPage
     {
         return $this->pages[$slug] ?? throw new OutOfBoundsException(sprintf('Unknown legal page "%s".', $slug));
+    }
+
+    /**
+     * Default re-acceptance mode of a slug: `accept` for terms, `acknowledge` for privacy, `none` otherwise.
+     *
+     * @return string The mode
+     */
+    public static function defaultAcceptance(string $slug): string
+    {
+        return match ($slug) {
+            'terms'   => LegalPage::ACCEPTANCE_ACCEPT,
+            'privacy' => LegalPage::ACCEPTANCE_ACKNOWLEDGE,
+            default   => LegalPage::ACCEPTANCE_NONE,
+        };
     }
 }

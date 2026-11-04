@@ -60,9 +60,9 @@ class LegalDocumentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Slug → locale → {updated_at, updated_by} of every stored row (admin index; one query, editors fetch-joined).
+     * Slug → locale → {updated_at, updated_by, seed_revision} of every stored row (admin index; one query, editors fetch-joined).
      *
-     * @return array<string, array<string, array{updated_at: DateTimeInterface|null, updated_by: string|null}>>
+     * @return array<string, array<string, array{updated_at: DateTimeInterface|null, updated_by: string|null, seed_revision: string|null}>>
      */
     public function customMap(): array
     {
@@ -79,12 +79,61 @@ class LegalDocumentRepository extends ServiceEntityRepository
         foreach ($documents as $document) {
             $editor                                            = $document->getUpdatedBy() ?? $document->getCreatedBy();
             $map[$document->getSlug()][$document->getLocale()] = [
-                'updated_at' => $document->getUpdatedAt() ?? $document->getCreatedAt(),
-                'updated_by' => $editor !== null ? $this->describe($editor) : null,
+                'updated_at'    => $document->getUpdatedAt() ?? $document->getCreatedAt(),
+                'updated_by'    => $editor !== null ? $this->describe($editor) : null,
+                'seed_revision' => $document->getSeedRevision(),
             ];
         }
 
         return $map;
+    }
+
+    /**
+     * Rows whose known seed base is another revision ("built-in text changed"; versioning on only), sorted.
+     *
+     * @return list<LegalDocument>
+     */
+    public function findOutdated(string $revision): array
+    {
+        /* @var list<LegalDocument> */
+        return $this->createQueryBuilder('document')
+            ->where('document.seedRevision IS NOT NULL')
+            ->andWhere('document.seedRevision <> :revision')
+            ->setParameter('revision', $revision)
+            ->orderBy('document.slug', 'ASC')
+            ->addOrderBy('document.locale', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Number of outdated rows (one COUNT; versioning on only).
+     *
+     * @return int The count
+     */
+    public function countOutdated(string $revision): int
+    {
+        return (int) $this->createQueryBuilder('document')
+            ->select('COUNT(document.id)')
+            ->where('document.seedRevision IS NOT NULL')
+            ->andWhere('document.seedRevision <> :revision')
+            ->setParameter('revision', $revision)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Number of rows without a seed base (versioning on only; doctor).
+     *
+     * @return int The count
+     */
+    public function countWithoutSeedBase(): int
+    {
+        return (int) $this->createQueryBuilder('document')
+            ->select('COUNT(document.id)')
+            ->where('document.seedRevision IS NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**

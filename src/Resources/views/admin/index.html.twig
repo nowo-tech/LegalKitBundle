@@ -1,9 +1,9 @@
 {#
   Legal pages admin index (REQ-UI-003): UiKit list scaffold.
   View model: page (View\ListPage, LegalDocumentAdminController::index()); one row per page: page (View\Label), slug,
-  cells (locale => {custom, updated_at, updated_by, hits, edit_href}); extra variable: locales (default first).
+  cells (locale => {custom, updated_at, updated_by, hits, edit_href, outdated?, compare_href?}); extra variable: locales (default first).
   Data block: nowo_ui_list_row — page label, then one cell per locale with the Built-in / Custom badge
-  (badge_neutral / badge_success), the placeholder badge (badge_warning) and the last update (muted).
+  (badge_neutral / badge_success), the "Built-in text changed" badge linking to the compare page (badge_warning, 1.4), the placeholder badge (badge_warning) and the last update (muted).
 #}
 {% extends '@NowoUiKit/page/list.html.twig' %}
 
@@ -18,6 +18,9 @@
             <a class="{{ nowo_ui_class('btn_link', _b) }}" href="{{ cell.edit_href }}" data-testid="nowo-legal-kit-edit-{{ row.slug }}-{{ locale }}">
                 <span class="{{ nowo_ui_class(cell.custom ? 'badge_success' : 'badge_neutral', _b) }}">{{ (cell.custom ? 'admin.custom' : 'admin.builtin')|trans({}, 'NowoLegalKitBundle') }}</span>
             </a>
+            {% if cell.outdated ?? false %}
+                <a class="{{ nowo_ui_class('btn_link', _b) }}" href="{{ cell.compare_href }}" data-testid="nowo-legal-kit-outdated-{{ row.slug }}-{{ locale }}"><span class="{{ nowo_ui_class('badge_warning', _b) }}">{{ 'admin.outdated'|trans({}, 'NowoLegalKitBundle') }}</span></a>
+            {% endif %}
             {% if cell.hits > 0 %}
                 <span class="{{ nowo_ui_class('badge_warning', _b) }}">{{ 'admin.placeholders'|trans({'%count%': cell.hits}, 'NowoLegalKitBundle') }}</span>
             {% endif %}

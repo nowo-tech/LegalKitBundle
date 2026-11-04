@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
+use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 use function array_is_list;
@@ -54,6 +55,7 @@ final readonly class LegalDocumentPortability
         private LegalLocales $locales,
         private LegalHtmlSanitizerInterface $sanitizer,
         private ?EventDispatcherInterface $dispatcher = null,
+        private ?LegalSeedTracker $seedTracker = null,
     ) {
     }
 
@@ -152,6 +154,7 @@ final readonly class LegalDocumentPortability
             }
             $document->setTitle($row['title']);
             $document->setBody($this->sanitizer->sanitize($row['body']));
+            $this->seedTracker?->stampImported($document);
             if ($actor !== null) {
                 $document->setUpdatedBy($actor);
             }

@@ -3,13 +3,34 @@
   View model: page (View\FormPage, LegalDocumentAdminController::edit()): header with one tab per enabled locale
   (page.header.tabs, View\AreaNav), "View public page" secondary action, restore in the danger zone through the
   UiKit confirm contract (POST + CSRF, only when an operator copy exists).
-  Extra variables: legal_editor (ckeditor5|textarea), legal_slug, legal_locale, is_stored.
+  Extra variables: legal_editor (ckeditor5|textarea), legal_slug, legal_locale, is_stored, legal_versioning (1.4: null
+  without versioning, else {current, published_at, locales: locale => bool|null "updated since the current version"}).
+  Versioning fields (publication, requires_acceptance, change_summary, base_*) render through the default child loop.
   The CKEditor 5 script loads on this page only (Ckeditor5EditorBundle asset, never a CDN).
-  Data blocks: nowo_ui_form_body (default child loop).
+  Data blocks: nowo_ui_form_body (default child loop), nowo_ui_form_aside (version facts, 1.4).
 #}
 {% extends '@NowoUiKit/page/form.html.twig' %}
 
 {% block nowo_ui_scripts %}
     {{ parent() }}
     {%- if legal_editor|default('textarea') == 'ckeditor5' %}{{ include('@NowoLegalKitBundle/admin/_ckeditor_script.html.twig') }}{% endif -%}
+{% endblock %}
+
+{% block nowo_ui_form_aside %}
+    {%- set _v = legal_versioning|default(null) -%}
+    {% if _v %}
+        {%- set _b = page.bundle -%}
+        <aside class="{{ nowo_ui_class('card', _b) }}" data-testid="nowo-legal-kit-version-info">
+            <div class="{{ nowo_ui_class('card_body', _b) }}">
+                <p><strong>{{ 'admin.version.current'|trans({'%version%': _v.current}, 'NowoLegalKitBundle') }}</strong>{% if _v.published_at %} <span class="{{ nowo_ui_class('muted', _b) }}">{{ 'admin.version.published'|trans({'%date%': _v.published_at|date('Y-m-d')}, 'NowoLegalKitBundle') }}</span>{% endif %}</p>
+                {% if _v.published_at %}
+                    <ul>
+                        {% for locale, updated in _v.locales %}
+                            <li>{{ locale }}: <span class="{{ nowo_ui_class(updated ? 'badge_success' : 'badge_neutral', _b) }}">{{ (updated ? 'admin.version.updated_since' : 'admin.version.not_updated_since')|trans({'%version%': _v.current}, 'NowoLegalKitBundle') }}</span></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </aside>
+    {% endif %}
 {% endblock %}

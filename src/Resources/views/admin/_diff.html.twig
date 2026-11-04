@@ -1,0 +1,40 @@
+{#
+  Side-by-side text diff (versioning compare page). Variables: diff (Versioning\Diff\TextDiff), caption (translation
+  key), bundle. Every segment is plain text printed AUTOESCAPED: never add |raw here (the projection decodes entities,
+  so a stored "&lt;script&gt;" is the text "<script>"). Changes are marked with <del> / <ins> plus visually hidden
+  labels, so color is not the only cue.
+#}
+{%- set _b = bundle -%}
+{% if diff.tooLarge %}
+    <p class="{{ nowo_ui_class('flash_warning', _b) }}" data-testid="nowo-legal-kit-diff-too-large">{{ 'admin.compare.too_large'|trans({}, 'NowoLegalKitBundle') }}</p>
+{% elseif diff.isEqual %}
+    <p class="{{ nowo_ui_class('muted', _b) }}">{{ 'admin.compare.equal'|trans({}, 'NowoLegalKitBundle') }}</p>
+{% else %}
+    <div class="{{ nowo_ui_class('table_wrap', _b) }}">
+        <table class="nowo-legal-diff {{ nowo_ui_class('table', _b) }}">
+            <caption class="{{ nowo_ui_class('table_caption', _b) }}">{{ caption|trans({}, 'NowoLegalKitBundle') }}</caption>
+            <thead>
+                <tr>
+                    <th scope="col" class="{{ nowo_ui_class('table_head_cell', _b) }}">{{ 'admin.compare.old'|trans({}, 'NowoLegalKitBundle') }}</th>
+                    <th scope="col" class="{{ nowo_ui_class('table_head_cell', _b) }}">{{ 'admin.compare.new'|trans({}, 'NowoLegalKitBundle') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in diff.rows %}
+                    <tr class="nowo-legal-diff__row nowo-legal-diff__row--{{ row.op }}" data-op="{{ row.op }}">
+                        <td class="{{ nowo_ui_class('table_cell', _b) }}">
+                            {%- for segment in row.left -%}
+                                {%- if segment.changed -%}<del><span class="nowo-legal-diff__sr">{{ 'admin.compare.removed'|trans({}, 'NowoLegalKitBundle') }} </span>{{ segment.text }}</del>{%- else -%}{{ segment.text }}{%- endif -%}
+                            {%- endfor -%}
+                        </td>
+                        <td class="{{ nowo_ui_class('table_cell', _b) }}">
+                            {%- for segment in row.right -%}
+                                {%- if segment.changed -%}<ins><span class="nowo-legal-diff__sr">{{ 'admin.compare.added'|trans({}, 'NowoLegalKitBundle') }} </span>{{ segment.text }}</ins>{%- else -%}{{ segment.text }}{%- endif -%}
+                            {%- endfor -%}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

@@ -61,7 +61,7 @@ final class TestKernel extends Kernel
      * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, no route import, only the
      * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes'];
 
     private readonly string $cacheKey;
 
@@ -173,12 +173,20 @@ final class TestKernel extends Kernel
                 'providers'        => ['memory' => ['memory' => ['users' => [
                     'admin'  => ['password' => 'admin', 'roles' => ['ROLE_ADMIN']],
                     'editor' => ['password' => 'editor', 'roles' => ['ROLE_USER']],
+                    'robot'  => ['password' => 'robot', 'roles' => ['ROLE_USER']],
+                    'bad'    => ['password' => 'bad', 'roles' => ['ROLE_USER']],
+                    'boom'   => ['password' => 'boom', 'roles' => ['ROLE_USER']],
                 ]]]],
                 'firewalls' => ['main' => ['lazy' => true, 'http_basic' => null, 'provider' => 'memory']],
             ]);
         }
         // AuditKit autowires the PSR-20 clock (a Flex host aliases it through symfony/clock).
         $container->setAlias(ClockInterface::class, 'clock');
+        // Acceptance host services (acceptance.subject_resolver: test.legal_kit.subject_resolver) and a voter.
+        $container->register('test.legal_kit.subject_resolver', TestSubjectResolver::class);
+        $container->register(TestExemption::class, TestExemption::class)->setAutoconfigured(true);
+        $container->register('test.legal_kit.deny_publish', DenyPublisherChecker::class);
+        $container->register(AppController::class, AppController::class)->setPublic(true)->addTag('controller.service_arguments');
         // A host access checker (security.access_checker: test.legal_kit.allow_all).
         $container->register('test.legal_kit.allow_all', AllowAllLegalKitAccessChecker::class);
         if (in_array('test_seed', $this->extraBundles, true)) {
@@ -204,6 +212,12 @@ final class TestKernel extends Kernel
             return;
         }
         $routes->import('.', 'nowo_legal_kit');
+        if (in_array('app_routes', $this->extraBundles, true)) {
+            foreach (['app_home' => '/app', 'app_mfa' => '/app/mfa', 'app_skip' => '/app/skip', 'api_skip' => '/api/skip', 'app_logout' => '/app/logout', 'app_voter_boom' => '/app/voter-boom'] as $name => $path) {
+                $routes->add($name, $path)->controller([AppController::class, 'page']);
+            }
+            $routes->add('app_data', '/app/data')->controller([AppController::class, 'data']);
+        }
     }
 
     private function extraBundle(string $name): BundleInterface

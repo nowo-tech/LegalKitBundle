@@ -9,6 +9,7 @@
 - [Configure and import the routes](#configure-and-import-the-routes)
 - [Security](#security)
 - [Database table](#database-table)
+  - [Versioning and acceptance tables](#versioning-and-acceptance-tables)
 - [Assets](#assets)
 - [Adopting the bundle from a legal copy](#adopting-the-bundle-from-a-legal-copy)
 - [Verify](#verify)
@@ -137,6 +138,50 @@ CREATE TABLE legal_document (
 ```
 
 With `doctrine.table_prefix: app_` the table becomes `app_legal_document` and its index names get the same prefix.
+
+### Versioning and acceptance tables
+
+Only with `versioning.enabled` / `acceptance.enabled` (nothing changes otherwise). Generate the migration with
+`doctrine:migrations:diff` and check it against this reference (MySQL 8; the `doctrine.table_prefix` is prepended to
+the table and index names):
+
+```sql
+ALTER TABLE legal_document ADD seed_revision VARCHAR(32) DEFAULT NULL, ADD seed_hash CHAR(64) DEFAULT NULL;
+
+CREATE TABLE legal_page_version (
+    id INT AUTO_INCREMENT NOT NULL,
+    slug VARCHAR(32) NOT NULL,
+    version INT NOT NULL,
+    requires_acceptance TINYINT(1) NOT NULL,
+    source VARCHAR(16) NOT NULL,
+    published_at DATETIME NOT NULL COMMENT '(DC2Type:datetime_immutable)',
+    seed_revision VARCHAR(32) DEFAULT NULL,
+    change_summary JSON NOT NULL,
+    created_at DATETIME DEFAULT NULL, updated_at DATETIME DEFAULT NULL,
+    created_by_id INT DEFAULT NULL, updated_by_id INT DEFAULT NULL,
+    UNIQUE INDEX uniq_legal_page_version_slug_version (slug, version),
+    INDEX idx_legal_page_version_created_by (created_by_id),
+    INDEX idx_legal_page_version_updated_by (updated_by_id),
+    PRIMARY KEY (id)
+);  -- created_by_id / updated_by_id reference the AuditKit user table, ON DELETE SET NULL
+
+CREATE TABLE legal_acceptance (                -- acceptance.enabled only
+    id INT AUTO_INCREMENT NOT NULL,
+    subject_id VARCHAR(128) NOT NULL,
+    slug VARCHAR(32) NOT NULL,
+    version INT NOT NULL,
+    locale VARCHAR(8) NOT NULL,
+    kind VARCHAR(16) NOT NULL,
+    content_hash CHAR(64) NOT NULL,
+    accepted_at DATETIME NOT NULL COMMENT '(DC2Type:datetime_immutable)',
+    UNIQUE INDEX uniq_legal_acceptance_subject_slug_version (subject_id, slug, version),
+    PRIMARY KEY (id)
+);
+```
+
+Hosts with several entity managers (`doctrine.orm.entity_managers`) map `src/Versioning/Entity`
+(`Nowo\LegalKitBundle\Versioning\Entity`) and `src/Acceptance/Entity` (`Nowo\LegalKitBundle\Acceptance\Entity`)
+themselves, as for `legal_document`.
 
 ## Assets
 

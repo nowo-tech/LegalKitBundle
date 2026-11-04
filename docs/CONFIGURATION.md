@@ -7,6 +7,8 @@
 - [Pages](#pages)
 - [Routing](#routing)
 - [Seed](#seed)
+- [Versioning](#versioning)
+- [Acceptance](#acceptance)
 - [Editor](#editor)
 - [Sanitizer](#sanitizer)
 - [Placeholders](#placeholders)
@@ -27,10 +29,10 @@ nowo_legal_kit:
     default_locale: null                  # null = first locale
     brand_name: ''                        # %brand% token ('' = unresolved, reported by the gate)
     pages:                                # ordered; defaults shown
-        notice:  { path: notice,  enabled: true, nav: true, seed_template: null }
-        privacy: { path: privacy, enabled: true, nav: true, seed_template: null }
-        terms:   { path: terms,   enabled: true, nav: true, seed_template: null }
-        cookies: { path: cookies, enabled: true, nav: true, seed_template: null }
+        notice:  { path: notice,  enabled: true, nav: true, seed_template: null, acceptance: none }
+        privacy: { path: privacy, enabled: true, nav: true, seed_template: null, acceptance: acknowledge }
+        terms:   { path: terms,   enabled: true, nav: true, seed_template: null, acceptance: accept }
+        cookies: { path: cookies, enabled: true, nav: true, seed_template: null, acceptance: none }
     routing:
         path_prefix: /legal
         default_locale_style: unprefixed  # unprefixed | prefixed
@@ -39,6 +41,24 @@ nowo_legal_kit:
         materialize: false                # nowo:legal-kit:seed stores the seed as rows
         fallback_locale: null             # e.g. es
         date: '2026-10-18'                # %last_updated% of seed pages
+        revision: null                    # versioning: seed revision (null = date)
+        snapshots_dir: '%kernel.project_dir%/config/legal-kit/seed-snapshots'
+    versioning:
+        enabled: false                    # literal boolean; maps seed_revision / seed_hash + legal_page_version
+        publisher_checker: null           # service id implementing LegalVersionPublisherCheckerInterface
+    acceptance:
+        enabled: false                    # literal boolean; requires versioning; maps legal_acceptance
+        enforce: false                    # request gate
+        subject_resolver: null            # REQUIRED when enabled: LegalAcceptanceSubjectResolverInterface service id
+        exempt_routes: []                 # route names or "prefix*"
+        exempt_paths: []                  # "/api" matches /api and /api/…, not /apix
+        non_html: pass                    # pass | deny (403 JSON for session JSON / XHR GETs)
+        default_target: null              # route name after accepting without a stored target; null = "/"
+        logout_route: null                # null = the firewall logout path (none without one)
+        layout_template: null             # null = nowo_ui_layout.guest
+        template: '@NowoLegalKitBundle/acceptance/interstitial.html.twig'
+        cache_pool: cache.app             # requirements map; null = no cache
+        action_log: false                 # AuditKit legal_document.accepted per acceptance
     editor:
         type: auto                        # auto | ckeditor5 | textarea
         ckeditor5_profile: legal
@@ -89,6 +109,7 @@ provider), plus the label `page.<slug>` in the `NowoLegalKitBundle` domain.
 | `enabled` | `true` | `false` removes the page (routes, admin, scanner) |
 | `nav` | `true` | listed by `nowo_legal_kit_links()` and the footer / cross navigation |
 | `seed_template` | `@NowoLegalKitBundle/seed/<slug>.html.twig` | Twig template of the built-in body |
+| `acceptance` | `accept` (terms), `acknowledge` (privacy), `none` | re-acceptance mode (only with `acceptance.enabled`). `privacy: accept` is refused: privacy information is acknowledged, never accepted |
 
 ## Routing
 
@@ -103,6 +124,19 @@ The seed is the generic scaffold rendered by `TwigSeedProvider` (domain `NowoLeg
 reproduces "rows seeded at install" (`bin/console nowo:legal-kit:seed --missing-only`, never overwrites). Restore
 deletes the row in both modes. `fallback_locale` shows that locale's seed when none exists for the requested one (the
 page then declares `lang` = the fallback locale, request attribute `_content_locale`).
+
+## Versioning
+
+Opt-in, see [USAGE: Versions and seed upgrades](USAGE.md#versions-and-seed-upgrades). `versioning.enabled` must be the
+literal `true` (the Doctrine mapping is decided before parameters and env vars resolve). `seed.revision` (pattern
+`^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$`) defaults to `seed.date`; change it with your seed texts.
+
+## Acceptance
+
+Opt-in, see [USAGE: Re-acceptance](USAGE.md#re-acceptance). Build-time errors: `acceptance.enabled` without
+`versioning.enabled` or without `subject_resolver`; `enforce` without `enabled`; a page whose `path` is `accept`
+(the re-acceptance page lives at `<routing.path_prefix>/accept`); `exempt_paths` entries that do not start with `/`
+or contain wildcards, `?`, `#` or `..`.
 
 ## Editor
 

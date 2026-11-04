@@ -80,7 +80,7 @@ return static function (ContainerConfigurator $container): void {
         ]);
     $services->set(LegalTokenRenderer::class)->args([tagged_iterator(LegalTokenResolverInterface::TAG)]);
 
-    $services->set(LegalDocumentResolver::class);
+    $services->set(LegalDocumentResolver::class)->arg('$versions', null);
 
     $services->set(LegalPlaceholderScanner::class)
         ->arg('$builtinMarkers', param('nowo_legal_kit.placeholders.builtin_markers'))
@@ -88,7 +88,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(LegalDocumentPortability::class)
         ->public()
-        ->arg('$dispatcher', service('event_dispatcher')->nullOnInvalid());
+        ->arg('$dispatcher', service('event_dispatcher')->nullOnInvalid())
+        ->arg('$seedTracker', null);
 
     $services->set(LegalRouteLoader::class)
         ->args([
@@ -123,7 +124,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$editor', param('nowo_legal_kit.editor.type'))
         ->arg('$ckeditor5Profile', param('nowo_legal_kit.editor.ckeditor5_profile'))
         ->arg('$defaultLocaleStyle', param('nowo_legal_kit.routing.default_locale_style'))
-        ->arg('$dispatcher', service('event_dispatcher'));
+        ->arg('$dispatcher', service('event_dispatcher'))
+        // Versioning collaborators are set by the extension only with versioning.enabled.
+        ->arg('$seedTracker', null)
+        ->arg('$versions', null)
+        ->arg('$publisherChecker', null)
+        ->arg('$entityManager', null)
+        ->arg('$acceptances', null);
 
     $services->set(LegalDocumentType::class);
 
@@ -140,10 +147,12 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ExportCommand::class);
     $services->set(ImportCommand::class);
     $services->set(SeedCommand::class)
-        ->arg('$materialize', param('nowo_legal_kit.seed.materialize'));
+        ->arg('$materialize', param('nowo_legal_kit.seed.materialize'))
+        ->arg('$seedTracker', null);
     $services->set(DoctorCommand::class)
         ->arg('$router', service('router'))
         ->arg('$accessMap', service('security.access_map')->nullOnInvalid())
         ->arg('$cookieConsentInstalled', param('nowo_legal_kit.cookie_consent.installed'))
-        ->arg('$builtinMarkers', param('nowo_legal_kit.placeholders.builtin_markers'));
+        ->arg('$builtinMarkers', param('nowo_legal_kit.placeholders.builtin_markers'))
+        ->arg('$documents', null);
 };

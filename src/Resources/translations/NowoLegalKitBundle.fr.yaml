@@ -9,6 +9,7 @@ nav:
   manage_cookies: Paramètres des cookies
 public:
   last_updated: 'Dernière mise à jour : %date%'
+  version: "Version %version%"
 admin:
   title: Pages légales
   intro: Chaque déploiement publie ses propres mentions légales, politique de confidentialité, conditions et page des cookies. Le texte intégré reste en place jusqu’à ce que vous enregistriez une langue. Un conseil juridique doit encore valider le texte avant de traiter les données personnelles d’autrui.
@@ -37,11 +38,53 @@ admin:
     title: Titre
     body: Texte
     body_help: Les titres, listes, liens, tableaux et mises en valeur sont conservés ; scripts, styles et contenus intégrés sont supprimés à l’enregistrement.
+  outdated: "Texte intégré modifié"
+  compare:
+    title: "Comparer %page% (%locale%) avec le nouveau texte intégré"
+    intro: "Le texte intégré a changé (révision %revision%). Votre copie est conservée jusqu’à votre choix."
+    crumb: "Comparer"
+    use_new: "Utiliser le nouveau texte"
+    keep: "Garder mon texte"
+    yours: "Votre copie"
+    builtin: "Nouveau texte intégré"
+    title_caption: "Titre"
+    body_caption: "Votre copie → nouveau texte intégré"
+    builtin_caption: "Ancien texte intégré → nouveau texte intégré"
+    old: "Avant"
+    new: "Après"
+    removed: "Supprimé :"
+    added: "Ajouté :"
+    too_large: "Trop différent pour une comparaison ligne à ligne ; utilisez Côte à côte."
+    equal: "Aucune différence."
+    tab:
+      label: "Vues"
+      changes: "Modifications"
+      side: "Côte à côte"
+      builtin: "Modifications du texte intégré"
+  publication:
+    label: "Publication"
+    help: "Choisissez si les utilisateurs sont informés de ce changement."
+    minor: "Correction mineure : coquille ou mise en forme, le sens ne change pas. Rien n’est redemandé aux utilisateurs."
+    new_version: "Nouvelle version : les utilisateurs verront le résumé des modifications à leur prochaine visite."
+    requires_acceptance_accept: "Les utilisateurs doivent accepter cette version"
+    requires_acceptance_acknowledge: "Les utilisateurs doivent confirmer avoir été informés de cette version"
+    summary: "Résumé des modifications (cette langue)"
+    summary_help: "Texte brut affiché aux utilisateurs sur la page d’acceptation, 2000 caractères au plus."
+    summary_required: "Ajoutez un résumé des modifications : les utilisateurs qui doivent accepter ou confirmer cette version le lisent d’abord."
+  version:
+    current: "Version actuelle : %version%"
+    published: "publiée le %date%"
+    updated_since: "mise à jour pour la version %version%"
+    not_updated_since: "non mise à jour depuis la version %version%"
 flash:
   saved: Page légale enregistrée pour cette langue.
   reset_done: Le texte intégré est de nouveau publié pour cette langue.
   empty_body: Ajoutez du texte, ou utilisez Restaurer le texte intégré pour supprimer la page personnalisée.
   invalid_csrf: Le formulaire a expiré. Réessayez.
+  rebased: "Votre copie est conservée et repose désormais sur le texte intégré actuel."
+  changed_meanwhile: "Cette page a changé pendant votre modification. Rechargez-la et réessayez."
+  version_published: "Enregistrée et publiée en version %version%."
+  summary_frozen: "Le résumé des modifications n’a pas été changé : des utilisateurs ont déjà accepté cette version avec lui."
 banner:
   title: '{1} Il reste 1 espace réservé légal.|]1,Inf[ Il reste %count% espaces réservés légaux.'
   intro: Remplacez-les dans les pages légales avant la production ; la validation juridique reste nécessaire.
@@ -60,3 +103,16 @@ cookies:
     analytics: Mesure d’audience
     marketing: Marketing
     tracking: Suivi
+acceptance:
+  title: "Textes juridiques mis à jour"
+  intro: "Nous avons mis à jour certains documents juridiques. Consultez-les pour continuer."
+  stale: "Ces documents ont changé pendant votre lecture. Consultez-les à nouveau."
+  impersonating: "Vous agissez en tant qu’un autre utilisateur : seul cet utilisateur peut accepter ces documents."
+  version: "Version %version%"
+  default_summary: "Ce document a été mis à jour."
+  acknowledge_statement: "Nous avons mis à jour notre %title%. Veuillez la lire."
+  read: "Lire : %title%"
+  accept_label: "J’accepte : %title% (version %version%)"
+  submit_accept: "Accepter et continuer"
+  submit_continue: "Continuer"
+  sign_out: "Se déconnecter"

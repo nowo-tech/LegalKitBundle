@@ -8,10 +8,14 @@ use DateTimeImmutable;
 use Nowo\FormKitBundle\Form\Constraint\ConstraintDefinitionFactory;
 use Nowo\FormKitBundle\Form\FormOptionsMerger;
 use Nowo\FormKitBundle\Form\FormTypeMap;
+use Nowo\LegalKitBundle\Acceptance\PendingLegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
+use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
 use Nowo\LegalKitBundle\Form\LegalDocumentType;
+use Nowo\LegalKitBundle\Versioning\Diff\LineDiff;
+use Nowo\LegalKitBundle\Versioning\Diff\TextDiff;
 use Nowo\UiKitBundle\View\Action;
 use Nowo\UiKitBundle\View\AreaNav;
 use Nowo\UiKitBundle\View\AreaNavItem;
@@ -22,6 +26,7 @@ use Nowo\UiKitBundle\View\FormPage;
 use Nowo\UiKitBundle\View\Label;
 use Nowo\UiKitBundle\View\ListPage;
 use Nowo\UiKitBundle\View\PageHeader;
+use Nowo\UiKitBundle\View\ShowPage;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Csrf\CsrfExtension;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
@@ -31,9 +36,11 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Validator\Validation;
 
-/**
+/*
  * Template contexts of every bundle page, built like the controllers build them (REQ-UI-003 contract test).
  */
+use function str_repeat;
+
 final class PageFixtures
 {
     private const string B = 'NowoLegalKitBundle';
@@ -144,6 +151,68 @@ final class PageFixtures
         ];
     }
 
+    /**
+     * Compare page (versioning): changes view, or side by side.
+     *
+     * @return array<string, mixed>
+     */
+    public static function compare(string $view = 'changes', bool $tooLarge = false): array
+    {
+        $params = ['%page%' => 'Privacy policy', '%locale%' => 'es'];
+        $page   = new ShowPage(
+            new PageHeader(
+                new Label('admin.compare.title', self::B, $params),
+                new Label('admin.compare.intro', self::B, ['%revision%' => '2026-11-04']),
+                actions: [
+                    new Action('edit', self::t('admin.compare.use_new'), '/admin/legal/privacy/es?from_seed=1', variant: 'primary'),
+                    new Action('save', self::t('admin.compare.keep'), '/admin/legal/privacy/es/rebase', method: 'POST', form: self::forms()->createNamedBuilder('nowo_legal_kit_rebase', FormType::class, null, ['csrf_token_id' => 'nowo_legal_kit_rebase_privacy_es'])->getForm()->createView()),
+                ],
+                tabs: new AreaNav([
+                    new AreaNavItem(self::t('admin.compare.tab.changes'), '/admin/legal/privacy/es/compare?view=changes', $view === 'changes'),
+                    new AreaNavItem(self::t('admin.compare.tab.side'), '/admin/legal/privacy/es/compare?view=side', $view === 'side'),
+                ], self::t('admin.compare.tab.label')),
+            ),
+            bundle: self::B,
+            attributes: ['data-testid' => 'nowo-legal-kit-admin-compare'],
+        );
+        $diff = $tooLarge ? new TextDiff([], true) : LineDiff::diff(['## Data', 'Old <script> line', 'Same'], ['## Data', 'New line', 'Same', 'Added']);
+
+        return [
+            'page'         => $page,
+            'view'         => $view,
+            'title_diff'   => $view === 'side' ? null : LineDiff::diff(['Privacidad'], ['Política de privacidad']),
+            'body_diff'    => $view === 'side' ? null : $diff,
+            'left'         => $view === 'side' ? ['title' => 'Mi privacidad', 'body' => '<p>Mía</p>'] : null,
+            'right'        => $view === 'side' ? ['title' => 'Política de privacidad', 'body' => '<p>Integrada</p>'] : null,
+            'legal_slug'   => 'privacy',
+            'legal_locale' => 'es',
+        ];
+    }
+
+    /**
+     * Re-acceptance page: terms to accept, privacy to acknowledge.
+     *
+     * @return array<string, mixed>
+     */
+    public static function interstitial(bool $stale = false): array
+    {
+        $pending = [
+            new PendingLegalPage(new LegalPage('terms', 'terms', true, '@NowoLegalKitBundle/seed/terms.html.twig', 'accept'), 2, 2, 'accept', 1, 'Terms of use', 'en', str_repeat('a', 64), "We changed the rules.\nSee section 3."),
+            new PendingLegalPage(new LegalPage('privacy', 'privacy', true, '@NowoLegalKitBundle/seed/privacy.html.twig', 'acknowledge'), 2, 2, 'acknowledge', 1, 'Privacy policy', 'en', str_repeat('b', 64)),
+        ];
+
+        return [
+            'pending'         => $pending,
+            'links'           => ['terms' => '/legal/terms', 'privacy' => '/legal/privacy'],
+            'form'            => self::forms()->create(LegalAcceptanceType::class, null, ['pages' => $pending, 'offer' => 'x'])->createView(),
+            'stale'           => $stale,
+            'impersonating'   => $stale,
+            'logout_url'      => $stale ? '/logout' : null,
+            'layout_template' => null,
+            'legal_locale'    => 'en',
+        ];
+    }
+
     private static function t(string $key): Label
     {
         return new Label($key, self::B);
@@ -179,6 +248,7 @@ final class PageFixtures
             ->addExtension(new CsrfExtension($csrf))
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
             ->addType(new LegalDocumentType($merger, new FormTypeMap()))
+            ->addType(new LegalAcceptanceType($merger, new FormTypeMap()))
             ->getFormFactory();
     }
 }

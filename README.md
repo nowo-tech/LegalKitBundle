@@ -37,6 +37,10 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
 - **Soft integrations**: CookieConsent (no modal auto-open on legal pages, privacy link, inventory table), SeoKit
   (title, canonical, hreflang, sitemap), AuditKit (timestamps, blame, action log), RoutingKit twins
 - **Adopts existing tables**: maps the `legal_document` table of the apps it replaces as is — no data migration
+- **Versions and re-acceptance (opt-in)**: seed revisions and snapshots, `upgrade-seed` refreshes unedited copies and
+  flags edited ones (compare page with an escaped text diff), *minor correction* vs *new version* on save, and a
+  re-acceptance page + request gate where terms are **accepted** and the privacy policy is **acknowledged**
+  (records without IP, export / erasure hooks)
 - **FrankenPHP worker mode** friendly; no JavaScript on public pages
 
 ## Installation

@@ -1,0 +1,6 @@
+# NowoLegalKitBundle (nl): constraint messages of the legal kit forms (validators domain).
+admin:
+  publication:
+    required: "Kies kleine correctie of nieuwe versie."
+acceptance:
+  accept_required: "Vink het vakje aan om te accepteren en door te gaan."

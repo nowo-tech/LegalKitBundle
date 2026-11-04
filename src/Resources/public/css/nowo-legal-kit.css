@@ -28,3 +28,47 @@
 .nowo-legal-cookie-table {
     width: 100%;
 }
+
+/* Versioning compare page (1.4): side-by-side columns and the text diff. */
+.nowo-legal-compare__side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1rem;
+}
+
+.nowo-legal-diff {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.nowo-legal-diff td {
+    vertical-align: top;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.nowo-legal-diff del {
+    background: var(--nowo-ui-danger-soft, rgba(220, 38, 38, 0.15));
+    text-decoration: line-through;
+}
+
+.nowo-legal-diff ins {
+    background: var(--nowo-ui-success-soft, rgba(22, 163, 74, 0.15));
+    text-decoration: underline;
+}
+
+.nowo-legal-diff__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+    .nowo-legal-diff del,
+    .nowo-legal-diff ins {
+        border: 1px solid CanvasText;
+    }
+}

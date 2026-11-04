@@ -8,6 +8,7 @@ use Nowo\AuditKitBundle\ActionLog\ActionLogRecorder;
 use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\EventListener\ActionLogListener;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
+use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
@@ -35,12 +36,18 @@ final class IntegrationPass implements CompilerPassInterface
     {
         if ($container->hasDefinition(ActionLogRecorder::class) && !$container->hasDefinition(ActionLogListener::class)) {
             $container->register(ActionLogListener::class, ActionLogListener::class)
-                ->setArguments([new Reference(ActionLogRecorder::class)])
+                ->setArguments([new Reference(ActionLogRecorder::class), $container->hasParameter('nowo_legal_kit.acceptance.action_log') && (bool) $container->getParameter('nowo_legal_kit.acceptance.action_log')])
                 // Registered only when the host enables the action log: tagged here (compiler-pass registration).
                 ->addTag('kernel.event_subscriber');
         }
 
         $container->setParameter('nowo_legal_kit.locale_requirement', $this->localeRequirement($container));
+
+        // Versioning: absolute links on the router host count as internal LegalKit links in the seed hash.
+        if ($container->hasDefinition(LegalSeedHasher::class) && $container->hasParameter('router.request_context.host')) {
+            $host = $container->getParameter('router.request_context.host');
+            $container->getDefinition(LegalSeedHasher::class)->setArgument('$host', is_string($host) && $host !== '' ? $host : null);
+        }
 
         if (!$container->hasDefinition(DoctorCommand::class)) {
             return;

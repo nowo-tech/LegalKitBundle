@@ -1,0 +1,59 @@
+{#
+  Re-acceptance page — a declared unique page (docs/TEMPLATES.md): extends the guest layout (acceptance.layout_template
+  ?? nowo_ui_layout.guest), no app navigation, no JavaScript.
+  Variables: pending (list<Acceptance\PendingLegalPage>), links (slug => public URL), form (LegalAcceptanceType view:
+  accept_<slug> checkboxes + offer), stale (the offer changed while the user read it), impersonating, logout_url (?string),
+  layout_template, legal_locale.
+  Terms are accepted (unticked checkbox); privacy information is acknowledged (statement only, never consent).
+  Every text is autoescaped; change summaries are plain text (|nl2br after escaping).
+#}
+{% extends layout_template ?? nowo_ui_layout.guest %}
+{% set nowo_ui_bundle = 'NowoLegalKitBundle' %}
+{% set _b = nowo_ui_bundle %}
+{% set _accept = pending|filter(p => p.isAccept)|length > 0 %}
+
+{% block nowo_ui_document_title %}{{ 'acceptance.title'|trans({}, 'NowoLegalKitBundle', legal_locale) }}{% endblock %}
+
+{% block nowo_ui_content %}
+    <section class="nowo-legal-acceptance {{ nowo_ui_class('section', _b) }}" data-testid="nowo-legal-kit-acceptance"{{ nowo_ui_attrs('section', _b) }}>
+        <h1>{{ 'acceptance.title'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</h1>
+        <p class="{{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.intro'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% if stale %}
+            <p class="{{ nowo_ui_class('flash_warning', _b) }}" role="alert" data-testid="nowo-legal-kit-acceptance-stale">{{ 'acceptance.stale'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% endif %}
+        {% if impersonating %}
+            <p class="{{ nowo_ui_class('flash_warning', _b) }}" role="alert">{{ 'acceptance.impersonating'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% endif %}
+        {{ form_start(form, {attr: {class: nowo_ui_class('form', _b), 'data-testid': 'nowo-legal-kit-acceptance-form'}}) }}
+            {% for item in pending %}
+                <article class="{{ nowo_ui_class('card', _b) }}" lang="{{ item.contentLocale }}" data-testid="nowo-legal-kit-acceptance-{{ item.page.slug }}" data-nowo-legal-kind="{{ item.kind }}">
+                    <header class="{{ nowo_ui_class('card_header', _b) }}">
+                        <h2 class="{{ nowo_ui_class('card_title', _b) }}">{{ item.title }}</h2>
+                        <p class="{{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.version'|trans({'%version%': item.currentVersion}, 'NowoLegalKitBundle', legal_locale) }}</p>
+                    </header>
+                    <div class="{{ nowo_ui_class('card_body', _b) }}">
+                        {% if item.changeSummary is not null %}
+                            <p>{{ item.changeSummary|nl2br }}</p>
+                        {% elseif item.currentVersion > 1 %}
+                            <p>{{ 'acceptance.default_summary'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+                        {% endif %}
+                        {% if not item.isAccept %}
+                            <p>{{ 'acceptance.acknowledge_statement'|trans({'%title%': item.title}, 'NowoLegalKitBundle', legal_locale) }}</p>
+                        {% endif %}
+                        <p><a class="{{ nowo_ui_class('btn_link', _b) }}" href="{{ links[item.page.slug] }}" target="_blank" rel="noopener">{{ 'acceptance.read'|trans({'%title%': item.title}, 'NowoLegalKitBundle', legal_locale) }}</a></p>
+                        {% if item.isAccept %}
+                            {{ form_row(form['accept_' ~ item.page.slug]) }}
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+            {{ form_rest(form) }}
+            <div class="{{ nowo_ui_class('form_actions', _b) }}"{{ nowo_ui_attrs('form_actions', _b) }}>
+                <button type="submit" class="{{ nowo_ui_class('btn_primary', _b) }}" data-testid="nowo-legal-kit-acceptance-submit">{{ (_accept ? 'acceptance.submit_accept' : 'acceptance.submit_continue')|trans({}, 'NowoLegalKitBundle', legal_locale) }}</button>
+                {% if logout_url %}
+                    <a class="{{ nowo_ui_class('btn_secondary', _b) }}" href="{{ logout_url }}">{{ 'acceptance.sign_out'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</a>
+                {% endif %}
+            </div>
+        {{ form_end(form) }}
+    </section>
+{% endblock %}

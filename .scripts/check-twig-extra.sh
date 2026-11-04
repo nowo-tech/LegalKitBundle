@@ -52,6 +52,18 @@ for demo_composer in demo/*/composer.json demo/*/*/composer.json; do
   fi
 done
 
+# Legal HTML is printed through |nowo_legal_kit_sanitize_html and diff / summary text autoescaped: no bundle template
+# may use |raw outside a Twig comment (contract 1.4.0 §4.3 / §14; tests/Unit/TemplatesNoRawTest.php checks the same).
+if [[ -d src/Resources/views ]]; then
+  raw_hits="$(find src/Resources/views -type f -name '*.twig' -print0 \
+    | xargs -0 -r perl -0777 -ne 'my $t = $_; $t =~ s/\{#.*?#\}//gs; print "$ARGV\n" if $t =~ /\|\s*raw\b/' || true)"
+  if [[ -n "$raw_hits" ]]; then
+    echo "ERROR: |raw in bundle templates (print legal HTML with |nowo_legal_kit_sanitize_html):" >&2
+    echo "$raw_hits" >&2
+    fail=1
+  fi
+fi
+
 if [[ "$fail" -ne 0 ]]; then
   exit 1
 fi

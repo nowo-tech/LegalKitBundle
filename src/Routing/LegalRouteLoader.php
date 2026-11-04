@@ -6,7 +6,10 @@ namespace Nowo\LegalKitBundle\Routing;
 
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
+use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
+use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
+use Nowo\LegalKitBundle\DependencyInjection\Configuration;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
@@ -43,6 +46,17 @@ final class LegalRouteLoader extends Loader
 
     public const string BARE_SUFFIX = '_bare';
 
+    /** Re-acceptance page route (with `{_locale}`); `_unlocalized` = the bare path in the default locale. */
+    public const string ACCEPTANCE_ROUTE = 'nowo_legal_kit_acceptance';
+
+    /** Bare re-acceptance route. */
+    public const string ACCEPTANCE_ROUTE_UNLOCALIZED = 'nowo_legal_kit_acceptance_unlocalized';
+
+    /** Versioning admin routes (compare / keep my text). */
+    public const string ADMIN_COMPARE = 'nowo_legal_kit_admin_compare';
+
+    public const string ADMIN_REBASE = 'nowo_legal_kit_admin_rebase';
+
     /** Request attribute holding the page slug of a public legal route. */
     public const string SLUG_ATTRIBUTE = '_legal_slug';
 
@@ -60,6 +74,8 @@ final class LegalRouteLoader extends Loader
      * @param string $defaultLocaleStyle `routing.default_locale_style` (unprefixed|prefixed)
      * @param bool $webUiEnabled `web_ui.enabled`
      * @param bool $legacyAdminAliases `routing.legacy_admin_aliases`
+     * @param bool $versioning `versioning.enabled` (compare / keep my text admin routes)
+     * @param bool $acceptance `acceptance.enabled` (re-acceptance page routes)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -68,6 +84,8 @@ final class LegalRouteLoader extends Loader
         private readonly string $defaultLocaleStyle = 'unprefixed',
         private readonly bool $webUiEnabled = true,
         private readonly bool $legacyAdminAliases = true,
+        private readonly bool $versioning = false,
+        private readonly bool $acceptance = false,
     ) {
         parent::__construct();
     }
@@ -100,6 +118,17 @@ final class LegalRouteLoader extends Loader
             }
         }
 
+        if ($this->acceptance) {
+            $controller = LegalAcceptanceController::class . '::accept';
+            $routes->add(self::ACCEPTANCE_ROUTE, (new Route('/{_locale}' . $prefix . '/' . Configuration::ACCEPTANCE_PATH))
+                ->setDefaults(['_controller' => $controller])
+                ->setRequirements(['_locale' => $locales])
+                ->setMethods(['GET', 'HEAD', 'POST']));
+            $routes->add(self::ACCEPTANCE_ROUTE_UNLOCALIZED, (new Route($prefix . '/' . Configuration::ACCEPTANCE_PATH))
+                ->setDefaults(['_controller' => $controller, '_locale' => $default])
+                ->setMethods(['GET', 'HEAD', 'POST']));
+        }
+
         if ($this->webUiEnabled && $this->catalog->slugs() !== []) {
             $this->addAdminRoutes($routes);
         }
@@ -122,6 +151,12 @@ final class LegalRouteLoader extends Loader
         $admin = $this->import(LegalDocumentAdminController::class, 'attribute');
         if ($admin instanceof RouteCollection) {
             $routes->addCollection($admin);
+        }
+        if ($this->versioning) {
+            $compare = $this->import(LegalSeedCompareController::class, 'attribute');
+            if ($compare instanceof RouteCollection) {
+                $routes->addCollection($compare);
+            }
         }
 
         if (!$this->legacyAdminAliases) {

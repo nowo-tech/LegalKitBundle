@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Document;
 
+use DateTimeInterface;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
@@ -11,6 +12,7 @@ use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Nowo\LegalKitBundle\Token\LegalTokenContext;
 use Nowo\LegalKitBundle\Token\LegalTokenRenderer;
+use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 
 use function html_entity_decode;
 use function preg_replace;
@@ -34,12 +36,14 @@ final readonly class LegalDocumentResolver
      * @param LegalSeedRegistry $seeds Seed providers
      * @param LegalHtmlSanitizerInterface $sanitizer HTML sanitiser
      * @param LegalTokenRenderer $tokens Token chain
+     * @param ?LegalPageVersions $versions Page versions (versioning on; null otherwise)
      */
     public function __construct(
         private LegalDocumentRepository $documents,
         private LegalSeedRegistry $seeds,
         private LegalHtmlSanitizerInterface $sanitizer,
         private LegalTokenRenderer $tokens,
+        private ?LegalPageVersions $versions = null,
     ) {
     }
 
@@ -62,6 +66,7 @@ final readonly class LegalDocumentResolver
                 ResolvedLegalDocument::SOURCE_STORED,
                 $locale,
                 $context->updatedAt,
+                $this->versions?->current($slug),
             );
         }
 
@@ -78,7 +83,25 @@ final readonly class LegalDocumentResolver
             $this->sanitizer->sanitize($this->tokens->renderHtml($seed->body, $context)),
             $seed->fallback ? ResolvedLegalDocument::SOURCE_FALLBACK : ResolvedLegalDocument::SOURCE_SEED,
             $seed->locale,
+            null,
+            $this->versions?->current($slug),
         );
+    }
+
+    /**
+     * Renders a title and a body the way the public page does (tokens, then the sanitizer) without resolving the
+     * stored copy: the admin compare view shows the operator copy and the built-in text side by side.
+     *
+     * @return array{title: string, body: string}
+     */
+    public function render(string $slug, string $locale, string $title, string $body, ?DateTimeInterface $updatedAt = null): array
+    {
+        $context = new LegalTokenContext($slug, $locale, $updatedAt);
+
+        return [
+            'title' => $this->tokens->renderText($title, $context),
+            'body'  => $this->sanitizer->sanitize($this->tokens->renderHtml($body, $context)),
+        ];
     }
 
     /**

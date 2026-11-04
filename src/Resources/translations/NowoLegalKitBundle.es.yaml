@@ -9,6 +9,7 @@ nav:
   manage_cookies: Configuración de cookies
 public:
   last_updated: 'Última actualización: %date%'
+  version: "Versión %version%"
 admin:
   title: Páginas legales
   intro: Cada despliegue publica su propio aviso legal, política de privacidad, condiciones y página de cookies. El texto integrado se mantiene hasta que guardes un idioma. Un asesor jurídico debe aprobar el texto antes de tratar datos personales de otras personas.
@@ -37,11 +38,53 @@ admin:
     title: Título
     body: Texto
     body_help: Se conservan títulos, listas, enlaces, tablas y énfasis; los scripts, estilos e incrustaciones se eliminan al guardar.
+  outdated: "Texto integrado cambiado"
+  compare:
+    title: "Comparar %page% (%locale%) con el nuevo texto integrado"
+    intro: "El texto integrado ha cambiado (revisión %revision%). Tu copia se mantiene hasta que elijas."
+    crumb: "Comparar"
+    use_new: "Usar el nuevo texto"
+    keep: "Mantener mi texto"
+    yours: "Tu copia"
+    builtin: "Nuevo texto integrado"
+    title_caption: "Título"
+    body_caption: "Tu copia → nuevo texto integrado"
+    builtin_caption: "Texto integrado anterior → nuevo texto integrado"
+    old: "Antes"
+    new: "Después"
+    removed: "Eliminado:"
+    added: "Añadido:"
+    too_large: "Demasiado distinto para compararlo línea a línea; usa Lado a lado."
+    equal: "Sin diferencias."
+    tab:
+      label: "Vistas"
+      changes: "Cambios"
+      side: "Lado a lado"
+      builtin: "Cambios del texto integrado"
+  publication:
+    label: "Publicación"
+    help: "Elige si se informa a los usuarios de este cambio."
+    minor: "Corrección menor: errata o formato, el sentido no cambia. No se vuelve a pedir nada a los usuarios."
+    new_version: "Nueva versión: los usuarios verán el resumen de cambios en su próxima visita."
+    requires_acceptance_accept: "Los usuarios deben aceptar esta versión"
+    requires_acceptance_acknowledge: "Los usuarios deben confirmar que se les ha informado de esta versión"
+    summary: "Resumen de cambios (este idioma)"
+    summary_help: "Texto plano que se muestra a los usuarios en la página de aceptación, como máximo 2000 caracteres."
+    summary_required: "Añade un resumen de cambios: los usuarios que deben aceptar o confirmar esta versión lo leen primero."
+  version:
+    current: "Versión actual: %version%"
+    published: "publicada el %date%"
+    updated_since: "actualizado para la versión %version%"
+    not_updated_since: "sin actualizar desde la versión %version%"
 flash:
   saved: Página legal guardada para este idioma.
   reset_done: Se vuelve a publicar el texto integrado para este idioma.
   empty_body: Añade algún texto o usa Restaurar texto integrado para eliminar la página personalizada.
   invalid_csrf: El formulario ha caducado. Inténtalo de nuevo.
+  rebased: "Se mantiene tu copia, ahora basada en el texto integrado actual."
+  changed_meanwhile: "Esta página cambió mientras la editabas. Recárgala e inténtalo de nuevo."
+  version_published: "Guardada y publicada como versión %version%."
+  summary_frozen: "El resumen de cambios no se ha modificado: los usuarios ya aceptaron esta versión con él."
 banner:
   title: '{1} Queda 1 marcador legal.|]1,Inf[ Quedan %count% marcadores legales.'
   intro: Sustitúyelos en las páginas legales antes de producción; la revisión jurídica sigue siendo necesaria.
@@ -60,3 +103,16 @@ cookies:
     analytics: Analítica
     marketing: Marketing
     tracking: Seguimiento
+acceptance:
+  title: "Textos legales actualizados"
+  intro: "Hemos actualizado algunos documentos legales. Revísalos para continuar."
+  stale: "Estos documentos cambiaron mientras los leías. Revísalos de nuevo."
+  impersonating: "Estás suplantando a otro usuario: solo ese usuario puede aceptar estos documentos."
+  version: "Versión %version%"
+  default_summary: "Este documento se ha actualizado."
+  acknowledge_statement: "Hemos actualizado nuestra %title%. Léela, por favor."
+  read: "Leer %title%"
+  accept_label: "Acepto las %title% (versión %version%)"
+  submit_accept: "Aceptar y continuar"
+  submit_continue: "Continuar"
+  sign_out: "Cerrar sesión"

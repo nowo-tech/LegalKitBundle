@@ -18,18 +18,37 @@ final readonly class LegalPage
     /** Suffix of the bare (default locale) twin route: `legal_<slug>_unlocalized`. */
     public const string UNLOCALIZED_SUFFIX = '_unlocalized';
 
+    /** Users accept the page (contract terms). */
+    public const string ACCEPTANCE_ACCEPT = 'accept';
+
+    /** Users acknowledge that they were informed (privacy information; never consent). */
+    public const string ACCEPTANCE_ACKNOWLEDGE = 'acknowledge';
+
+    /** No acceptance. */
+    public const string ACCEPTANCE_NONE = 'none';
+
     /**
      * @param string $slug Stable identifier (`legal_document.slug`)
      * @param string $path URL segment after the routing path prefix
      * @param bool $nav Listed in the footer / cross-page navigation
      * @param string $seedTemplate Twig template of the built-in body
+     * @param string $acceptance Re-acceptance mode (`accept` terms, `acknowledge` information, `none`); since 1.4
      */
     public function __construct(
         public string $slug,
         public string $path,
         public bool $nav,
         public string $seedTemplate,
+        public string $acceptance = self::ACCEPTANCE_NONE,
     ) {
+    }
+
+    /**
+     * Whether users are asked to accept or acknowledge this page (versioning / acceptance).
+     */
+    public function requiresAcceptance(): bool
+    {
+        return $this->acceptance !== self::ACCEPTANCE_NONE;
     }
 
     /**
