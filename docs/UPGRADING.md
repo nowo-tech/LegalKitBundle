@@ -5,7 +5,8 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
-  - [To 1.4.0 (versions and re-acceptance)](#to-140-versions-and-re-acceptance)
+- [To 1.4.0](#to-140)
+  - [Versions and re-acceptance](#versions-and-re-acceptance)
 - [To 1.3.2](#to-132)
 - [To 1.3.1](#to-131)
 - [To 1.3.0](#to-130)
@@ -20,7 +21,15 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
-### To 1.4.0 (versions and re-acceptance)
+## To 1.4.0
+
+From **1.3.2**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+### Versions and re-acceptance
 
 ```bash
 composer update nowo-tech/legal-kit-bundle
