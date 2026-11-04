@@ -2,7 +2,7 @@
   Public legal page — a declared unique page (docs/TEMPLATES.md): extends the guest layout (public.layout_template
   ?? nowo_ui_layout.guest) and fills the canonical blocks. No JavaScript.
   Variables: page (Catalog\LegalPage), document (Document\ResolvedLegalDocument: title, body = sanitised HTML printed
-  through |nowo_legal_kit_sanitize_html, source, contentLocale, updatedAt), alternates (locale => absolute URL), layout_template, legal_locale, plus the
+  through |nowo_legal_kit_sanitize_html, source, contentLocale, updatedAt, version), alternates (locale => absolute URL), layout_template, legal_locale, plus the
   LegalPageRenderEvent template variables.
   Slots: section (article), muted (meta line), btn_link (cross navigation links); semantic classes nowo-legal-doc,
   nowo-legal-doc__meta, nowo-legal-nav (stylesheet css/nowo-legal-kit.css, asset package nowo_legal_kit).
@@ -21,8 +21,13 @@
     <article class="nowo-legal-doc {{ nowo_ui_class('section', nowo_ui_bundle) }}" lang="{{ document.contentLocale }}" data-nowo-legal-source="{{ document.source }}" data-testid="nowo-legal-kit-page-{{ page.slug }}"{{ nowo_ui_attrs('section', nowo_ui_bundle) }}>
         {# Sanitised when resolved and again here (REQ-PBK-009); never print the body with |raw. The title is auto-escaped. #}
         {{ document.body|nowo_legal_kit_sanitize_html }}
-        {% if document.isStored and document.updatedAt %}
-            <p class="nowo-legal-doc__meta {{ nowo_ui_class('muted', nowo_ui_bundle) }}"{{ nowo_ui_attrs('muted', nowo_ui_bundle) }}>{{ 'public.last_updated'|trans({'%date%': document.updatedAt|date('Y-m-d')}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% set _updated = document.isStored and document.updatedAt %}
+        {% if _updated or document.version is not null %}
+            <p class="nowo-legal-doc__meta {{ nowo_ui_class('muted', nowo_ui_bundle) }}"{{ nowo_ui_attrs('muted', nowo_ui_bundle) }}>
+                {%- if _updated %}{{ 'public.last_updated'|trans({'%date%': document.updatedAt|date('Y-m-d')}, 'NowoLegalKitBundle', legal_locale) }}{% endif -%}
+                {%- if _updated and document.version is not null %} · {% endif -%}
+                {%- if document.version is not null %}{{ 'public.version'|trans({'%version%': document.version}, 'NowoLegalKitBundle', legal_locale) }}{% endif -%}
+            </p>
         {% endif %}
         {{ include('@NowoLegalKitBundle/public/_nav.html.twig', {current: page.slug, locale: legal_locale}, false) }}
     </article>

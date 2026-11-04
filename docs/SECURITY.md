@@ -33,6 +33,9 @@ the legal content itself (counsel review stays the operator's duty).
 | Stored HTML (`legal_document.body`) | resolver, sanitiser | operators, SQL, restores, ops-seed |
 | `legal_documents` JSON | `LegalDocumentPortability`, `nowo:legal-kit:import` | deployers |
 | Replacements map | `nowo:legal-kit:adapt-seed` | deployers |
+| Seed snapshots (`seed.snapshots_dir`) | `SeedSnapshotStore`, `upgrade-seed`, compare page | deployers (committed files) |
+| Admin `GET …/{slug}/{locale}/compare`, `POST …/rebase`, editor publication fields | `LegalSeedCompareController`, `LegalDocumentAdminController` | users passing the access checker (+ publisher checker) |
+| `GET|POST <path_prefix>/accept`, the request gate | `LegalAcceptanceController`, `AcceptanceGateSubscriber` | signed-in users |
 | Configuration | DI extension | deployers |
 
 ## Threat model and mitigations
@@ -47,6 +50,14 @@ the legal content itself (counsel review stays the operator's duty).
 | **Information leaks / caching** | Admin pages `Cache-Control: no-store, private`; public pages `private` unless the host opts into shared caching. No exception text in responses. |
 | **Import abuse** | `normalize()` validates every entry (enabled slug / locale, title length, non-empty sanitised body, duplicates) before any write. |
 | **Worker-mode leaks** | Stateless services; the scanner's per-request memo is reset (`kernel.reset`); the translator locale is restored in `finally` ([FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md)). |
+| **XSS in the compare diff** | The diff never compares HTML: both sides are sanitized, projected to plain-text lines (which decodes entities, so `&lt;script&gt;` becomes the text `<script>`) and every segment is printed **autoescaped**; `\|raw` is not used in `admin/_diff.html.twig`. The side-by-side view prints sanitizer output only, like the public page. Change summaries are plain text (control characters stripped, ≤ 2000), printed escaped then `\|nl2br`. |
+| **Diff DoS** | At most 5000 lines per side and 600 changed lines (Myers with a bound), 2000 words / 400 word changes per line; beyond that the view says "use Side by side". Snapshot files are capped at 4 MB. |
+| **Snapshot tampering / traversal** | Revision, slug and locale are pattern-checked; the real path must be a regular file inside the revision directory inside `snapshots_dir` (symlinks refused); hashes are recomputed and an entry whose declared hash differs is unknown. Unknown never means "equal": `upgrade-seed` only replaces a copy whose hash equals a known base. |
+| **Open redirect after accepting** | The target is the original request URI kept in the session (never a query parameter), accepted only as a relative path (`/…`, not `//`, `/\`, schemes, control characters, > 2048) that is not the re-acceptance page; else `default_target` or `/`. |
+| **Accepting for someone else / stale text** | The subject comes from the current token only (no parameter); impersonated users (`SwitchUserToken`) are not redirected and cannot POST; the form carries a fingerprint of pages, versions and text hashes, and a change in between records nothing. CSRF id `nowo_legal_kit_accept`; "Keep my text" uses `nowo_legal_kit_rebase_<slug>_<locale>`. |
+| **Lockout / loops** | Only main GET/HEAD HTML navigations with a session are redirected, to the re-acceptance page only; legal pages, the page itself, the legal admin, profiler and error routes are exempt; pages without text are never pending; a failing check lets the request through (logged). The satisfied state is cached in the session per requirements fingerprint and subject hash. |
+| **Evidence integrity and privacy** | Acceptance rows are insert-only from bundle code (unique subject / page / version), timestamped by the clock, with a content hash of the offered text; no IP address, user agent or free text; logs never contain the subject. `eraseFor()` deletes a subject's rows. |
+| **Concurrent publication** | The editor posts back the version and the row stamp it was opened with; a mismatch saves nothing. `upgrade-seed` runs in one transaction with write-locked rows; a unique key prevents two rows of the same version. |
 | **CSP** | No inline script or style in bundle templates; one external stylesheet from the `nowo_legal_kit` asset package; CKEditor assets only on the edit page. |
 
 ## Secrets and cryptography

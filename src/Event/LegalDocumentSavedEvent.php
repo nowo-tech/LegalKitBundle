@@ -18,10 +18,14 @@ final class LegalDocumentSavedEvent extends Event
     /**
      * @param string $slug Page slug
      * @param string $locale Locale
+     * @param ?string $publication minor|new_version with versioning on (since 1.4), null otherwise
+     * @param ?int $version Page version after the save (since 1.4), null without versioning
      */
     public function __construct(
         public readonly string $slug,
         public readonly string $locale,
+        public readonly ?string $publication = null,
+        public readonly ?int $version = null,
     ) {
     }
 }

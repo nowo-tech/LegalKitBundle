@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
+use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -45,6 +46,7 @@ final class SeedCommand extends Command
      * @param EntityManagerInterface $entityManager Unit of work
      * @param bool $materialize `seed.materialize`
      * @param LoggerInterface $logger Outcome of the seed write (REQ-OBS-001; never the document content)
+     * @param ?LegalSeedTracker $seedTracker Seed base of the inserted rows (versioning on)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -55,6 +57,7 @@ final class SeedCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         private readonly bool $materialize = false,
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly ?LegalSeedTracker $seedTracker = null,
     ) {
         parent::__construct(self::NAME);
     }
@@ -94,6 +97,7 @@ final class SeedCommand extends Command
                 $document = new LegalDocument($slug, $locale);
                 $document->setTitle($seed->title);
                 $document->setBody($body);
+                $this->seedTracker?->rebase($document);
                 $this->entityManager->persist($document);
                 ++$inserted;
             }

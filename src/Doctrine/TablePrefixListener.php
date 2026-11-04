@@ -17,7 +17,8 @@ use function str_starts_with;
  */
 final readonly class TablePrefixListener
 {
-    private const string NAMESPACE = 'Nowo\\LegalKitBundle\\Entity\\';
+    /** Namespaces of the bundle entities (the legal document, and the versioning / acceptance entities since 1.4). */
+    private const array NAMESPACES = ['Nowo\\LegalKitBundle\\Entity\\', 'Nowo\\LegalKitBundle\\Versioning\\Entity\\', 'Nowo\\LegalKitBundle\\Acceptance\\Entity\\'];
 
     /**
      * @param string $tablePrefix Prefix of the bundle tables ('' = none)
@@ -39,7 +40,12 @@ final readonly class TablePrefixListener
         }
 
         $metadata = $event->getClassMetadata();
-        if (!str_starts_with($metadata->getName(), self::NAMESPACE)) {
+        $name     = $metadata->getName();
+        $owned    = false;
+        foreach (self::NAMESPACES as $namespace) {
+            $owned = $owned || str_starts_with($name, $namespace);
+        }
+        if (!$owned) {
             return;
         }
 

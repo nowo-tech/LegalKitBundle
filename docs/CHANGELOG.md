@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+  - [Added](#added)
+  - [Changed](#changed)
   - [Security](#security)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
@@ -14,20 +16,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Security](#security-1)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-2)
-  - [Changed](#changed)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-1)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-2)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-1)
+  - [Changed](#changed-3)
   - [Fixed](#fixed-1)
   - [Security](#security-3)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-1)
+  - [Added](#added-2)
 
 ## [Unreleased]
+
+### Added
+
+- **Versions and seed upgrades (opt-in, `versioning.enabled`).** Stored copies record the seed they started from
+  (`legal_document.seed_revision` / `seed_hash`, mapped only when enabled); a version per page
+  (`legal_page_version`); `seed.revision` (default `seed.date`) and `seed.snapshots_dir`.
+  - `nowo:legal-kit:snapshot-seed` freezes the current built-in texts (`legalkit-seed-snapshot-v1`: manifest + one
+    sanitized body per page and locale; documented so hosts on older versions can produce it).
+  - `nowo:legal-kit:upgrade-seed [--from] [--dry-run] [--new-version|--requires-acceptance] [--fail-on-outdated]`
+    replaces copies that still equal their base, flags edited ones, publishes one version per changed page; one
+    transaction, write-locked rows, idempotent. A copy whose base is unknown is never overwritten.
+  - Seed hash `legalkit-seed-v1`: sanitized body with tokens kept, links to LegalKit pages canonicalised (a snapshot
+    taken under one default locale matches copies stored under another), whitespace / NBSP collapsed.
+  - Admin: "Built-in text changed" badge, compare page (text diff, side by side, built-in changes from the snapshot),
+    "Keep my text" (POST + CSRF) and "Use the new text"; the editor asks for *minor correction* or *new version*
+    (no preselection where users accept), "users must accept this version" and a per-locale change summary;
+    optimistic guard; `LegalVersionPublisherCheckerInterface` (`versioning.publisher_checker`).
+  - Twig `nowo_legal_kit_outdated_count()` / `nowo_legal_kit_outdated()`; the public page shows "Version N".
+- **Re-acceptance (opt-in, `acceptance.enabled` / `acceptance.enforce`).** `pages.<slug>.acceptance`
+  (`accept` for terms, `acknowledge` for privacy, `none`); `legal_acceptance` records (subject, page, version, locale,
+  kind, content hash, time; no IP or user agent); the page `<routing.path_prefix>/accept` (accept checkbox for terms,
+  statement for privacy, CSRF, stale-offer guard, session-stored relative target, sign-out link); the request gate
+  (main GET/HEAD HTML navigations with a session only; built-in and configured exemptions,
+  `LegalAcceptanceExemptionInterface`; `non_html: pass|deny`; fails open; satisfied state cached in the session).
+  Host contract `LegalAcceptanceSubjectResolverInterface` (required); `LegalAcceptanceManager::pendingFor()`,
+  `record()`, `exportFor()`, `eraseFor()`.
+- Events `LegalVersionPublishedEvent`, `LegalDocumentRebasedEvent`, `LegalSeedUpgradedEvent`, `LegalAcceptedEvent`;
+  AuditKit actions `legal_document.version_published|rebased|seed_upgraded` (and `accepted` with
+  `acceptance.action_log: true`).
+- Translations of every new string in en, es, de, fr, it, nl, pt (domains `NowoLegalKitBundle` and `validators`).
+
+### Changed
+
+- `symfony/clock` and `psr/clock` are runtime dependencies (version and acceptance timestamps).
+- `LegalDocumentSavedEvent`, `ResolvedLegalDocument`, `LegalPage`, `LegalDocumentResolver` and the admin controller
+  get appended optional arguments (BC). `TablePrefixListener` also prefixes the new tables.
 
 ### Security
 

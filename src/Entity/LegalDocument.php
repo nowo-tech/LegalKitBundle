@@ -10,6 +10,7 @@ use Nowo\AuditKitBundle\Model\AuditableInterface;
 use Nowo\AuditKitBundle\Model\BlameableTrait;
 use Nowo\AuditKitBundle\Model\TimestampableTrait;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
+use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 
 /**
  * Operator copy of one legal page in one locale. No row = the built-in seed is published.
@@ -54,6 +55,12 @@ class LegalDocument implements AuditableInterface
 
     #[ORM\Column(type: Types::TEXT)]
     private string $body = '';
+
+    /** Seed revision this copy was created from or last rebased on (mapped only with `versioning.enabled`). */
+    private ?string $seedRevision = null;
+
+    /** Seed hash ({@see LegalSeedHasher}) of the seed text this copy started from (mapped only with `versioning.enabled`). */
+    private ?string $seedHash = null;
 
     /**
      * @param string $slug Page slug (catalogue key)
@@ -137,5 +144,38 @@ class LegalDocument implements AuditableInterface
     {
         // @igor-ignore - Doctrine entity, not a container service
         $this->body = $body;
+    }
+
+    /**
+     * Seed revision this copy was created from or last rebased on; null = unknown (1.3 rows, differing imports).
+     *
+     * @return ?string The value
+     */
+    public function getSeedRevision(): ?string
+    {
+        return $this->seedRevision;
+    }
+
+    /**
+     * Hash of the seed text this copy started from; null = unknown.
+     *
+     * @return ?string The value
+     */
+    public function getSeedHash(): ?string
+    {
+        return $this->seedHash;
+    }
+
+    /**
+     * Records the seed this copy is based on (both null = unknown base).
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function setSeedBase(?string $revision, ?string $hash): void
+    {
+        // @igor-ignore - Doctrine entity, not a container service
+        $this->seedRevision = $revision;
+        // @igor-ignore - Doctrine entity, not a container service
+        $this->seedHash = $hash;
     }
 }

@@ -29,6 +29,11 @@ final class PageContractTest extends PageContractTestCase
         yield 'admin edit (seed)' => new PageFixture('@NowoLegalKitBundle/admin/edit.html.twig', PageFixtures::edit(false));
         yield 'public page (seed)' => new PageFixture('@NowoLegalKitBundle/public/page.html.twig', PageFixtures::publicPage());
         yield 'public page (stored)' => new PageFixture('@NowoLegalKitBundle/public/page.html.twig', PageFixtures::publicPage(true));
+        yield 'admin compare (changes)' => new PageFixture('@NowoLegalKitBundle/admin/compare.html.twig', PageFixtures::compare());
+        yield 'admin compare (too large)' => new PageFixture('@NowoLegalKitBundle/admin/compare.html.twig', PageFixtures::compare('changes', true));
+        yield 'admin compare (side by side)' => new PageFixture('@NowoLegalKitBundle/admin/compare.html.twig', PageFixtures::compare('side'));
+        yield 're-acceptance page' => new PageFixture('@NowoLegalKitBundle/acceptance/interstitial.html.twig', PageFixtures::interstitial());
+        yield 're-acceptance page (stale)' => new PageFixture('@NowoLegalKitBundle/acceptance/interstitial.html.twig', PageFixtures::interstitial(true));
     }
 
     protected static function templatePaths(): array

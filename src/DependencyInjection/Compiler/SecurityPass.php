@@ -9,6 +9,8 @@ use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\ConfigurableLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
+use Nowo\LegalKitBundle\Versioning\AccessLegalVersionPublisherChecker;
+use Nowo\LegalKitBundle\Versioning\LegalVersionPublisherCheckerInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -49,6 +51,7 @@ final class SecurityPass implements CompilerPassInterface
         $allowUnauthenticated = (bool) $container->getParameter($prefix . 'security.allow_unauthenticated');
         $customChecker        = $container->getParameter($prefix . 'security.access_checker');
 
+        $this->aliasPublisherChecker($container);
         if (is_string($customChecker) && $customChecker !== '') {
             $container->setAlias(LegalKitAccessCheckerInterface::class, $customChecker);
 
@@ -73,6 +76,18 @@ final class SecurityPass implements CompilerPassInterface
      * `allow_unauthenticated` opens the legal documents admin to anonymous users: a dev / demo switch, refused in the prod environment and in
      * any non-debug kernel outside the test environments (test*), as in ContactFormBundle.
      */
+    /**
+     * Versioning on: the publisher checker is the configured service, else the admin access checker.
+     */
+    private function aliasPublisherChecker(ContainerBuilder $container): void
+    {
+        if (!$container->hasDefinition(AccessLegalVersionPublisherChecker::class)) {
+            return;
+        }
+        $custom = $container->getParameter(Configuration::ALIAS . '.versioning.publisher_checker');
+        $container->setAlias(LegalVersionPublisherCheckerInterface::class, is_string($custom) && $custom !== '' ? $custom : AccessLegalVersionPublisherChecker::class);
+    }
+
     private function refuseAllowUnauthenticatedInProduction(ContainerBuilder $container): void
     {
         $environment = $container->hasParameter('kernel.environment') ? $container->getParameter('kernel.environment') : '';

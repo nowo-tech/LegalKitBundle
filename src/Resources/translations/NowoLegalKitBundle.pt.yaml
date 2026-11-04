@@ -9,6 +9,7 @@ nav:
   manage_cookies: Definições de cookies
 public:
   last_updated: 'Última atualização: %date%'
+  version: "Versão %version%"
 admin:
   title: Páginas legais
   intro: Cada instalação publica o seu próprio aviso legal, política de privacidade, termos e página de cookies. O texto integrado mantém-se até guardar um idioma. Um consultor jurídico tem ainda de aprovar o texto antes de tratar dados pessoais de outras pessoas.
@@ -37,11 +38,52 @@ admin:
     title: Título
     body: Texto
     body_help: Títulos, listas, ligações, tabelas e ênfase são mantidos; scripts, estilos e conteúdos incorporados são removidos ao guardar.
+  outdated: "Texto integrado alterado"
+  compare:
+    title: "Comparar %page% (%locale%) com o novo texto integrado"
+    intro: "O texto integrado mudou (revisão %revision%). A sua cópia mantém-se até escolher."
+    crumb: "Comparar"
+    use_new: "Usar o novo texto"
+    keep: "Manter o meu texto"
+    yours: "A sua cópia"
+    builtin: "Novo texto integrado"
+    title_caption: "Título"
+    body_caption: "A sua cópia → novo texto integrado"
+    builtin_caption: "Texto integrado anterior → novo texto integrado"
+    old: "Antes"
+    new: "Depois"
+    removed: "Removido:"
+    added: "Adicionado:"
+    too_large: "Demasiado diferente para comparar linha a linha; use Lado a lado."
+    equal: "Sem diferenças."
+    tab:
+      label: "Vistas"
+      changes: "Alterações"
+      side: "Lado a lado"
+      builtin: "Alterações do texto integrado"
+  publication:
+    label: "Publicação"
+    help: "Escolha se os utilizadores são informados desta alteração."
+    minor: "Correção menor: gralha ou formatação, o sentido não muda. Nada é pedido de novo aos utilizadores."
+    new_version: "Nova versão: os utilizadores veem o resumo das alterações na próxima visita."
+    requires_acceptance_accept: "Os utilizadores têm de aceitar esta versão"
+    requires_acceptance_acknowledge: "Os utilizadores têm de confirmar que foram informados desta versão"
+    summary: "Resumo das alterações (este idioma)"
+    summary_help: "Texto simples mostrado aos utilizadores na página de aceitação, no máximo 2000 caracteres."
+    summary_required: "Adicione um resumo das alterações: os utilizadores que têm de aceitar ou confirmar esta versão leem-no primeiro."
+  version:
+    current: "Versão atual: %version%"
+    published: "publicada em %date%"
+    updated_since: "atualizado para a versão %version%"
+    not_updated_since: "sem atualização desde a versão %version%"
 flash:
   saved: Página legal guardada para este idioma.
   reset_done: O texto integrado volta a ser publicado para este idioma.
   empty_body: Adicione algum texto ou use Repor texto integrado para eliminar a página personalizada.
   invalid_csrf: O formulário expirou. Tente novamente.
+  rebased: "A sua cópia é mantida e passa a basear-se no texto integrado atual."
+  changed_meanwhile: "Esta página mudou enquanto a editava. Recarregue-a e tente novamente."
+  version_published: "Guardada e publicada como versão %version%."
 banner:
   title: '{1} Resta 1 marcador legal.|]1,Inf[ Restam %count% marcadores legais.'
   intro: Substitua-os nas páginas legais antes da produção; a revisão jurídica continua a ser necessária.
@@ -60,3 +102,16 @@ cookies:
     analytics: Analítica
     marketing: Marketing
     tracking: Rastreamento
+acceptance:
+  title: "Textos legais atualizados"
+  intro: "Atualizámos alguns documentos legais. Reveja-os para continuar."
+  stale: "Estes documentos mudaram enquanto os lia. Reveja-os novamente."
+  impersonating: "Está a personificar outro utilizador: só esse utilizador pode aceitar estes documentos."
+  version: "Versão %version%"
+  default_summary: "Este documento foi atualizado."
+  acknowledge_statement: "Atualizámos a nossa %title%. Leia-a, por favor."
+  read: "Ler: %title%"
+  accept_label: "Aceito: %title% (versão %version%)"
+  submit_accept: "Aceitar e continuar"
+  submit_continue: "Continuar"
+  sign_out: "Terminar sessão"

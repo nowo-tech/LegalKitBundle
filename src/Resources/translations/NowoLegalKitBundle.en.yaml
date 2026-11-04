@@ -9,6 +9,7 @@ nav:
   manage_cookies: Cookie settings
 public:
   last_updated: 'Last updated: %date%'
+  version: "Version %version%"
 admin:
   title: Legal pages
   intro: Each deployment publishes its own legal notice, privacy policy, terms and cookie page. The built-in text stays in place until you save a locale. Counsel must still approve the copy before you process other people’s personal data.
@@ -37,11 +38,52 @@ admin:
     title: Title
     body: Text
     body_help: Headings, lists, links, tables and emphasis are kept; scripts, styles and embeds are removed when you save.
+  outdated: "Built-in text changed"
+  compare:
+    title: "Compare %page% (%locale%) with the new built-in text"
+    intro: "The built-in text changed (seed revision %revision%). Your copy is kept until you choose."
+    crumb: "Compare"
+    use_new: "Use the new text"
+    keep: "Keep my text"
+    yours: "Your copy"
+    builtin: "New built-in text"
+    title_caption: "Title"
+    body_caption: "Your copy → new built-in text"
+    builtin_caption: "Previous built-in text → new built-in text"
+    old: "Before"
+    new: "After"
+    removed: "Removed:"
+    added: "Added:"
+    too_large: "Too different to compare line by line; use Side by side."
+    equal: "No differences."
+    tab:
+      label: "Views"
+      changes: "Changes"
+      side: "Side by side"
+      builtin: "Built-in changes"
+  publication:
+    label: "Publication"
+    help: "Choose whether users are told about this change."
+    minor: "Minor correction: typo or formatting, the meaning does not change. Users are not asked again."
+    new_version: "New version: users see the change summary on their next visit."
+    requires_acceptance_accept: "Users must accept this version"
+    requires_acceptance_acknowledge: "Users must acknowledge that they were informed of this version"
+    summary: "Change summary (this locale)"
+    summary_help: "Plain text shown to users on the re-acceptance page, at most 2000 characters."
+    summary_required: "Add a change summary: users who must accept or acknowledge this version read it first."
+  version:
+    current: "Current version: %version%"
+    published: "published %date%"
+    updated_since: "updated for version %version%"
+    not_updated_since: "not updated since version %version%"
 flash:
   saved: Legal page saved for this locale.
   reset_done: The built-in text is published again for this locale.
   empty_body: Add some text, or use Restore built-in text to drop the custom page.
   invalid_csrf: The form expired. Try again.
+  rebased: "Your copy is kept and now based on the current built-in text."
+  changed_meanwhile: "This page changed while you were editing it. Reload it and try again."
+  version_published: "Saved and published as version %version%."
 banner:
   title: '{1} 1 legal placeholder left.|]1,Inf[ %count% legal placeholders left.'
   intro: Replace them in the legal pages before production; counsel review is still required.
@@ -60,3 +102,16 @@ cookies:
     analytics: Analytics
     marketing: Marketing
     tracking: Tracking
+acceptance:
+  title: "Updated legal terms"
+  intro: "We updated some legal documents. Please review them to continue."
+  stale: "These documents changed while you were reading them. Please review them again."
+  impersonating: "You are impersonating another user: only that user can accept these documents."
+  version: "Version %version%"
+  default_summary: "This document was updated."
+  acknowledge_statement: "We have updated our %title%. Please read it."
+  read: "Read the %title%"
+  accept_label: "I accept the %title% (version %version%)"
+  submit_accept: "Accept and continue"
+  submit_continue: "Continue"
+  sign_out: "Sign out"

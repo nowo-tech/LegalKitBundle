@@ -14,6 +14,17 @@
 - [Tokens](#tokens)
 - [Placeholder gate](#placeholder-gate)
 - [Ops-seed portability](#ops-seed-portability)
+- [Versions and seed upgrades](#versions-and-seed-upgrades)
+  - [Seed revision and seed base](#seed-revision-and-seed-base)
+  - [Snapshots](#snapshots)
+  - [Upgrading the seed](#upgrading-the-seed)
+  - [Outdated copies and the compare page](#outdated-copies-and-the-compare-page)
+  - [Minor correction or new version](#minor-correction-or-new-version)
+- [Re-acceptance](#re-acceptance)
+  - [Terms accepted, privacy acknowledged](#terms-accepted-privacy-acknowledged)
+  - [Host contracts](#host-contracts)
+  - [The request gate](#the-request-gate)
+  - [Personal data](#personal-data)
 - [Console commands](#console-commands)
 - [Events](#events)
 - [CookieConsent](#cookieconsent)
@@ -188,6 +199,170 @@ $this->entityManager->flush();
 `normalize()` throws `InvalidArgumentException` naming the index of the first invalid entry (unknown slug / locale,
 missing title, empty body after sanitising, duplicate).
 
+## Versions and seed upgrades
+
+Opt-in (`versioning.enabled: true`, a literal boolean). It maps two nullable columns on `legal_document` and the
+`legal_page_version` table (see [INSTALLATION](INSTALLATION.md#versioning-and-acceptance-tables)); without it nothing
+changes.
+
+### Seed revision and seed base
+
+`seed.revision` (default: `seed.date`) names the built-in texts the host ships. Change it whenever you change your
+seed texts. Every stored copy records the seed it started from: `seed_revision` and `seed_hash`
+(`legalkit-seed-v1`: the body is sanitized with tokens kept, links to LegalKit pages become `%legal_link:<slug>%`,
+whitespace and NBSP are collapsed). A copy is **unedited** when its hash equals its `seed_hash`.
+
+| Write | Seed base |
+| --- | --- |
+| `nowo:legal-kit:seed`, a new copy saved from the editor, "Use the new text", "Keep my text" | the current revision and seed hash |
+| Saving an existing copy | unchanged |
+| An import equal to the current seed | the current revision and seed hash |
+| Any other import | unknown (`NULL`): never overwritten automatically |
+
+Rows created before 1.4 have an unknown base: the first upgrade needs `--from` and a snapshot.
+
+### Snapshots
+
+`nowo:legal-kit:snapshot-seed [--revision=<rev>] [--force]` freezes the current seed of every enabled page and locale
+in `seed.snapshots_dir/<revision>/` (one directory per instance and revision, every locale inside):
+
+```
+<revision>/manifest.json         {"format": "legalkit-seed-snapshot-v1", "revision": "…", "hash": "legalkit-seed-v1",
+                                  "bundle": "…", "pages": {"<slug>": {"<locale>": {"title": "…", "hash": "…"}}}}
+<revision>/<slug>.<locale>.html  the sanitized seed body, tokens kept
+```
+
+Run it **before** you rewrite your seed texts, and commit the directory. A host on an older LegalKit can write the same
+format with its own script: rendered page links are fine (the hash canonicalises them, so a snapshot taken under one
+default locale matches copies stored under another), but other tokens (`%brand%`, `%last_updated%`, …) must stay as
+tokens. `hash` is optional: the bundle recomputes every hash and treats an entry whose declared hash differs, or an
+invalid / oversized / out-of-directory file, as unknown.
+
+### Upgrading the seed
+
+```bash
+bin/console nowo:legal-kit:upgrade-seed --from=2026-09-18 --requires-acceptance [--dry-run] [--fail-on-outdated]
+```
+
+One transaction, rows re-read with a write lock; run it as a deploy step before traffic. Per stored copy:
+
+| Result | When | Effect |
+| --- | --- | --- |
+| `current` | the copy already equals the new seed | base set to the current revision |
+| `replaced` | the copy equals its known base (`seed_hash`, or the snapshot of its `seed_revision` / `--from`) | title and body replaced by the new seed |
+| `outdated` | anything else (edited, or base unknown) | text kept; flagged in the admin |
+| `no_seed` | no seed for that page and locale | untouched |
+
+Pages without a copy already show the new seed; they report `seed_changed`, `seed_same` or `seed_unknown` (no
+snapshot) for the version decision. With `--new-version` or `--requires-acceptance`, every page with a `replaced`,
+`seed_changed` or `seed_unknown` locale gets **one** new version (`source: upgrade`), requiring acceptance only with
+`--requires-acceptance` on pages whose mode is not `none`. Its change summary comes from the optional seed key
+`<slug>.change_summary` (domain `NowoLegalKitSeed`) of each locale. Re-running publishes nothing twice.
+
+### Outdated copies and the compare page
+
+The admin index shows "Built-in text changed" on copies whose base is another revision. The compare page
+(`…/{slug}/{locale}/compare`) has three views: **Changes** (text diff of your copy against the new built-in text),
+**Side by side** (both rendered like the public page) and **Built-in changes** (old built-in → new built-in, when the
+snapshot of the copy's base exists). Actions: **Keep my text** (POST + CSRF; rebases, no text change, no version) and
+**Use the new text** (opens the editor prefilled; saving rebases the copy).
+
+The diff never compares HTML: each side is projected to plain-text lines and every segment is printed autoescaped.
+Large or very different texts (over 5000 lines, or more than 600 changed lines) show "use Side by side" instead.
+
+For a dashboard: `nowo_legal_kit_outdated_count()` (one COUNT) and `nowo_legal_kit_outdated()` (`[{slug, locale,
+seed_revision, compare_url}]`). They do no access check; show them only to your legal operators.
+
+### Minor correction or new version
+
+With versioning on, the editor asks how to publish the save:
+
+- **Minor correction**: same version, nobody is asked again.
+- **New version**: version + 1 for the **page** (all locales); on pages users accept or acknowledge, "Users must
+  accept / acknowledge this version" is ticked by default and then a change summary (plain text, ≤ 2000 characters,
+  this locale) is required.
+
+On pages with a mode other than `none` nothing is preselected. The current version's summary of a locale can be
+edited with a minor correction. A save is refused ("changed meanwhile") when another save or version happened since the
+form was opened. Who may choose is `LegalVersionPublisherCheckerInterface::canPublish($slug)`
+(`versioning.publisher_checker`; default: the admin access checker). When it answers no, pages users accept or
+acknowledge cannot be saved (403) and other pages are saved as minor corrections. The aside shows the current version
+and, per locale, whether it was updated since.
+
+## Re-acceptance
+
+Opt-in (`acceptance.enabled: true` + `acceptance.subject_resolver`; requires versioning). It maps `legal_acceptance`
+and registers the page `GET|POST <routing.path_prefix>/accept` (`nowo_legal_kit_acceptance`, plus
+`nowo_legal_kit_acceptance_unlocalized`). `acceptance.enforce: true` adds the request gate.
+
+A page's mode is `pages.<slug>.acceptance`: `accept` (default for `terms`), `acknowledge` (default for `privacy`),
+`none` (everything else). A subject satisfies a page with an acceptance of a version ≥ the highest version published
+with "users must accept"; version 1 counts, so new users and everybody on the day you switch enforcement on accept
+once.
+
+### Terms accepted, privacy acknowledged
+
+| | `accept` (terms) | `acknowledge` (privacy) |
+| --- | --- | --- |
+| Meaning | agreement to contract terms | evidence that the updated information was shown (GDPR Arts. 12–14, accountability) |
+| Page | unticked, required checkbox + "Accept and continue" | statement + "Continue", no checkbox |
+| Record | `kind: accept` | `kind: acknowledge` |
+
+An acknowledgement is never consent: do not use it as a legal basis for anything. `pages.privacy.acceptance: accept`
+is refused at build time; cookie consent stays with CookieConsentBundle (`doctor` warns if `cookies` is not `none`).
+
+### Host contracts
+
+```php
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
+
+final class SubjectResolver implements LegalAcceptanceSubjectResolverInterface
+{
+    // Stable, non-personal id matching ^[A-Za-z0-9._:@-]{1,128}$ (never an e-mail); null = not subject to acceptance.
+    public function resolve(UserInterface $user): ?string { return $user instanceof User ? $user->getPublicId() : null; }
+}
+
+final class MfaExemption implements LegalAcceptanceExemptionInterface // autoconfigured
+{
+    public function isExempt(Request $request): bool { return str_starts_with((string) $request->attributes->get('_route'), 'app_mfa_'); }
+}
+```
+
+### The request gate
+
+The gate (`kernel.request`, priority 4) redirects (302, `no-store`) to the page only when all of this holds: main
+request; `GET`/`HEAD`; the request carries a session cookie (API keys and bearer tokens never are); an HTML navigation
+(`Accept` lists `text/html`, not XHR, no `Turbo-Frame`, no Turbo stream, request format `html`); not exempt; a signed-in,
+non-impersonated user with a subject; something pending. Built-in exemptions: every public legal route, the page
+itself, the legal admin, `_wdt*`, `_profiler*`, `_error`, `_preview_error`; add `acceptance.exempt_routes` (names or
+`prefix*`), `acceptance.exempt_paths` (segment-boundary prefixes) and voters. Writes are never blocked.
+`acceptance.non_html: deny` answers session JSON / XHR GETs with `403 {"error": "legal_acceptance_required",
+"acceptance_url": "…"}` instead of letting them through.
+
+After a check with nothing pending, the session remembers it until a version is published (0 queries per request;
+otherwise one indexed query). If the check fails (database or cache), the request passes and an error is logged:
+the gate informs, it is not an access control. The original URL is kept in the session (relative paths only, never
+the page itself) and restored after accepting; else `acceptance.default_target` or `/`.
+
+The page posts back a fingerprint of what it showed (pages, versions, text hashes). If a version or text changed
+meanwhile, nothing is recorded and the page asks to review again.
+
+### Personal data
+
+`LegalAcceptanceManager` (public service) is what your export and erasure providers call:
+
+| Method | |
+| --- | --- |
+| `pendingFor(string $subjectId, ?string $locale): list<PendingLegalPage>` | pending pages with the offered text |
+| `record(string $subjectId, list<PendingLegalPage>): int` | insert-only; an existing row of the same version counts as recorded |
+| `exportFor(string $subjectId): list<{page, version, locale, kind, accepted_at, content_hash}>` | export |
+| `eraseFor(string $subjectId): int` | erasure; keeps no copy |
+
+A record holds no IP address, user agent or free text. `LegalAcceptedEvent` carries the subject: a listener that
+stores it (an audit row, for example) owns that copy's export and erasure. `acceptance.action_log: true` writes an
+AuditKit `legal_document.accepted` row (actor = the signed-in user) instead.
+
 ## Console commands
 
 | Command | Purpose |
@@ -197,19 +372,26 @@ missing title, empty body after sanitising, duplicate).
 | `nowo:legal-kit:export [-o file]` | stored rows as JSON |
 | `nowo:legal-kit:import <file> [--dry-run]` | list or `{legal_documents: […]}`; validates, then upserts in one flush |
 | `nowo:legal-kit:seed [--missing-only] [--force]` | materialise mode: store missing seed rows |
-| `nowo:legal-kit:doctor [--strict]` | routes, anonymous access, CookieConsent routes / privacy link, seed markers |
+| `nowo:legal-kit:doctor [--strict]` | routes, anonymous access, CookieConsent routes / privacy link, seed markers, copies without a seed base (versioning) |
+| `nowo:legal-kit:snapshot-seed [--revision=…] [--force]` | versioning: freeze the current seed (see [Snapshots](#snapshots)) |
+| `nowo:legal-kit:upgrade-seed [--from=…] [--dry-run] [--new-version\|--requires-acceptance] [--fail-on-outdated]` | versioning: refresh unedited copies, flag edited ones, publish versions |
 
 ## Events
 
 | Event | When |
 | --- | --- |
 | `LegalPageRenderEvent` | before a public page renders: `slug`, `locale`, `contentLocale`, `document`, `alternates` (locale → absolute URL), `canonicalUrl`; `setTemplateVariable()` |
-| `LegalDocumentSavedEvent` | after a save was flushed |
+| `LegalDocumentSavedEvent` | after a save was flushed; with versioning also `publication` (`minor`/`new_version`) and `version` |
+| `LegalVersionPublishedEvent` | after a new version: `slug`, `version`, `requiresAcceptance`, `source`, `seedRevision` |
+| `LegalDocumentRebasedEvent` | after "Keep my text" |
+| `LegalSeedUpgradedEvent` | after `upgrade-seed` committed: `revision`, `from`, `counts` |
+| `LegalAcceptedEvent` | per recorded acceptance: `subjectId`, `slug`, `version`, `locale`, `kind`, `acceptedAt`, `contentHash` |
 | `LegalDocumentRestoredEvent` | after a restore was flushed |
 | `LegalDocumentsImportedEvent` | after `apply(..., flush: true)` / `nowo:legal-kit:import` |
 
 With the AuditKit action log enabled (`nowo_audit_kit.action_log.entity_class`), saves, restores and imports are
-recorded (`legal_document.saved|restored|imported`).
+recorded (`legal_document.saved|restored|imported`, and with versioning `version_published`, `rebased`,
+`seed_upgraded`; `accepted` only with `acceptance.action_log: true`).
 
 ## CookieConsent
 
@@ -268,6 +450,8 @@ CSRF-only form behind an `Action`. Templates never contain raw `<form>` / `<inpu
 | `nowo_legal_kit_consent_widget()` | whether CookieConsent renders on this page |
 | `legal_kit_content_locale(slug, locale = null)` | locale the page text is shown in (null without text) |
 | `legal_kit_cookie_inventory()` | the cookie table HTML |
+| `nowo_legal_kit_outdated_count()` | versioning: number of copies whose built-in text changed (0 when off) |
+| `nowo_legal_kit_outdated()` | versioning: `[{slug, locale, seed_revision, compare_url}]` |
 
 | Filter | Returns |
 | --- | --- |
@@ -291,6 +475,10 @@ The category column of the cookie table shows `cookies.category.<key>` (domain `
 | `LegalHtmlSanitizerInterface` | alias it to your service to replace the pipeline |
 | `LegalPageCatalogInterface` | alias it for a dynamic catalogue |
 | `LegalKitAccessCheckerInterface` | `security.access_checker` |
+| `LegalVersionPublisherCheckerInterface` | `versioning.publisher_checker` |
+| `LegalAcceptanceSubjectResolverInterface` | `acceptance.subject_resolver` (required with acceptance) |
+| `LegalAcceptanceExemptionInterface` | autoconfigured, tag `nowo_legal_kit.acceptance_exemption` |
+| `LegalAcceptanceManager` | pending pages, records, `exportFor` / `eraseFor` |
 | Events | see [Events](#events) |
 | `LegalDocumentPortability` | export / normalize / apply |
 

@@ -9,6 +9,7 @@ nav:
   manage_cookies: Cookie-instellingen
 public:
   last_updated: 'Laatst bijgewerkt: %date%'
+  version: "Versie %version%"
 admin:
   title: Juridische pagina’s
   intro: Elke installatie publiceert haar eigen juridische kennisgeving, privacybeleid, voorwaarden en cookiepagina. De ingebouwde tekst blijft staan tot u een taal opslaat. Een jurist moet de tekst goedkeuren voordat u persoonsgegevens van anderen verwerkt.
@@ -37,11 +38,52 @@ admin:
     title: Titel
     body: Tekst
     body_help: Koppen, lijsten, links, tabellen en nadruk blijven behouden; scripts, stijlen en insluitingen worden bij het opslaan verwijderd.
+  outdated: "Ingebouwde tekst gewijzigd"
+  compare:
+    title: "%page% (%locale%) vergelijken met de nieuwe ingebouwde tekst"
+    intro: "De ingebouwde tekst is gewijzigd (revisie %revision%). Uw versie blijft staan tot u kiest."
+    crumb: "Vergelijken"
+    use_new: "Nieuwe tekst gebruiken"
+    keep: "Mijn tekst behouden"
+    yours: "Uw versie"
+    builtin: "Nieuwe ingebouwde tekst"
+    title_caption: "Titel"
+    body_caption: "Uw versie → nieuwe ingebouwde tekst"
+    builtin_caption: "Vorige ingebouwde tekst → nieuwe ingebouwde tekst"
+    old: "Voor"
+    new: "Na"
+    removed: "Verwijderd:"
+    added: "Toegevoegd:"
+    too_large: "Te verschillend om regel voor regel te vergelijken; gebruik Naast elkaar."
+    equal: "Geen verschillen."
+    tab:
+      label: "Weergaven"
+      changes: "Wijzigingen"
+      side: "Naast elkaar"
+      builtin: "Wijzigingen in de ingebouwde tekst"
+  publication:
+    label: "Publicatie"
+    help: "Kies of gebruikers over deze wijziging worden geïnformeerd."
+    minor: "Kleine correctie: tikfout of opmaak, de betekenis verandert niet. Gebruikers worden niets opnieuw gevraagd."
+    new_version: "Nieuwe versie: gebruikers zien de samenvatting bij hun volgende bezoek."
+    requires_acceptance_accept: "Gebruikers moeten deze versie accepteren"
+    requires_acceptance_acknowledge: "Gebruikers moeten bevestigen dat ze over deze versie zijn geïnformeerd"
+    summary: "Samenvatting van de wijzigingen (deze taal)"
+    summary_help: "Platte tekst die gebruikers op de acceptatiepagina zien, hoogstens 2000 tekens."
+    summary_required: "Voeg een samenvatting toe: gebruikers die deze versie moeten accepteren of bevestigen, lezen die eerst."
+  version:
+    current: "Huidige versie: %version%"
+    published: "gepubliceerd op %date%"
+    updated_since: "bijgewerkt voor versie %version%"
+    not_updated_since: "niet bijgewerkt sinds versie %version%"
 flash:
   saved: Juridische pagina opgeslagen voor deze taal.
   reset_done: De ingebouwde tekst wordt weer gepubliceerd voor deze taal.
   empty_body: Voeg tekst toe of herstel de ingebouwde tekst om de aangepaste pagina te verwijderen.
   invalid_csrf: Het formulier is verlopen. Probeer het opnieuw.
+  rebased: "Uw versie blijft behouden en is nu gebaseerd op de huidige ingebouwde tekst."
+  changed_meanwhile: "Deze pagina is gewijzigd terwijl u hem bewerkte. Laad hem opnieuw en probeer het nog eens."
+  version_published: "Opgeslagen en gepubliceerd als versie %version%."
 banner:
   title: '{1} Nog 1 juridische tijdelijke tekst.|]1,Inf[ Nog %count% juridische tijdelijke teksten.'
   intro: Vervang ze vóór productie in de juridische pagina’s; juridische controle blijft nodig.
@@ -60,3 +102,16 @@ cookies:
     analytics: Analyse
     marketing: Marketing
     tracking: Tracking
+acceptance:
+  title: "Bijgewerkte juridische teksten"
+  intro: "We hebben enkele juridische documenten bijgewerkt. Bekijk ze om verder te gaan."
+  stale: "Deze documenten zijn gewijzigd terwijl u ze las. Bekijk ze opnieuw."
+  impersonating: "U handelt als een andere gebruiker: alleen die gebruiker kan deze documenten accepteren."
+  version: "Versie %version%"
+  default_summary: "Dit document is bijgewerkt."
+  acknowledge_statement: "We hebben ons %title% bijgewerkt. Lees het alstublieft."
+  read: "%title% lezen"
+  accept_label: "Ik accepteer de %title% (versie %version%)"
+  submit_accept: "Accepteren en doorgaan"
+  submit_continue: "Doorgaan"
+  sign_out: "Afmelden"

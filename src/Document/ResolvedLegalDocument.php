@@ -28,6 +28,7 @@ final readonly class ResolvedLegalDocument
      * @param 'fallback'|'seed'|'stored' $source Where the text comes from
      * @param string $contentLocale Locale the text is written in (`lang`, canonical)
      * @param DateTimeInterface|null $updatedAt Last update of the stored row (null: seed)
+     * @param ?int $version Page version with versioning on (since 1.4), null otherwise
      */
     public function __construct(
         public string $slug,
@@ -37,6 +38,7 @@ final readonly class ResolvedLegalDocument
         public string $source,
         public string $contentLocale,
         public ?DateTimeInterface $updatedAt = null,
+        public ?int $version = null,
     ) {
     }
 

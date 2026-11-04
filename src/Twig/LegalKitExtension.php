@@ -51,6 +51,7 @@ final class LegalKitExtension extends AbstractExtension
      * @param LegalHtmlSanitizerInterface $sanitizer Render-time sanitiser of `nowo_legal_kit_sanitize_html`
      * @param string $defaultLocaleStyle `routing.default_locale_style`
      * @param bool $webUiEnabled `web_ui.enabled`
+     * @param ?string $seedRevision Current seed revision with versioning on (null = off)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -65,6 +66,7 @@ final class LegalKitExtension extends AbstractExtension
         private readonly LegalHtmlSanitizerInterface $sanitizer,
         private readonly string $defaultLocaleStyle = 'unprefixed',
         private readonly bool $webUiEnabled = true,
+        private readonly ?string $seedRevision = null,
     ) {
     }
 
@@ -80,6 +82,8 @@ final class LegalKitExtension extends AbstractExtension
             new TwigFunction('legal_kit_content_locale', $this->contentLocale(...)),
             new TwigFunction('legal_kit_cookie_inventory', $this->cookieInventory->render(...), ['is_safe' => ['html']]),
             new TwigFunction('nowo_legal_kit_consent_widget', $this->consentWidget(...), ['needs_environment' => true]),
+            new TwigFunction('nowo_legal_kit_outdated_count', $this->outdatedCount(...)),
+            new TwigFunction('nowo_legal_kit_outdated', $this->outdated(...)),
         ];
     }
 
@@ -176,6 +180,40 @@ final class LegalKitExtension extends AbstractExtension
         }
 
         return $this->seeds->contentLocale($slug, $locale);
+    }
+
+    /**
+     * Number of stored copies whose built-in text changed (versioning; 0 when off). One COUNT, no access check: the
+     * host template decides who sees it.
+     *
+     * @return int The count
+     */
+    public function outdatedCount(): int
+    {
+        return $this->seedRevision === null ? 0 : $this->documents->countOutdated($this->seedRevision);
+    }
+
+    /**
+     * Stored copies whose built-in text changed, with their compare URL (versioning; empty when off).
+     *
+     * @return list<array{slug: string, locale: string, seed_revision: ?string, compare_url: ?string}>
+     */
+    public function outdated(): array
+    {
+        if ($this->seedRevision === null) {
+            return [];
+        }
+        $rows = [];
+        foreach ($this->documents->findOutdated($this->seedRevision) as $document) {
+            $rows[] = [
+                'slug'          => $document->getSlug(),
+                'locale'        => $document->getLocale(),
+                'seed_revision' => $document->getSeedRevision(),
+                'compare_url'   => $this->webUiEnabled ? $this->urls->generate(LegalRouteLoader::ADMIN_COMPARE, ['slug' => $document->getSlug(), 'locale' => $document->getLocale()]) : null,
+            ];
+        }
+
+        return $rows;
     }
 
     /**

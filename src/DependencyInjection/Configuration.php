@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\DependencyInjection;
 
 use InvalidArgumentException;
+use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -13,6 +14,7 @@ use function is_array;
 use function is_string;
 use function preg_match;
 use function sprintf;
+use function str_contains;
 
 /**
  * Strict configuration tree of `nowo_legal_kit` (REQ-SF-006); every key is documented in docs/CONFIGURATION.md.
@@ -29,6 +31,15 @@ final class Configuration implements ConfigurationInterface
 
     /** Path segment of a legal page URL. */
     public const string PATH_PATTERN = '/^[a-z0-9][a-z0-9\/_-]{0,63}$/';
+
+    /** Seed revision pattern (`seed.revision`, `legal_document.seed_revision` VARCHAR 32, snapshot directory names). */
+    public const string REVISION_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/';
+
+    /** Path of the re-acceptance interstitial under `routing.path_prefix` (a page may not use it). */
+    public const string ACCEPTANCE_PATH = 'accept';
+
+    /** Re-acceptance modes of a page. */
+    public const array ACCEPTANCE_MODES = ['accept', 'acknowledge', 'none'];
 
     /** The four canonical pages (REQ-CC-003), in footer order. */
     public const array DEFAULT_PAGES = ['notice', 'privacy', 'terms', 'cookies'];
@@ -103,8 +114,23 @@ final class Configuration implements ConfigurationInterface
                                 ->thenInvalid('nowo_legal_kit.seed.date must be a Y-m-d date, got %s.')
                             ->end()
                         ->end()
+                        ->scalarNode('revision')
+                            ->info('Seed revision of the built-in texts (versioning). Null = seed.date. Change it whenever the host changes its seed texts.')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || preg_match(self::REVISION_PATTERN, $value) !== 1))
+                                ->thenInvalid('nowo_legal_kit.seed.revision must match ' . self::REVISION_PATTERN . ', got %s.')
+                            ->end()
+                        ->end()
+                        ->scalarNode('snapshots_dir')
+                            ->info('Directory of the seed snapshots (nowo:legal-kit:snapshot-seed / upgrade-seed).')
+                            ->defaultValue('%kernel.project_dir%/config/legal-kit/seed-snapshots')
+                            ->cannotBeEmpty()
+                        ->end()
                     ->end()
                 ->end()
+                ->append($this->versioningNode())
+                ->append($this->acceptanceNode())
                 ->arrayNode('editor')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -265,20 +291,154 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+            ->end()
+            ->validate()
+                ->always(static function (array $config): array {
+                    self::validateAcceptance($config);
+
+                    return $config;
+                })
             ->end();
 
         return $treeBuilder;
     }
 
     /**
-     * The ordered page catalogue (`pages`): slug => {path, enabled, nav, seed_template}.
+     * Cross-key rules of versioning / acceptance (default-deny: an incomplete setup fails the container build).
+     *
+     * @param array<string, mixed> $config Processed root configuration
+     *
+     * @return void Nothing (throws on an invalid combination)
+     */
+    public static function validateAcceptance(array $config): void
+    {
+        /** @var array{enabled: bool} $versioning */
+        $versioning = $config['versioning'];
+        /** @var array{enabled: bool, enforce: bool, subject_resolver: string|null} $acceptance */
+        $acceptance = $config['acceptance'];
+        if ($acceptance['enforce'] && !$acceptance['enabled']) {
+            throw new InvalidArgumentException('nowo_legal_kit.acceptance.enforce requires acceptance.enabled: true.');
+        }
+        if (!$acceptance['enabled']) {
+            return;
+        }
+        if (!$versioning['enabled']) {
+            throw new InvalidArgumentException('nowo_legal_kit.acceptance.enabled requires versioning.enabled: true (acceptances are recorded per page version).');
+        }
+        if ($acceptance['subject_resolver'] === null || $acceptance['subject_resolver'] === '') {
+            throw new InvalidArgumentException('nowo_legal_kit.acceptance.enabled requires acceptance.subject_resolver: the id of a service implementing LegalAcceptanceSubjectResolverInterface (a stable, non-personal user id; the bundle never guesses one).');
+        }
+        /** @var array<string, array{path: string}> $pages */
+        $pages = $config['pages'];
+        foreach ($pages as $slug => $page) {
+            if ($page['path'] === self::ACCEPTANCE_PATH) {
+                throw new InvalidArgumentException(sprintf('nowo_legal_kit.pages.%s.path "%s" is reserved for the re-acceptance page while acceptance.enabled is true.', $slug, self::ACCEPTANCE_PATH));
+            }
+        }
+    }
+
+    /**
+     * `versioning`: seed tracking, page versions, the outdated notice and the publication choice (opt-in).
+     */
+    private function versioningNode(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder('versioning'))->getRootNode();
+        $node
+            ->info('Seed tracking, page versions, the outdated notice and the minor / new version choice (opt-in; maps two legal_document columns and legal_page_version).')
+            ->addDefaultsIfNotSet()
+            ->children()
+                ->booleanNode('enabled')->defaultFalse()->end()
+                ->scalarNode('publisher_checker')
+                    ->info('Service id implementing LegalVersionPublisherCheckerInterface; null = the admin access checker decides.')
+                    ->defaultNull()
+                ->end()
+            ->end();
+
+        return $node;
+    }
+
+    /**
+     * `acceptance`: acceptance records, the re-acceptance page and the request gate (opt-in).
+     */
+    private function acceptanceNode(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder('acceptance'))->getRootNode();
+        $node
+            ->info('Acceptance records, the re-acceptance page and the request gate (opt-in; requires versioning; maps legal_acceptance).')
+            ->addDefaultsIfNotSet()
+            ->children()
+                ->booleanNode('enabled')->defaultFalse()->end()
+                ->booleanNode('enforce')
+                    ->info('Redirect signed-in HTML navigations to the re-acceptance page while something is pending.')
+                    ->defaultFalse()
+                ->end()
+                ->scalarNode('subject_resolver')
+                    ->info('Service id implementing LegalAcceptanceSubjectResolverInterface (required when enabled).')
+                    ->defaultNull()
+                ->end()
+                ->arrayNode('exempt_routes')
+                    ->info('Route names never redirected: exact names or "prefix*".')
+                    ->scalarPrototype()
+                        ->validate()
+                            ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match('/^[A-Za-z0-9_.:-]+\*?$/', $value) !== 1)
+                            ->thenInvalid('nowo_legal_kit.acceptance.exempt_routes entries are route names or "prefix*", got %s.')
+                        ->end()
+                    ->end()
+                    ->defaultValue([])
+                ->end()
+                ->arrayNode('exempt_paths')
+                    ->info('Path prefixes never redirected, matched on segment boundaries ("/api" matches /api and /api/…, not /apix).')
+                    ->scalarPrototype()
+                        ->validate()
+                            ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match('#^/[A-Za-z0-9._~/-]*$#', $value) !== 1 || str_contains($value, '..') || str_contains($value, '//'))
+                            ->thenInvalid('nowo_legal_kit.acceptance.exempt_paths entries must start with "/" and contain no wildcard, "..", "?" or "#", got %s.')
+                        ->end()
+                    ->end()
+                    ->defaultValue([])
+                ->end()
+                ->enumNode('non_html')
+                    ->info('pass: JSON / XHR / Turbo requests are never refused; deny: session requests get 403 JSON legal_acceptance_required.')
+                    ->values(['pass', 'deny'])
+                    ->defaultValue('pass')
+                ->end()
+                ->scalarNode('default_target')
+                    ->info('Route name used after accepting when there is no stored target; null = "/".')
+                    ->defaultNull()
+                ->end()
+                ->scalarNode('logout_route')
+                    ->info('Route name of the sign-out link; null = the current firewall logout path (SecurityBundle), none without one.')
+                    ->defaultNull()
+                ->end()
+                ->scalarNode('layout_template')
+                    ->info('Layout of the re-acceptance page; null = UiKit nowo_ui_layout.guest.')
+                    ->defaultNull()
+                ->end()
+                ->scalarNode('template')
+                    ->defaultValue('@NowoLegalKitBundle/acceptance/interstitial.html.twig')
+                    ->cannotBeEmpty()
+                ->end()
+                ->scalarNode('cache_pool')
+                    ->info('Cache pool service of the version requirements map; null = no cache (one query per check).')
+                    ->defaultValue('cache.app')
+                ->end()
+                ->booleanNode('action_log')
+                    ->info('Write an AuditKit action log row legal_document.accepted per acceptance (off: the host audits LegalAcceptedEvent itself).')
+                    ->defaultFalse()
+                ->end()
+            ->end();
+
+        return $node;
+    }
+
+    /**
+     * The ordered page catalogue (`pages`): slug => {path, enabled, nav, seed_template, acceptance}.
      */
     private function pagesNode(): ArrayNodeDefinition
     {
         $node     = (new TreeBuilder('pages'))->getRootNode();
         $defaults = [];
         foreach (self::DEFAULT_PAGES as $slug) {
-            $defaults[$slug] = ['path' => $slug, 'enabled' => true, 'nav' => true, 'seed_template' => null];
+            $defaults[$slug] = ['path' => $slug, 'enabled' => true, 'nav' => true, 'seed_template' => null, 'acceptance' => null];
         }
 
         $node
@@ -294,6 +454,11 @@ final class Configuration implements ConfigurationInterface
                         ->info('Twig template of the built-in body; null = @NowoLegalKitBundle/seed/<slug>.html.twig.')
                         ->defaultNull()
                     ->end()
+                    ->enumNode('acceptance')
+                        ->info('Re-acceptance mode (acceptance.enabled): accept (terms), acknowledge (information), none. Null = accept for terms, acknowledge for privacy, none otherwise.')
+                        ->values([...self::ACCEPTANCE_MODES, null])
+                        ->defaultNull()
+                    ->end()
                 ->end()
             ->end()
             ->validate()
@@ -301,7 +466,7 @@ final class Configuration implements ConfigurationInterface
                     // The four canonical pages always exist (disable one with enabled: false); extra slugs follow them.
                     $merged = [];
                     foreach (self::DEFAULT_PAGES as $default) {
-                        $merged[$default] = ($pages[$default] ?? []) + ['path' => $default, 'enabled' => true, 'nav' => true, 'seed_template' => null];
+                        $merged[$default] = ($pages[$default] ?? []) + ['path' => $default, 'enabled' => true, 'nav' => true, 'seed_template' => null, 'acceptance' => null];
                         unset($pages[$default]);
                     }
                     $pages = $merged + $pages;
@@ -315,6 +480,12 @@ final class Configuration implements ConfigurationInterface
                             throw new InvalidArgumentException(sprintf('nowo_legal_kit.pages.%s.path: invalid path "%s".', $slug, is_string($path) ? $path : get_debug_type($path)));
                         }
                         $pages[$slug]['path'] = $path;
+                        $acceptance           = $page['acceptance'] ?? null;
+                        $acceptance ??= ConfiguredLegalPageCatalog::defaultAcceptance($slug);
+                        if ($slug === 'privacy' && $acceptance === 'accept') {
+                            throw new InvalidArgumentException('nowo_legal_kit.pages.privacy.acceptance cannot be "accept": privacy information is acknowledged, never accepted or consented to (use "acknowledge" or "none").');
+                        }
+                        $pages[$slug]['acceptance'] = $acceptance;
                     }
 
                     return $pages;

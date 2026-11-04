@@ -18,7 +18,9 @@
 | Gate and portability | `Placeholder\LegalPlaceholderScanner`, `BuiltinMarkers`, `Portability\LegalDocumentPortability` |
 | HTTP | `Routing\LegalRouteLoader`, `Controller\LegalPageController`, `Controller\Admin\LegalDocumentAdminController`, `Form\LegalDocumentType`, `Security\*`, `EventSubscriber\AdminAccessSubscriber` |
 | Integrations | `Twig\LegalKitExtension`, `Seo\LegalSitemapProvider`, `EventListener\SeoKitHeadListener`, `EventListener\ActionLogListener`, CookieConsent prepend in `NowoLegalKitExtension` |
-| Console | `Command\{CheckPlaceholders,AdaptSeed,Export,Import,Seed,Doctor}Command` |
+| Console | `Command\{CheckPlaceholders,AdaptSeed,Export,Import,Seed,Doctor,SnapshotSeed,UpgradeSeed}Command` |
+| Versioning (opt-in) | `Versioning\Entity\LegalPageVersion`, `LegalPageVersionRepository`, `LegalPageVersions` (requirements map, cached, invalidated on publish), `LegalSeedHasher`, `LegalSeedTracker`, `SeedSnapshotStore`, `LegalSeedUpgrader`, `Diff\{LegalTextProjector,LineDiff,TextDiff,DiffRow,DiffSegment}`, `LegalVersionPublisherCheckerInterface`, `Controller\Admin\LegalSeedCompareController`, `Doctrine\VersioningMappingListener` |
+| Acceptance (opt-in) | `Acceptance\Entity\LegalAcceptance`, `LegalAcceptanceRepository`, `LegalAcceptanceManager`, `CurrentLegalSubject`, `AcceptanceRequestMatcher`, `RelativeTargetValidator`, `PendingLegalPage`, host interfaces; `Controller\LegalAcceptanceController`, `Form\LegalAcceptanceType`, `EventSubscriber\AcceptanceGateSubscriber` |
 
 ## Request flow
 
@@ -43,6 +45,11 @@ tagged `kernel.reset`. The seed provider switches the translator locale inside `
 One table `legal_document` (see [INSTALLATION.md](INSTALLATION.md#database-table)): `slug` + `locale` unique,
 `title`, `body` (HTML with tokens), timestamps and blame from AuditKit (`created_by_id` / `updated_by_id` → host user,
 `ON DELETE SET NULL`). Explicit index names keep the schema identical to the copies the bundle replaces.
+
+With `versioning.enabled`, `VersioningMappingListener` maps `legal_document.seed_revision` / `seed_hash` and the
+`NowoLegalKitVersioning` mapping adds `legal_page_version` (one row per published version ≥ 2 of a page; version 1 is
+implicit). With `acceptance.enabled`, `NowoLegalKitAcceptance` adds `legal_acceptance` (insert-only records). The
+mappings are decided at prepend time, so the flags must be literal booleans; without them the schema is the 1.3 one.
 
 ## Design decisions
 

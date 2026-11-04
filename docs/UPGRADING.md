@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [To 1.4.0 (versions and re-acceptance)](#to-140-versions-and-re-acceptance)
 - [To 1.3.1](#to-131)
 - [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
@@ -17,6 +18,38 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+### To 1.4.0 (versions and re-acceptance)
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+Nothing changes until you opt in: no new column, table, route, listener or admin field.
+
+- New runtime dependencies `symfony/clock` and `psr/clock` (already present in Symfony apps).
+- **Versioning** (`versioning.enabled: true`, a literal boolean): run `doctrine:migrations:diff` (two nullable columns
+  on `legal_document`, table `legal_page_version`; reference DDL in [INSTALLATION](INSTALLATION.md#versioning-and-acceptance-tables)).
+  Rows that existed before have no seed base:
+  1. **before** you change your seed texts, freeze them: `nowo:legal-kit:snapshot-seed --revision=<current revision>`
+     (default `seed.revision` = `seed.date`) and commit `config/legal-kit/seed-snapshots/<revision>/`;
+  2. change the texts and `seed.date` / `seed.revision`;
+  3. deploy step: `nowo:legal-kit:upgrade-seed --from=<old revision> [--requires-acceptance]`.
+  If your texts already changed, write the snapshot of the old texts yourself in the documented format (see
+  [USAGE](USAGE.md#snapshots)).
+- **Acceptance** (`acceptance.enabled: true` + `acceptance.subject_resolver`; `acceptance.enforce: true` for the
+  gate): migration for `legal_acceptance`; implement `LegalAcceptanceSubjectResolverInterface`; exempt your MFA /
+  verification / account export and deletion flows (`exempt_routes`, `exempt_paths` or a
+  `LegalAcceptanceExemptionInterface` voter); call `LegalAcceptanceManager::exportFor()` / `eraseFor()` from your
+  personal-data export and erasure. A page path `accept` is reserved while acceptance is on.
+- `pages.privacy.acceptance: accept` is refused (privacy information is acknowledged).
+- Template contract: `admin/index` cells gain `outdated` / `compare_href`; `admin/edit` fills `nowo_ui_form_aside`
+  (variable `legal_versioning`); `public/page` prints "Version N" when `document.version` is set; new templates
+  `admin/compare.html.twig`, `admin/_diff.html.twig`, `acceptance/interstitial.html.twig` (see
+  [TEMPLATES](TEMPLATES.md)). Overridden templates keep working.
+- PHP: appended optional arguments only (`LegalDocumentSavedEvent`, `ResolvedLegalDocument`, `LegalPage`,
+  `LegalDocumentResolver`, `LegalDocumentAdminController`, `LegalKitExtension`, `SeedCommand`, `DoctorCommand`,
+  `LegalDocumentPortability`). `LegalKitAccessCheckerInterface` is unchanged.
 
 ## To 1.3.1
 

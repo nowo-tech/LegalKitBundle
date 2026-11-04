@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\EventSubscriber;
 
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
+use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -54,7 +55,7 @@ final readonly class AdminAccessSubscriber implements EventSubscriberInterface
         $controller = $event->getController();
         $isAdmin    = (is_string($route) && str_starts_with($route, LegalRouteLoader::ADMIN_ROUTE_PREFIX))
             // Sub-requests (render(controller(…)), ESI) carry no admin route: guard the controller itself too.
-            || (is_array($controller) && $controller[0] instanceof LegalDocumentAdminController);
+            || (is_array($controller) && ($controller[0] instanceof LegalDocumentAdminController || $controller[0] instanceof LegalSeedCompareController));
         if (!$isAdmin) {
             return;
         }

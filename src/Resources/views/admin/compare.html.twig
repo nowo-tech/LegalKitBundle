@@ -1,0 +1,37 @@
+{#
+  Compare an operator copy with the changed built-in text (versioning): UiKit show scaffold.
+  View model: page (View\ShowPage: header with "Use the new text" / "Keep my text" (POST + CSRF FormView) actions and
+  one AreaNav tab per view). Extra variables: view (changes|side|builtin), title_diff / body_diff
+  (Versioning\Diff\TextDiff, changes and builtin views), left / right ({title, body}, side view: rendered like the
+  public page, the body is sanitizer output), legal_slug, legal_locale.
+  Data block: nowo_ui_show_after. Diff text is plain text printed autoescaped (never |raw): it may contain decoded
+  "<script>" characters from the stored HTML.
+#}
+{% extends '@NowoUiKit/page/show.html.twig' %}
+
+{% block nowo_ui_styles %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/nowo-legal-kit.css', 'nowo_legal_kit') }}">
+{% endblock %}
+
+{% block nowo_ui_show_after %}
+    {%- set _b = page.bundle -%}
+    {% if view == 'side' %}
+        <div class="nowo-legal-compare__side" data-testid="nowo-legal-kit-compare-side">
+            {% for side in [{label: 'admin.compare.yours', doc: left}, {label: 'admin.compare.builtin', doc: right}] %}
+                <section class="{{ nowo_ui_class('card', _b) }}"{{ nowo_ui_attrs('section', _b) }}>
+                    <header class="{{ nowo_ui_class('card_header', _b) }}"><h2 class="{{ nowo_ui_class('card_title', _b) }}">{{ side.label|trans({}, 'NowoLegalKitBundle') }}</h2></header>
+                    <div class="{{ nowo_ui_class('card_body', _b) }}">
+                        <h3>{{ side.doc.title }}</h3>
+                        <div class="nowo-legal-doc" lang="{{ legal_locale }}">{{ side.doc.body|nowo_legal_kit_sanitize_html }}</div>
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="{{ nowo_ui_class('section', _b) }}" data-testid="nowo-legal-kit-compare-{{ view }}"{{ nowo_ui_attrs('section', _b) }}>
+            {{ include('@NowoLegalKitBundle/admin/_diff.html.twig', {diff: title_diff, caption: 'admin.compare.title_caption', bundle: _b}, false) }}
+            {{ include('@NowoLegalKitBundle/admin/_diff.html.twig', {diff: body_diff, caption: (view == 'builtin' ? 'admin.compare.builtin_caption' : 'admin.compare.body_caption'), bundle: _b}, false) }}
+        </section>
+    {% endif %}
+{% endblock %}

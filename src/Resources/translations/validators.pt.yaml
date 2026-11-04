@@ -1,0 +1,6 @@
+# NowoLegalKitBundle (pt): constraint messages of the legal kit forms (validators domain).
+admin:
+  publication:
+    required: "Escolha correção menor ou nova versão."
+acceptance:
+  accept_required: "Assinale a caixa para aceitar e continuar."

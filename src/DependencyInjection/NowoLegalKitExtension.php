@@ -6,22 +6,57 @@ namespace Nowo\LegalKitBundle\DependencyInjection;
 
 use Nowo\Ckeditor5EditorBundle\Form\Ckeditor5EditorType;
 use Nowo\Ckeditor5EditorBundle\Security\AllowlistCkeditor5HtmlSanitizer;
+use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
+use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
+use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
+use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Command\AdaptSeedCommand;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
+use Nowo\LegalKitBundle\Command\DoctorCommand;
+use Nowo\LegalKitBundle\Command\SeedCommand;
+use Nowo\LegalKitBundle\Command\SnapshotSeedCommand;
+use Nowo\LegalKitBundle\Command\UpgradeSeedCommand;
+use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
+use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
+use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
+use Nowo\LegalKitBundle\Doctrine\VersioningMappingListener;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
 use Nowo\LegalKitBundle\EventListener\SeoKitHeadListener;
+use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
+use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
+use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
+use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
 use Nowo\LegalKitBundle\Seo\LegalSitemapProvider;
 use Nowo\LegalKitBundle\Token\LegalTokenResolverInterface;
+use Nowo\LegalKitBundle\Twig\LegalKitExtension;
+use Nowo\LegalKitBundle\Versioning\AccessLegalVersionPublisherChecker;
+use Nowo\LegalKitBundle\Versioning\LegalPageVersionRepository;
+use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
+use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
+use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
+use Nowo\LegalKitBundle\Versioning\LegalSeedUpgrader;
+use Nowo\LegalKitBundle\Versioning\LegalVersionPublisherCheckerInterface;
+use Nowo\LegalKitBundle\Versioning\SeedSnapshotStore;
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 use Nowo\SeoKitBundle\Service\SeoRuntime;
 use Nowo\SeoKitBundle\Service\SitemapUrlProviderInterface;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
@@ -38,6 +73,8 @@ use function is_a;
 use function is_array;
 use function ltrim;
 use function preg_quote;
+use function rtrim;
+use function sprintf;
 
 /**
  * Loads `nowo_legal_kit`: services, the resolved optional integrations (CKEditor 5, OutboundUrlGuard, SeoKit,
@@ -99,6 +136,20 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ]]]]);
         }
 
+        $raw = $this->rawConfig($container);
+        if ($container->hasExtension('doctrine') && !$this->hostHasKey($container, 'doctrine', ['orm', 'entity_managers'])) {
+            $mappings = [];
+            if (self::flag($raw, 'versioning')) {
+                $mappings['NowoLegalKitVersioning'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Versioning/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Versioning\\Entity', 'alias' => 'NowoLegalKitVersioning'];
+            }
+            if (self::flag($raw, 'acceptance')) {
+                $mappings['NowoLegalKitAcceptance'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Acceptance/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Acceptance\\Entity', 'alias' => 'NowoLegalKitAcceptance'];
+            }
+            if ($mappings !== []) {
+                $container->prependExtensionConfig('doctrine', ['orm' => ['mappings' => $mappings]]);
+            }
+        }
+
         if ($container->hasExtension('nowo_form_kit') && !$this->hostHasKey($container, 'nowo_form_kit', ['profiles', self::FORM_KIT_PROFILE])) {
             $container->prependExtensionConfig('nowo_form_kit', ['profiles' => [self::FORM_KIT_PROFILE => [
                 'alias'              => self::FORM_KIT_PROFILE,
@@ -108,7 +159,6 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ]]]);
         }
 
-        $raw = $this->rawConfig($container);
         if ($container->hasExtension('nowo_ckeditor5_editor')) {
             $profile = $raw['editor']['ckeditor5_profile'] ?? 'legal';
             if (!$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['profiles', $profile]) && !$this->hostHasKey($container, 'nowo_ckeditor5_editor', ['configs', $profile])) {
@@ -196,6 +246,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         (new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config')))->load('services.php');
 
         $this->configureSanitizer($container, $sanitizer, $has);
+        $this->configureVersioning($container, $config, $configs);
         $this->configureCommands($container, (bool) ($config['console']['legacy_aliases'] ?? true));
 
         /** @var array{table_prefix: string} $doctrine */
@@ -225,6 +276,19 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     }
 
     /**
+     * Whether a raw `nowo_legal_kit.<section>.enabled` is the literal true (the Doctrine mapping is decided at prepend
+     * time, before parameters or env vars are resolved).
+     *
+     * @param array<string, mixed> $raw Merged raw configuration
+     */
+    public static function flag(array $raw, string $section): bool
+    {
+        $node = $raw[$section] ?? null;
+
+        return is_array($node) && ($node['enabled'] ?? false) === true;
+    }
+
+    /**
      * Route requirement of the enabled slugs (`notice|privacy|…`).
      *
      * @param mixed $pages Processed `pages` configuration
@@ -251,6 +315,127 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     public function getAlias(): string
     {
         return Configuration::ALIAS;
+    }
+
+    /**
+     * Versioning (`versioning.enabled`) and acceptance (`acceptance.enabled` / `enforce`) services: registered only
+     * when enabled, so a host that does not opt in gets the 1.3 container and schema.
+     *
+     * @param array<string, mixed> $config Processed configuration
+     * @param array<array<string, mixed>> $configs Raw configs (literal-boolean check)
+     */
+    private function configureVersioning(ContainerBuilder $container, array $config, array $configs): void
+    {
+        /** @var array{date: string, revision: string|null, snapshots_dir: string} $seed */
+        $seed = $config['seed'];
+        /** @var array{enabled: bool, publisher_checker: string|null} $versioning */
+        $versioning = $config['versioning'];
+        /** @var array{enabled: bool, enforce: bool, subject_resolver: string|null, exempt_routes: list<string>, exempt_paths: list<string>, non_html: string, default_target: string|null, logout_route: string|null, layout_template: string|null, template: string, cache_pool: string|null, action_log: bool} $acceptance */
+        $acceptance = $config['acceptance'];
+        /** @var array{path_prefix: string, default_locale_style: string} $routing */
+        $routing = $config['routing'];
+        /** @var array{table_prefix: string} $doctrine */
+        $doctrine = $config['doctrine'];
+        $p        = Configuration::ALIAS . '.';
+
+        $raw = [];
+        foreach ($configs as $one) {
+            foreach (['versioning', 'acceptance'] as $section) {
+                if (is_array($one[$section] ?? null) && array_key_exists('enabled', $one[$section])) {
+                    $raw[$section] = ['enabled' => $one[$section]['enabled']];
+                }
+            }
+        }
+        foreach (['versioning' => $versioning['enabled'], 'acceptance' => $acceptance['enabled']] as $section => $enabled) {
+            if ($enabled && !self::flag($raw, $section)) {
+                throw new InvalidConfigurationException(sprintf('nowo_legal_kit.%s.enabled must be the literal true (the Doctrine mapping is decided before parameters and env vars resolve).', $section));
+            }
+        }
+
+        $revision = $seed['revision'] ?? $seed['date'];
+        $container->setParameter($p . 'seed.revision', $revision);
+        $container->setParameter($p . 'seed.snapshots_dir', $seed['snapshots_dir']);
+        $container->setParameter($p . 'versioning.enabled', $versioning['enabled']);
+        $container->setParameter($p . 'acceptance.enabled', $acceptance['enabled']);
+        $container->setParameter($p . 'acceptance.enforce', $acceptance['enforce']);
+        $container->setParameter($p . 'acceptance.action_log', $acceptance['action_log']);
+        $container->getDefinition(LegalRouteLoader::class)
+            ->setArgument('$versioning', $versioning['enabled'])
+            ->setArgument('$acceptance', $acceptance['enabled']);
+        if (!$versioning['enabled']) {
+            return;
+        }
+
+        $register = static fn (string $id, ?string $class = null): Definition => $container->register($id, $class ?? $id)->setAutowired(true)->setAutoconfigured(true);
+        $register(VersioningMappingListener::class)->setAutoconfigured(false)->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
+        $register(LegalSeedHasher::class)
+            ->setArgument('$sanitizer', new Reference(LegalHtmlSanitizerInterface::class))
+            ->setArgument('$catalog', new Reference(LegalPageCatalogInterface::class))
+            ->setArgument('$pathPrefix', $routing['path_prefix']);
+        $register(LegalPageVersionRepository::class);
+        $register(LegalPageVersions::class)
+            ->setArgument('$cache', $acceptance['cache_pool'] !== null && $acceptance['cache_pool'] !== '' ? new Reference($acceptance['cache_pool'], ContainerInterface::NULL_ON_INVALID_REFERENCE) : null)
+            ->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$tablePrefix', $doctrine['table_prefix'])
+            ->setPublic(true);
+        $register(LegalSeedTracker::class)->setArgument('$revision', $revision);
+        $register(SeedSnapshotStore::class)->setArgument('$directory', $seed['snapshots_dir']);
+        $register(LegalSeedUpgrader::class)->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE));
+        $register(SnapshotSeedCommand::class);
+        $register(UpgradeSeedCommand::class);
+        $register(AccessLegalVersionPublisherChecker::class);
+        $container->setParameter($p . 'versioning.publisher_checker', $versioning['publisher_checker']);
+        $register(LegalSeedCompareController::class)
+            ->setAutoconfigured(false)
+            ->addTag('controller.service_arguments')
+            ->setPublic(true)
+            ->setArgument('$layoutTemplate', '%' . $p . 'web_ui.layout_template%');
+
+        $container->getDefinition(LegalDocumentAdminController::class)
+            ->setArgument('$seedTracker', new Reference(LegalSeedTracker::class))
+            ->setArgument('$versions', new Reference(LegalPageVersions::class))
+            ->setArgument('$publisherChecker', new Reference(LegalVersionPublisherCheckerInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$entityManager', new Reference('doctrine.orm.entity_manager'));
+        $container->getDefinition(LegalDocumentResolver::class)->setArgument('$versions', new Reference(LegalPageVersions::class));
+        $container->getDefinition(LegalKitExtension::class)->setArgument('$seedRevision', $revision);
+        $container->getDefinition(SeedCommand::class)->setArgument('$seedTracker', new Reference(LegalSeedTracker::class));
+        $container->getDefinition(LegalDocumentPortability::class)->setArgument('$seedTracker', new Reference(LegalSeedTracker::class));
+        $container->getDefinition(DoctorCommand::class)->setArgument('$documents', new Reference(LegalDocumentRepository::class));
+
+        if (!$acceptance['enabled']) {
+            return;
+        }
+        /** @var string $resolver */
+        $resolver = $acceptance['subject_resolver'];
+        $container->registerForAutoconfiguration(LegalAcceptanceExemptionInterface::class)->addTag(LegalAcceptanceExemptionInterface::TAG);
+        $register(LegalAcceptanceRepository::class);
+        $register(LegalAcceptanceManager::class)
+            ->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setPublic(true);
+        $register(CurrentLegalSubject::class)
+            ->setArgument('$resolver', new Reference($resolver))
+            ->setArgument('$tokenStorage', new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE));
+        $register(RelativeTargetValidator::class)->setArgument('$acceptPath', rtrim($routing['path_prefix'], '/') . '/' . Configuration::ACCEPTANCE_PATH);
+        $register(AcceptanceRequestMatcher::class)
+            ->setArgument('$exemptRoutes', $acceptance['exempt_routes'])
+            ->setArgument('$exemptPaths', $acceptance['exempt_paths'])
+            ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG));
+        $register(LegalAcceptanceType::class);
+        $register(LegalAcceptanceController::class)
+            ->setAutoconfigured(false)
+            ->addTag('controller.service_arguments')
+            ->setPublic(true)
+            ->setArgument('$template', $acceptance['template'])
+            ->setArgument('$layoutTemplate', $acceptance['layout_template'])
+            ->setArgument('$defaultTarget', $acceptance['default_target'])
+            ->setArgument('$logoutRoute', $acceptance['logout_route'])
+            ->setArgument('$logoutUrls', new Reference('security.logout_url_generator', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$defaultLocaleStyle', $routing['default_locale_style']);
+        if ($acceptance['enforce']) {
+            $register(AcceptanceGateSubscriber::class)
+                ->setArgument('$nonHtml', $acceptance['non_html'])
+                ->setArgument('$defaultLocaleStyle', $routing['default_locale_style']);
+        }
     }
 
     /**

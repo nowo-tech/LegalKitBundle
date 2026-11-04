@@ -8,3 +8,11 @@ nowo_legal_kit:
     security:
         access_roles: [ROLE_ADMIN]
         allow_unauthenticated: false        # never true in production
+    # Versions, seed upgrades and re-acceptance (1.4, opt-in; needs a migration; see docs/USAGE.md):
+    # versioning:
+    #     enabled: true
+    # acceptance:
+    #     enabled: true
+    #     enforce: true
+    #     subject_resolver: App\Legal\LegalSubjectResolver   # LegalAcceptanceSubjectResolverInterface
+    #     exempt_paths: ['/api']
