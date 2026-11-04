@@ -69,6 +69,12 @@ final class DomAllowlistSanitizerTest extends TestCase
         yield 'unicode' => ['<p>Política — “ñ” €</p>', '<p>Política — “ñ” €</p>'];
         // REQ-PBK-009 vectors (stored markup that bypassed the save-time pass)
         yield 'javascript named entity' => ['<a href="javascript&colon;alert(1)">x</a><a href="java&Tab;script:alert(1)">y</a>', '<a>x</a><a>y</a>'];
+        // Character references left in the parsed value are decoded before the URL policy, so the verdict does not
+        // depend on whether the libxml version knows the HTML5 named entities (2.14+ does, 2.9 does not).
+        yield 'double-encoded javascript' => ['<a href="javascript&amp;colon;alert(1)">x</a><a href="javascript&amp;#58;alert(1)">y</a><a href="&amp;#x6A;avascript:alert(1)">z</a>', '<a>x</a><a>y</a><a>z</a>'];
+        yield 'encoded image scheme' => ['<img src="data&amp;colon;image/png;base64,AA"><img src="data&colon;image/png;base64,AA">', '<img><img>'];
+        yield 'query ampersands kept' => ['<a href="/s?a=1&amp;b=2">x</a><a href="https://example.com/?q=a&amp;amp;b">y</a>', '<a href="/s?a=1&amp;b=2">x</a><a href="https://example.com/?q=a&amp;amp;b">y</a>'];
+        yield 'decoding depth limit' => ['<a href="/x&amp;amp;amp;amp;amp;lt;">x</a>', '<a>x</a>'];
         yield 'svg animation' => ['<svg><animate onbegin="alert(1)" attributeName="x"/><a xlink:href="javascript:alert(1)">s</a></svg><p>z</p>', '<p>z</p>'];
         yield 'style injection' => ['<p style="color:red">a</p><style>@import url(//evil.tld/x.css)</style><div class="x" style="position:fixed">b</div>', '<p>a</p><div class="x">b</div>'];
         yield 'raw text elements' => ['<xmp><script>alert(1)</script></xmp><noembed><img src=x onerror=alert(1)></noembed><template><img src=x onerror=alert(1)></template><p>t</p>', '<p>t</p>'];
@@ -86,14 +92,12 @@ final class DomAllowlistSanitizerTest extends TestCase
     ];
 
     /**
-     * Expectations of libxml's HTML 4 parser where it differs (still inert): it does not know HTML5 named entities
-     * (`&colon;` stays text, so the URL is relative) and keeps a stray `td`.
+     * Expectations of libxml's HTML 4 parser where it differs (still inert): it keeps a stray `td`.
      *
      * @var array<string, string>
      */
     private const array LEGACY_EXPECTED = [
-        'javascript named entity' => '<a href="javascript&amp;colon;alert(1)">x</a><a>y</a>',
-        'handlers everywhere'     => '<a href="/x">a</a><td>c</td>',
+        'handlers everywhere' => '<a href="/x">a</a><td>c</td>',
     ];
 
     #[DataProvider('corpus')]
