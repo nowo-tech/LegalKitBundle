@@ -7,12 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+  - [Security](#security)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
-  - [Security](#security)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-1)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+  - [Security](#security-2)
   - [Changed](#changed)
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-1)
@@ -20,13 +21,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added)
   - [Changed](#changed-2)
   - [Fixed](#fixed-1)
-  - [Security](#security-2)
+  - [Security](#security-3)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-1)
 
 ## [Unreleased]
+
+### Security
+
+- **URL verdict independent of the libxml version:** `UrlPolicy` now judges an `href` / `src` both as parsed and after
+  decoding the HTML character references left in it (up to four steps; a value still changing is refused). libxml
+  2.14+ decodes HTML5 named entities such as `&colon;` while 2.9 kept them as text, so on the PHP 8.3 fallback parser
+  `javascript&colon;alert(1)` used to be kept as an inert relative link on older libxml and dropped on newer; it is now
+  dropped everywhere, as are double-encoded forms (`javascript&amp;colon;`, `&amp;#58;`) on both parsers. Query
+  strings with `&amp;` are unchanged. New corpus cases.
 
 ## [1.3.1] - 2026-10-30
 

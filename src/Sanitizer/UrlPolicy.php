@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Sanitizer;
 
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 
+use function html_entity_decode;
 use function in_array;
 use function is_string;
 use function parse_url;
@@ -15,12 +16,18 @@ use function str_contains;
 use function str_starts_with;
 use function strtolower;
 
+use const ENT_HTML5;
+use const ENT_QUOTES;
 use const PHP_URL_HOST;
 
 /**
  * URL policy of `href` / `src` in legal HTML: relative, `#`, `mailto:`, `tel:`, `http(s)` links; relative or `https`
  * images; never `javascript:` / `data:` / `vbscript:`. With OutboundUrlGuardBundle, absolute targets on private
  * networks or cloud metadata hosts are dropped too (no DNS lookup, no request).
+ *
+ * A URL is kept only when it is safe both as given and after decoding the HTML character references left in it
+ * (`javascript&colon;alert(1)`): whether the parser decoded them depends on the libxml version (2.14+ knows the HTML5
+ * named entities, 2.9 does not), so the verdict must not.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -30,6 +37,8 @@ final readonly class UrlPolicy
     private const array LINK_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
     private const array IMAGE_SCHEMES = ['https'];
+
+    private const int MAX_DECODE_STEPS = 4;
 
     /**
      * @param OutboundUrlGuard|null $guard Optional SSRF guard (OutboundUrlGuardBundle)
@@ -63,6 +72,27 @@ final readonly class UrlPolicy
      * @param list<string> $schemes
      */
     private function isSafe(string $url, array $schemes): bool
+    {
+        // Every decoding step must be safe too ("&amp;colon;" decodes to "&colon;", then to ":"). A value still changing
+        // after MAX_DECODE_STEPS is refused instead of decoded further.
+        for ($step = 0; $step < self::MAX_DECODE_STEPS; ++$step) {
+            if (!$this->isSafeValue($url, $schemes)) {
+                return false;
+            }
+            $decoded = html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $url) {
+                return true;
+            }
+            $url = $decoded;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<string> $schemes
+     */
+    private function isSafeValue(string $url, array $schemes): bool
     {
         $url = $this->clean($url);
         if ($url === '' || str_contains($url, '\\')) {
