@@ -283,8 +283,11 @@ With versioning on, the editor asks how to publish the save:
   this locale) is required.
 
 On pages with a mode other than `none` nothing is preselected. The current version's summary of a locale can be
-edited with a minor correction. A save is refused ("changed meanwhile") when another save or version happened since the
-form was opened. Who may choose is `LegalVersionPublisherCheckerInterface::canPublish($slug)`
+edited with a minor correction until somebody accepted or acknowledged that version; from then on it is frozen (the
+save keeps the text change and warns that the summary was not changed), because the summary is part of what users
+were shown. A save is refused ("changed meanwhile") when another save or version happened since the
+form was opened; the check is repeated inside the save transaction (with the row locked), and the new version is
+published with the number the form was based on + 1, so two concurrent publishes cannot stack. Who may choose is `LegalVersionPublisherCheckerInterface::canPublish($slug)`
 (`versioning.publisher_checker`; default: the admin access checker). When it answers no, pages users accept or
 acknowledge cannot be saved (403) and other pages are saved as minor corrections. The aside shows the current version
 and, per locale, whether it was updated since.
@@ -361,7 +364,9 @@ meanwhile, nothing is recorded and the page asks to review again.
 
 A record holds no IP address, user agent or free text. `LegalAcceptedEvent` carries the subject: a listener that
 stores it (an audit row, for example) owns that copy's export and erasure. `acceptance.action_log: true` writes an
-AuditKit `legal_document.accepted` row (actor = the signed-in user) instead.
+AuditKit `legal_document.accepted` row instead: it records the signed-in actor and, with AuditKit's default
+`capture_ip: true`, the **client IP address**. `eraseFor()` does not remove those rows; erase them through AuditKit's
+own personal-data erasure (or keep `action_log: false` and audit `LegalAcceptedEvent` yourself).
 
 ## Console commands
 
@@ -382,7 +387,7 @@ AuditKit `legal_document.accepted` row (actor = the signed-in user) instead.
 | --- | --- |
 | `LegalPageRenderEvent` | before a public page renders: `slug`, `locale`, `contentLocale`, `document`, `alternates` (locale → absolute URL), `canonicalUrl`; `setTemplateVariable()` |
 | `LegalDocumentSavedEvent` | after a save was flushed; with versioning also `publication` (`minor`/`new_version`) and `version` |
-| `LegalVersionPublishedEvent` | after a new version: `slug`, `version`, `requiresAcceptance`, `source`, `seedRevision` |
+| `LegalVersionPublishedEvent` | after a new version committed (the editor save and `upgrade-seed` dispatch it after their transaction): `slug`, `version`, `requiresAcceptance`, `source`, `seedRevision` |
 | `LegalDocumentRebasedEvent` | after "Keep my text" |
 | `LegalSeedUpgradedEvent` | after `upgrade-seed` committed: `revision`, `from`, `counts` |
 | `LegalAcceptedEvent` | per recorded acceptance: `subjectId`, `slug`, `version`, `locale`, `kind`, `acceptedAt`, `contentHash` |

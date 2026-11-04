@@ -93,11 +93,15 @@ final readonly class AcceptanceGateSubscriber implements EventSubscriberInterfac
             return;
         }
         $html = AcceptanceRequestMatcher::isHtmlNavigation($request);
-        if ((!$html && $this->nonHtml !== 'deny') || $this->matcher->isExempt($request) || $this->subject->isImpersonating()) {
+        if (!$html && $this->nonHtml !== 'deny') {
             return;
         }
 
+        // Host voters and the token run inside the try too: a failing exemption voter fails open like the rest.
         try {
+            if ($this->matcher->isExempt($request) || $this->subject->isImpersonating()) {
+                return;
+            }
             $subject = $this->subject->id();
             if ($subject === null) {
                 return;

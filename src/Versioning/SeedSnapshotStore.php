@@ -10,6 +10,7 @@ use RuntimeException;
 
 use function bin2hex;
 use function dirname;
+use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function filesize;
@@ -104,6 +105,9 @@ final readonly class SeedSnapshotStore
     {
         $this->assertRevision($revision);
         $target = $this->path($revision);
+        if (is_link($target) || (file_exists($target) && !is_dir($target))) {
+            throw new RuntimeException(sprintf('Seed snapshot "%s" is not a plain directory inside the snapshot directory: refusing to replace it.', $revision));
+        }
         if (is_dir($target) && !$force) {
             throw new RuntimeException(sprintf('Seed snapshot "%s" already exists (use --force to replace it).', $revision));
         }

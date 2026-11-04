@@ -169,6 +169,9 @@ jobs:
       - name: No raw HTML form controls in Twig
         run: bash .scripts/check-no-raw-html-form.sh
 
+      - name: Twig Extra and no |raw in bundle templates
+        run: bash .scripts/check-twig-extra.sh
+
   code-style:
     name: Code Style
     runs-on: ubuntu-latest

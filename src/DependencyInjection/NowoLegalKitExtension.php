@@ -409,6 +409,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $resolver = $acceptance['subject_resolver'];
         $container->registerForAutoconfiguration(LegalAcceptanceExemptionInterface::class)->addTag(LegalAcceptanceExemptionInterface::TAG);
         $register(LegalAcceptanceRepository::class);
+        $container->getDefinition(LegalDocumentAdminController::class)->setArgument('$acceptances', new Reference(LegalAcceptanceRepository::class));
         $register(LegalAcceptanceManager::class)
             ->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->setPublic(true);

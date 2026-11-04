@@ -6,7 +6,10 @@ namespace Nowo\LegalKitBundle\Controller\Admin;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -24,6 +27,7 @@ use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
 use Nowo\LegalKitBundle\Versioning\LegalVersionPublisherCheckerInterface;
+use Nowo\LegalKitBundle\Versioning\StaleVersionException;
 use Nowo\UiKitBundle\View\Action;
 use Nowo\UiKitBundle\View\AreaNav;
 use Nowo\UiKitBundle\View\AreaNavItem;
@@ -103,6 +107,7 @@ final readonly class LegalDocumentAdminController
      * @param ?LegalPageVersions $versions Page versions (versioning on)
      * @param ?LegalVersionPublisherCheckerInterface $publisherChecker Who may choose minor / new version (versioning on)
      * @param ?EntityManagerInterface $entityManager Transaction of a save + version (versioning on)
+     * @param ?LegalAcceptanceRepository $acceptances Acceptance records (acceptance on: frozen change summaries)
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
@@ -125,6 +130,7 @@ final readonly class LegalDocumentAdminController
         private ?LegalPageVersions $versions = null,
         private ?LegalVersionPublisherCheckerInterface $publisherChecker = null,
         private ?EntityManagerInterface $entityManager = null,
+        private ?LegalAcceptanceRepository $acceptances = null,
     ) {
     }
 
@@ -195,14 +201,19 @@ final readonly class LegalDocumentAdminController
         $isStored   = $document instanceof LegalDocument;
         $versioning = $this->versioning();
         $fromSeed   = $versioning !== null && $request->query->getBoolean('from_seed');
-        if (!$document instanceof LegalDocument || $fromSeed) {
-            $document ??= new LegalDocument($slug, $locale);
-            $seed = $this->resolver->seedForEditor($slug, $locale);
+        // The form is bound to a detached copy prefilled with the seed for a new row and for "Use the new text": the
+        // managed row is never changed by a GET (a flush elsewhere in the request would store the seed over it). A
+        // POST binds the managed row, which receives the submitted values.
+        $formDocument = $document;
+        if (!$document instanceof LegalDocument || ($fromSeed && !$request->isMethod('POST'))) {
+            $formDocument = new LegalDocument($slug, $locale);
+            $seed         = $this->resolver->seedForEditor($slug, $locale);
             if ($seed instanceof LegalSeed) {
-                $document->setTitle($seed->title);
-                $document->setBody($seed->body);
+                $formDocument->setTitle($seed->title);
+                $formDocument->setBody($seed->body);
             }
         }
+        $document ??= $formDocument;
 
         $publication = null;
         if ($versioning !== null) {
@@ -219,7 +230,7 @@ final readonly class LegalDocumentAdminController
             ];
         }
 
-        $form = $this->forms->create(LegalDocumentType::class, $document, [
+        $form = $this->forms->create(LegalDocumentType::class, $formDocument, [
             'editor'            => $this->editor,
             'ckeditor5_profile' => $this->ckeditor5Profile,
             'publication'       => $publication,
@@ -371,23 +382,52 @@ final readonly class LegalDocumentAdminController
             return null;
         }
 
-        $version = $entityManager->wrapInTransaction(function () use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase): int {
-            if ($rebase) {
-                $tracker->rebase($document);
-            }
-            $this->documents->save($document);
-            if ($choice === self::PUBLICATION_NEW) {
-                return $versions->publish($slug, $requires, LegalPageVersion::SOURCE_EDITOR, $summary !== '' ? [$locale => $summary] : [])->getVersion();
-            }
-            $latest = $versions->latest($slug);
-            if ($publication['has_summary'] && $latest instanceof LegalPageVersion && ($latest->summaryFor($locale) ?? '') !== $summary) {
+        try {
+            /** @var array{0: int, 1: ?LegalPageVersion, 2: bool} $result */
+            $result = $entityManager->wrapInTransaction(function (EntityManagerInterface $manager) use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase): array {
+                if ($manager->contains($document)) {
+                    $manager->lock($document, LockMode::PESSIMISTIC_WRITE);
+                }
+                // Re-checked inside the transaction: a version committed since the form was read aborts the save.
+                if ($versions->currentUncached($slug) !== $publication['base_version']) {
+                    throw new StaleVersionException($slug);
+                }
+                if ($rebase) {
+                    $tracker->rebase($document);
+                }
+                $this->documents->save($document);
+                if ($choice === self::PUBLICATION_NEW) {
+                    // base + 1, not "current + 1": a concurrent publish of the same number fails on the unique key.
+                    $published = $versions->publish($slug, $requires, LegalPageVersion::SOURCE_EDITOR, $summary !== '' ? [$locale => $summary] : [], null, $publication['base_version'] + 1);
+
+                    return [$published->getVersion(), $published, false];
+                }
+                $latest = $versions->latest($slug);
+                if (!$publication['has_summary'] || !$latest instanceof LegalPageVersion || ($latest->summaryFor($locale) ?? '') === $summary) {
+                    return [$publication['base_version'], null, false];
+                }
+                // The summary users were shown is part of what they accepted: once a version has acceptances it is frozen.
+                if ($this->acceptances?->hasAcceptances($slug, $latest->getVersion()) === true) {
+                    return [$publication['base_version'], null, true];
+                }
                 // @igor-ignore - Doctrine entity loaded for this request (the unit of work is reset between requests)
                 $latest->setSummary($locale, $summary);
                 $this->documents->save($document);
-            }
 
-            return $publication['base_version'];
-        });
+                return [$publication['base_version'], null, false];
+            });
+            [$version, $published, $frozen] = $result;
+        } catch (StaleVersionException|UniqueConstraintViolationException) {
+            $this->flash($request, 'error', 'flash.changed_meanwhile');
+
+            return $this->redirectToEdit($slug, $locale);
+        }
+        if ($published instanceof LegalPageVersion) {
+            $versions->afterCommit($published);
+        }
+        if ($frozen) {
+            $this->flash($request, 'warning', 'flash.summary_frozen');
+        }
 
         $this->scanner->reset();
         $this->dispatcher->dispatch(new LegalDocumentSavedEvent($slug, $locale, $choice, $version));

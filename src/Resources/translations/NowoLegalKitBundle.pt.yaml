@@ -84,6 +84,7 @@ flash:
   rebased: "A sua cópia é mantida e passa a basear-se no texto integrado atual."
   changed_meanwhile: "Esta página mudou enquanto a editava. Recarregue-a e tente novamente."
   version_published: "Guardada e publicada como versão %version%."
+  summary_frozen: "O resumo das alterações não foi alterado: os utilizadores já aceitaram esta versão com ele."
 banner:
   title: '{1} Resta 1 marcador legal.|]1,Inf[ Restam %count% marcadores legais.'
   intro: Substitua-os nas páginas legais antes da produção; a revisão jurídica continua a ser necessária.

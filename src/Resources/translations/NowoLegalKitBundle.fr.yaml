@@ -84,6 +84,7 @@ flash:
   rebased: "Votre copie est conservée et repose désormais sur le texte intégré actuel."
   changed_meanwhile: "Cette page a changé pendant votre modification. Rechargez-la et réessayez."
   version_published: "Enregistrée et publiée en version %version%."
+  summary_frozen: "Le résumé des modifications n’a pas été changé : des utilisateurs ont déjà accepté cette version avec lui."
 banner:
   title: '{1} Il reste 1 espace réservé légal.|]1,Inf[ Il reste %count% espaces réservés légaux.'
   intro: Remplacez-les dans les pages légales avant la production ; la validation juridique reste nécessaire.

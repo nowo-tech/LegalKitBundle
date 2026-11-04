@@ -61,6 +61,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   AuditKit actions `legal_document.version_published|rebased|seed_upgraded` (and `accepted` with
   `acceptance.action_log: true`).
 - Translations of every new string in en, es, de, fr, it, nl, pt (domains `NowoLegalKitBundle` and `validators`).
+- Security audit (REQ-SEC-004, appendix EM) fixes before the first release: the requirements cache is deleted again and
+  `LegalVersionPublishedEvent` dispatched after the publishing transaction commits; "Use the new text" never changes
+  the stored row on GET; the version guard runs inside the save transaction and publishes base + 1; `snapshot-seed
+  --force` refuses a symlinked revision; a `|raw` lint and test over the templates; the re-acceptance page reads the
+  fingerprint before the pending pages; host exemption voters fail open; summaries of accepted versions are frozen;
+  `action_log` documents the AuditKit IP.
 
 ### Changed
 

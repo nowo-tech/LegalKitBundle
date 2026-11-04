@@ -4,11 +4,24 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Functional;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\ORM\Events;
+use Nowo\LegalKitBundle\Event\LegalVersionPublishedEvent;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
+use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
+use Nowo\LegalKitBundle\Versioning\LegalSeedUpgrader;
 use Nowo\LegalKitBundle\Versioning\SeedSnapshotStore;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+
+use function bin2hex;
+use function random_bytes;
+use function sys_get_temp_dir;
+use function unlink;
 
 /**
  * Versioning admin: outdated badge, compare views (escaping), keep my text / use the new text, the minor / new
@@ -213,5 +226,117 @@ final class VersioningAdminTest extends VersioningTestCase
         $client->request('GET', '/admin/legal/privacy/en/compare');
 
         self::assertSame(403, $client->getResponse()->getStatusCode());
+    }
+
+    public function testUseTheNewTextGetNeverTouchesTheStoredRow(): void
+    {
+        $kernel = $this->versioningKernel(['locales' => ['en'], 'seed' => ['revision' => 'new']]);
+        $this->storeWithBase($kernel, 'notice', 'en', 'Operator title', '<p>Operator wording that must survive</p>', 'old', null);
+        $client = $this->adminClient($kernel);
+
+        $client->request('GET', '/admin/legal/notice/en?from_seed=1');
+        self::assertSame(200, $client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Legal notice', (string) $client->getResponse()->getContent(), 'The form shows the new text');
+        // Any flush later in the same request (a host listener, kernel.terminate work) must not store the seed.
+        $this->entityManager($kernel)->flush();
+        $row = $this->found($kernel, 'notice', 'en');
+        self::assertSame('<p>Operator wording that must survive</p>', $row->getBody());
+        self::assertSame('Operator title', $row->getTitle());
+        self::assertSame('old', $row->getSeedRevision());
+    }
+
+    public function testAVersionPublishedMeanwhileAbortsTheSave(): void
+    {
+        $kernel   = $this->versioningKernel(['locales' => ['en']]);
+        $versions = $this->service($kernel, LegalPageVersions::class);
+        $client   = $this->adminClient($kernel);
+        $crawler  = $client->request('GET', '/admin/legal/terms/en');
+        $form     = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        self::choose($form, 'nowo_legal_kit_document[publication]', 'new_version');
+        $form['nowo_legal_kit_document[change_summary]'] = 'B';
+
+        // Admin A commits v2 after admin B's checks, while B's transaction saves the row.
+        $manager  = $this->entityManager($kernel);
+        $listener = new class($manager->getConnection(), $manager->getClassMetadata(LegalPageVersion::class)->getTableName()) {
+            public bool $done = false;
+
+            public function __construct(private readonly Connection $connection, private readonly string $table)
+            {
+            }
+
+            public function postFlush(): void
+            {
+                if ($this->done) {
+                    return;
+                }
+                $this->done = true;
+                $this->connection->insert($this->table, ['slug' => 'terms', 'version' => 2, 'requires_acceptance' => 1, 'source' => 'editor', 'published_at' => '2026-11-04 10:00:00', 'change_summary' => '{"en":"A"}']);
+            }
+        };
+        $manager->getEventManager()->addEventListener([Events::postFlush], $listener);
+        $client->submit($form);
+        $manager->getEventManager()->removeEventListener([Events::postFlush], $listener);
+
+        self::assertSame('/admin/legal/terms/en', $client->getResponse()->headers->get('Location'));
+        // B published base + 1 = v2, which collided with A's v2: B's whole transaction rolled back (here the emulated
+        // A insert shares B's connection, so it is rolled back too), and B did not stack v3 on top of A's v2.
+        self::assertSame([], $versions->requirements());
+        self::assertNull($this->find($kernel, 'terms', 'en'), 'B\'s row was rolled back');
+    }
+
+    public function testEventsAndCacheInvalidationAfterCommit(): void
+    {
+        $file = sys_get_temp_dir() . '/nowo-legal-kit-cache-' . bin2hex(random_bytes(4)) . '.sqlite';
+        try {
+            $kernel = $this->versioningKernel(['locales' => ['en'], 'acceptance' => ['cache_pool' => 'cache.app']], [], ['doctrine' => ['dbal' => ['url' => 'sqlite:///' . $file]]]);
+            $pool   = $this->testContainer($kernel)->get('cache.app');
+            self::assertInstanceOf(AdapterInterface::class, $pool);
+            $pool->clear();
+            $versions = $this->service($kernel, LegalPageVersions::class);
+            self::assertSame(1, $versions->required('terms'));
+
+            // A second worker (own connection) re-caches the committed, old map while the publishing transaction runs.
+            $manager  = $this->entityManager($kernel);
+            $table    = $manager->getClassMetadata(LegalPageVersion::class)->getTableName();
+            $other    = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'path' => $file]);
+            $listener = new class($pool, $other, $table) {
+                public function __construct(private readonly AdapterInterface $pool, private readonly Connection $other, private readonly string $table)
+                {
+                }
+
+                public function postFlush(): void
+                {
+                    $map = [];
+                    foreach ($this->other->fetchAllAssociative('SELECT slug, MAX(version) c, MAX(CASE WHEN requires_acceptance = 1 THEN version ELSE 0 END) r FROM ' . $this->table . ' GROUP BY slug') as $row) {
+                        $map[(string) $row['slug']] = [(int) $row['c'], (int) $row['r']];
+                    }
+                    $item = $this->pool->getItem(LegalPageVersions::CACHE_KEY . '.default');
+                    $this->pool->save($item->set($map)->expiresAfter(LegalPageVersions::CACHE_TTL));
+                }
+            };
+            $inTransaction = [];
+            $this->service($kernel, EventDispatcherInterface::class)->addListener(LegalVersionPublishedEvent::class, static function () use ($manager, &$inTransaction): void {
+                $inTransaction[] = $manager->getConnection()->isTransactionActive();
+            });
+            $manager->getEventManager()->addEventListener([Events::postFlush], $listener);
+
+            $client  = $this->adminClient($kernel);
+            $crawler = $client->request('GET', '/admin/legal/terms/en');
+            $form    = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+            self::choose($form, 'nowo_legal_kit_document[publication]', 'new_version');
+            $form['nowo_legal_kit_document[change_summary]'] = 'v2';
+            $client->submit($form);
+            self::assertSame(2, $versions->required('terms'), 'The map cached during the transaction is dropped after commit');
+
+            $this->service($kernel, LegalSeedUpgrader::class)->run(null, LegalSeedUpgrader::VERSIONS_ACCEPTANCE);
+            self::assertSame([2, 2], $versions->requirements()['privacy'] ?? null, 'upgrade-seed: same post-commit invalidation');
+            $manager->getEventManager()->removeEventListener([Events::postFlush], $listener);
+
+            self::assertNotSame([], $inTransaction);
+            self::assertNotContains(true, $inTransaction, 'LegalVersionPublishedEvent is dispatched after commit');
+            $other->close();
+        } finally {
+            @unlink($file);
+        }
     }
 }

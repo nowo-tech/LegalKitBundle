@@ -56,6 +56,16 @@ class LegalAcceptanceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Whether any subject accepted or acknowledged this version of the page.
+     *
+     * @return bool The answer
+     */
+    public function hasAcceptances(string $slug, int $version): bool
+    {
+        return $this->findOneBy(['slug' => $slug, 'version' => $version]) instanceof LegalAcceptance;
+    }
+
+    /**
      * Every record of a subject, oldest first.
      *
      * @return list<LegalAcceptance>

@@ -129,7 +129,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$seedTracker', null)
         ->arg('$versions', null)
         ->arg('$publisherChecker', null)
-        ->arg('$entityManager', null);
+        ->arg('$entityManager', null)
+        ->arg('$acceptances', null);
 
     $services->set(LegalDocumentType::class);
 

@@ -84,6 +84,7 @@ flash:
   rebased: "Uw versie blijft behouden en is nu gebaseerd op de huidige ingebouwde tekst."
   changed_meanwhile: "Deze pagina is gewijzigd terwijl u hem bewerkte. Laad hem opnieuw en probeer het nog eens."
   version_published: "Opgeslagen en gepubliceerd als versie %version%."
+  summary_frozen: "De samenvatting is niet gewijzigd: gebruikers hebben deze versie er al mee geaccepteerd."
 banner:
   title: '{1} Nog 1 juridische tijdelijke tekst.|]1,Inf[ Nog %count% juridische tijdelijke teksten.'
   intro: Vervang ze vóór productie in de juridische pagina’s; juridische controle blijft nodig.

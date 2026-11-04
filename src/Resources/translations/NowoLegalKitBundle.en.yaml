@@ -84,6 +84,7 @@ flash:
   rebased: "Your copy is kept and now based on the current built-in text."
   changed_meanwhile: "This page changed while you were editing it. Reload it and try again."
   version_published: "Saved and published as version %version%."
+  summary_frozen: "The change summary was not changed: users already accepted this version with it."
 banner:
   title: '{1} 1 legal placeholder left.|]1,Inf[ %count% legal placeholders left.'
   intro: Replace them in the legal pages before production; counsel review is still required.

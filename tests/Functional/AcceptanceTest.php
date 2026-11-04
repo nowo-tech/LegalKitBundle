@@ -132,6 +132,8 @@ final class AcceptanceTest extends VersioningTestCase
         }
         $client->request('GET', '/app/data', server: ['HTTP_ACCEPT' => 'application/json']);
         self::assertSame(200, $client->getResponse()->getStatusCode(), 'JSON passes');
+        $client->request('GET', '/app/voter-boom');
+        self::assertSame(200, $client->getResponse()->getStatusCode(), 'A throwing host voter fails open');
         $client->request('GET', '/app', server: ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
         self::assertSame(200, $client->getResponse()->getStatusCode(), 'XHR passes');
         $client->request('POST', '/app');
@@ -258,5 +260,26 @@ final class AcceptanceTest extends VersioningTestCase
         $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('subject_resolver');
         $this->versioningKernel(['acceptance' => ['enabled' => true]]);
+    }
+
+    public function testSummaryOfAnAcceptedVersionIsFrozen(): void
+    {
+        $kernel   = $this->acceptanceKernel(['locales' => ['en']]);
+        $versions = $this->service($kernel, LegalPageVersions::class);
+        $versions->publish('terms', true, 'editor', ['en' => 'Original summary']);
+        $manager = $this->service($kernel, LegalAcceptanceManager::class);
+        $manager->record('u-ann', $manager->pendingFor('u-ann', 'en'));
+
+        $client  = $this->adminClient($kernel);
+        $crawler = $client->request('GET', '/admin/legal/terms/en');
+        $form    = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        self::choose($form, 'nowo_legal_kit_document[publication]', 'minor');
+        $form['nowo_legal_kit_document[change_summary]'] = 'Rewritten after users accepted it';
+        $client->submit($form);
+        $client->followRedirect();
+
+        self::assertSame(['en' => 'Original summary'], $versions->latest('terms')?->getChangeSummary());
+        self::assertStringContainsString('users already accepted this version', (string) $client->getResponse()->getContent());
+        self::assertNotNull($this->find($kernel, 'terms', 'en'), 'The text itself was saved');
     }
 }

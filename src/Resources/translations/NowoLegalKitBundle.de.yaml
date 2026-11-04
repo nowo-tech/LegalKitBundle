@@ -84,6 +84,7 @@ flash:
   rebased: "Ihre Fassung bleibt erhalten und basiert jetzt auf dem aktuellen integrierten Text."
   changed_meanwhile: "Diese Seite wurde während Ihrer Bearbeitung geändert. Laden Sie sie neu und versuchen Sie es erneut."
   version_published: "Gespeichert und als Version %version% veröffentlicht."
+  summary_frozen: "Die Zusammenfassung wurde nicht geändert: Nutzer haben diese Version bereits mit ihr akzeptiert."
 banner:
   title: '{1} 1 rechtlicher Platzhalter übrig.|]1,Inf[ %count% rechtliche Platzhalter übrig.'
   intro: Ersetzen Sie sie vor dem Produktivbetrieb in den rechtlichen Seiten; eine rechtliche Prüfung bleibt nötig.

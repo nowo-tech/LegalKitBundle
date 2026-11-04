@@ -136,22 +136,44 @@ final readonly class LegalPageVersions
     }
 
     /**
-     * Publishes version current + 1 (persist + flush; run it inside the caller's transaction), deletes the cached
-     * map and dispatches {@see LegalVersionPublishedEvent}.
+     * Publishes a version (persist + flush) and deletes the cached map.
+     *
+     * Inside a transaction (the editor save, upgrade-seed) the caller must call {@see afterCommit()} once the
+     * transaction committed: it deletes the cached map again (a concurrent request may have re-cached the old,
+     * still committed map in between) and dispatches {@see LegalVersionPublishedEvent}. Outside a transaction the
+     * event is dispatched at once.
      *
      * @param array<string, string> $changeSummary Locale => plain-text summary
+     * @param ?int $version Version number to publish (the editor passes base + 1, so a concurrent publish of the
+     *                      same number fails on the unique key instead of stacking); null = current + 1
      *
      * @return LegalPageVersion The new version
      */
-    public function publish(string $slug, bool $requiresAcceptance, string $source, array $changeSummary = [], ?string $seedRevision = null): LegalPageVersion
+    public function publish(string $slug, bool $requiresAcceptance, string $source, array $changeSummary = [], ?string $seedRevision = null, ?int $version = null): LegalPageVersion
     {
-        $version = new LegalPageVersion($slug, $this->currentUncached($slug) + 1, $requiresAcceptance, $source, $this->clock->now(), $seedRevision, $changeSummary);
-        $this->entityManager->persist($version);
+        $row = new LegalPageVersion($slug, $version ?? $this->currentUncached($slug) + 1, $requiresAcceptance, $source, $this->clock->now(), $seedRevision, $changeSummary);
+        $this->entityManager->persist($row);
         $this->entityManager->flush();
         $this->invalidate();
-        $this->dispatcher?->dispatch(new LegalVersionPublishedEvent($slug, $version->getVersion(), $requiresAcceptance, $source, $seedRevision));
+        if (!$this->entityManager->getConnection()->isTransactionActive()) {
+            $this->afterCommit($row);
+        }
 
-        return $version;
+        return $row;
+    }
+
+    /**
+     * After the publishing transaction committed: deletes the cached map again and dispatches one
+     * {@see LegalVersionPublishedEvent} per version.
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function afterCommit(LegalPageVersion ...$published): void
+    {
+        $this->invalidate();
+        foreach ($published as $version) {
+            $this->dispatcher?->dispatch(new LegalVersionPublishedEvent($version->getSlug(), $version->getVersion(), $version->requiresAcceptance(), $version->getSource(), $version->getSeedRevision()));
+        }
     }
 
     /**

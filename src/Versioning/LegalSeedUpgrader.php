@@ -122,12 +122,14 @@ final readonly class LegalSeedUpgrader
         $connection = $this->entityManager->getConnection();
         $connection->beginTransaction();
         try {
-            $report = $this->upgrade($from, $versionMode, $dryRun);
+            [$report, $published] = $this->upgrade($from, $versionMode, $dryRun);
             if ($dryRun) {
                 $connection->rollBack();
                 $this->entityManager->clear();
             } else {
                 $connection->commit();
+                // Post-commit: drop a map re-cached by a concurrent request meanwhile, then dispatch the events.
+                $this->versions->afterCommit(...$published);
             }
         } catch (Throwable $exception) {
             $connection->rollBack();
@@ -145,14 +147,15 @@ final readonly class LegalSeedUpgrader
     }
 
     /**
-     * @return array{rows: list<array{slug: string, locale: string, result: string}>, counts: array<string, int>, versions: list<array{slug: string, version: int, requires_acceptance: bool}>}
+     * @return array{0: array{rows: list<array{slug: string, locale: string, result: string}>, counts: array<string, int>, versions: list<array{slug: string, version: int, requires_acceptance: bool}>}, 1: list<LegalPageVersion>}
      */
     private function upgrade(?string $from, string $versionMode, bool $dryRun): array
     {
-        $current  = $this->tracker->revision();
-        $rows     = [];
-        $counts   = array_fill_keys(self::RESULTS, 0);
-        $versions = [];
+        $current   = $this->tracker->revision();
+        $rows      = [];
+        $counts    = array_fill_keys(self::RESULTS, 0);
+        $versions  = [];
+        $published = [];
         foreach ($this->catalog->pages() as $page) {
             $changed = false;
             foreach ($this->locales->all() as $locale) {
@@ -175,11 +178,12 @@ final readonly class LegalSeedUpgrader
 
                 continue;
             }
-            $version    = $this->versions->publish($page->slug, $requires, LegalPageVersion::SOURCE_UPGRADE, $this->summaries($page->slug), $current);
-            $versions[] = ['slug' => $page->slug, 'version' => $version->getVersion(), 'requires_acceptance' => $requires];
+            $version     = $this->versions->publish($page->slug, $requires, LegalPageVersion::SOURCE_UPGRADE, $this->summaries($page->slug), $current);
+            $published[] = $version;
+            $versions[]  = ['slug' => $page->slug, 'version' => $version->getVersion(), 'requires_acceptance' => $requires];
         }
 
-        return ['rows' => $rows, 'counts' => $counts, 'versions' => $versions];
+        return [['rows' => $rows, 'counts' => $counts, 'versions' => $versions], $published];
     }
 
     /**

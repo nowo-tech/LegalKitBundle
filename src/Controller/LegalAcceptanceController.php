@@ -89,10 +89,13 @@ final readonly class LegalAcceptanceController
             throw new AccessDeniedHttpException('An impersonating user cannot accept on behalf of another user.');
         }
 
-        $pending = $this->manager->pendingFor($subject, $request->getLocale());
+        // Read before the pending pages: a version published meanwhile changes the fingerprint, so the session is never
+        // marked satisfied for a version this request did not check.
+        $fingerprint = $this->versions->fingerprint();
+        $pending     = $this->manager->pendingFor($subject, $request->getLocale());
         if ($pending === []) {
             if ($request->hasSession()) {
-                AcceptanceGateSubscriber::markSatisfied($request->getSession(), $this->versions->fingerprint(), $subject);
+                AcceptanceGateSubscriber::markSatisfied($request->getSession(), $fingerprint, $subject);
             }
 
             return $this->noStore(new RedirectResponse($this->target($request)));
@@ -108,7 +111,7 @@ final readonly class LegalAcceptanceController
             if (!$stale && $form->isValid()) {
                 $this->manager->record($subject, $pending);
                 if ($request->hasSession()) {
-                    AcceptanceGateSubscriber::markSatisfied($request->getSession(), $this->versions->fingerprint(), $subject);
+                    AcceptanceGateSubscriber::markSatisfied($request->getSession(), $fingerprint, $subject);
                 }
 
                 return $this->noStore(new RedirectResponse($this->target($request), Response::HTTP_SEE_OTHER));

@@ -213,7 +213,7 @@ final class TestKernel extends Kernel
         }
         $routes->import('.', 'nowo_legal_kit');
         if (in_array('app_routes', $this->extraBundles, true)) {
-            foreach (['app_home' => '/app', 'app_mfa' => '/app/mfa', 'app_skip' => '/app/skip', 'api_skip' => '/api/skip', 'app_logout' => '/app/logout'] as $name => $path) {
+            foreach (['app_home' => '/app', 'app_mfa' => '/app/mfa', 'app_skip' => '/app/skip', 'api_skip' => '/api/skip', 'app_logout' => '/app/logout', 'app_voter_boom' => '/app/voter-boom'] as $name => $path) {
                 $routes->add($name, $path)->controller([AppController::class, 'page']);
             }
             $routes->add('app_data', '/app/data')->controller([AppController::class, 'data']);

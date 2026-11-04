@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
+use Doctrine\ORM\Events;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Command\UpgradeSeedCommand;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
@@ -24,7 +25,12 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Twig\Environment;
 
+use function bin2hex;
 use function file_put_contents;
+use function mkdir;
+use function random_bytes;
+use function rmdir;
+use function symlink;
 use function sys_get_temp_dir;
 use function unlink;
 
@@ -282,17 +288,32 @@ final class VersioningTest extends VersioningTestCase
     {
         $kernel = $this->versioningKernel(['locales' => ['en']]);
         $this->storeWithBase($kernel, 'notice', 'en', 'Old', '<p>Old</p>', 'old', $this->service($kernel, LegalSeedHasher::class)->hash('Old', '<p>Old</p>'));
+        $events     = [];
         $dispatcher = $this->service($kernel, EventDispatcherInterface::class);
-        $dispatcher->addListener(LegalVersionPublishedEvent::class, static function (): void {
-            throw new RuntimeException('Listener down');
+        $dispatcher->addListener(LegalVersionPublishedEvent::class, static function (LegalVersionPublishedEvent $event) use (&$events): void {
+            $events[] = $event->slug;
         });
+        // The second page's flush fails inside the transaction.
+        $failing = new class {
+            public int $flushes = 0;
+
+            public function postFlush(): void
+            {
+                if (++$this->flushes === 3) {
+                    throw new RuntimeException('Database down');
+                }
+            }
+        };
+        $this->entityManager($kernel)->getEventManager()->addEventListener([Events::postFlush], $failing);
 
         try {
             $this->service($kernel, LegalSeedUpgrader::class)->run(null, LegalSeedUpgrader::VERSIONS_NEW);
-            self::fail('The listener exception propagates');
+            self::fail('The exception propagates');
         } catch (RuntimeException $exception) {
-            self::assertSame('Listener down', $exception->getMessage());
+            self::assertSame('Database down', $exception->getMessage());
         }
+        $this->entityManager($kernel)->getEventManager()->removeEventListener([Events::postFlush], $failing);
+        self::assertSame([], $events, 'No event for a version that was rolled back');
         self::assertSame('<p>Old</p>', $this->found($kernel, 'notice', 'en')->getBody(), 'Rolled back');
         self::assertSame([], $this->service($kernel, LegalPageVersions::class)->requirements());
     }
@@ -309,6 +330,26 @@ final class VersioningTest extends VersioningTestCase
             self::assertStringContainsString('Cannot create the snapshot directory', $exception->getMessage());
         } finally {
             unlink($file);
+        }
+    }
+
+    public function testForceRefusesASymlinkedRevision(): void
+    {
+        $kernel  = $this->versioningKernel(['locales' => ['en'], 'seed' => ['revision' => 'r1']]);
+        $outside = sys_get_temp_dir() . '/nowo-legal-kit-victim-' . bin2hex(random_bytes(4));
+        mkdir($outside);
+        file_put_contents($outside . '/victim.html', 'keep me');
+        mkdir(self::snapshotsDir(), 0o775, true);
+        symlink($outside, self::snapshotsDir() . '/r1');
+        try {
+            $tester = $this->tester($kernel, 'nowo:legal-kit:snapshot-seed');
+            self::assertSame(1, $tester->execute(['--force' => true]));
+            self::assertStringContainsString('not a plain directory', $tester->getDisplay());
+            self::assertFileExists($outside . '/victim.html', 'Nothing outside the snapshot directory is deleted');
+        } finally {
+            @unlink(self::snapshotsDir() . '/r1');
+            @unlink($outside . '/victim.html');
+            @rmdir($outside);
         }
     }
 }
