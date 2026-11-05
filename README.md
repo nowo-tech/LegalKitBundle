@@ -40,7 +40,8 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
 - **Versions and re-acceptance (opt-in)**: seed revisions and snapshots, `upgrade-seed` refreshes unedited copies and
   flags edited ones (compare page with an escaped text diff), *minor correction* vs *new version* on save, and a
   re-acceptance page + request gate where terms are **accepted** and the privacy policy is **acknowledged**
-  (records without IP, export / erasure hooks)
+  (records without IP, export / erasure hooks). The gate redirects **HTML navigations only** (XHR, `fetch`, JSON and
+  Turbo frame / stream requests pass unless `acceptance.non_html: deny`): it is a UX gate, not an access control
 - **FrankenPHP worker mode** friendly; no JavaScript on public pages
 
 ## Installation

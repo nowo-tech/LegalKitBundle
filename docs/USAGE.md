@@ -345,8 +345,8 @@ itself, the legal admin, `_wdt*`, `_profiler*`, `_error`, `_preview_error`; add 
 
 After a check with nothing pending, the session remembers it until a version is published (0 queries per request;
 otherwise one indexed query). If the check fails (database or cache), the request passes and an error is logged:
-the gate informs, it is not an access control. The original URL is kept in the session (relative paths only, never
-the page itself) and restored after accepting; else `acceptance.default_target` or `/`.
+the gate informs, it is not an access control. The original URL is kept in the session (relative paths only: no `//`, backslash,
+control character or `.` / `..` segment, raw or `%`-encoded; never the page itself) and restored after accepting; else `acceptance.default_target` or `/`.
 
 The page posts back a fingerprint of what it showed (pages, versions, text hashes). If a version or text changed
 meanwhile, nothing is recorded and the page asks to review again.

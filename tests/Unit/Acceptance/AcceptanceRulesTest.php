@@ -45,6 +45,29 @@ final class AcceptanceRulesTest extends TestCase
         yield 'too long' => ['/' . str_repeat('a', RelativeTargetValidator::MAX_LENGTH), false];
         yield 'the interstitial' => ['/legal/accept', false];
         yield 'the localized interstitial' => ['/es/legal/accept/?x=1', false];
+        yield 'the encoded interstitial' => ['/legal/%61ccept', false];
+        yield 'encoded path kept' => ['/app/caf%C3%A9?q=a%2Fb', true];
+        yield 'dots inside a segment' => ['/app/v1.2/file..txt', true];
+        yield 'dots in the query' => ['/app?next=/../x', true];
+        yield 'dot segment' => ['/a/./b', false];
+        yield 'dot-dot segment' => ['/a/../b', false];
+        yield 'trailing dot-dot' => ['/a/..', false];
+        yield 'lone dot' => ['/.', false];
+        yield 'dot then protocol relative' => ['/.//evil.example/x', false];
+        yield 'dot-dot then protocol relative' => ['/..//evil.example/x', false];
+        yield 'nested dot-dot then protocol relative' => ['/a/..//evil.example/x', false];
+        yield 'encoded dot' => ['/%2e//evil.example/x', false];
+        yield 'encoded dot-dot upper case' => ['/%2E%2E//evil.example/x', false];
+        yield 'mixed encoded dot-dot' => ['/.%2e/x', false];
+        yield 'encoded dot segment inside' => ['/a/%2E/b', false];
+        yield 'double-encoded dot' => ['/%252e/x', false];
+        yield 'empty segment' => ['/a//b', false];
+        yield 'encoded slashes' => ['/%2f%2fevil.example', false];
+        yield 'encoded backslash' => ['/%5cevil.example', false];
+        yield 'encoded backslash upper case' => ['/a%5Cb', false];
+        yield 'encoded CR' => ['/a%0d%0aLocation:x', false];
+        yield 'encoded NUL' => ['/a%00', false];
+        yield 'DEL' => ["/a\x7F", false];
     }
 
     #[DataProvider('targets')]
