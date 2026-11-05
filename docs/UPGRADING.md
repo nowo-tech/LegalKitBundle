@@ -21,6 +21,10 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+No host change. After accepting, a stored target with a `.` / `..` segment (also `%2e`-encoded), an empty segment
+(`/a//b`), an encoded backslash (`%5c`) or an encoded control character is no longer restored: the user lands on
+`acceptance.default_target` (or `/`) instead.
+
 ## To 1.4.0
 
 From **1.3.2**:

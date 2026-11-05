@@ -7,17 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+  - [Security](#security)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
   - [Added](#added)
   - [Changed](#changed)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
-  - [Security](#security)
+  - [Security](#security-1)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
-  - [Security](#security-1)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-2)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+  - [Security](#security-3)
   - [Changed](#changed-1)
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-2)
@@ -25,13 +26,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-1)
   - [Changed](#changed-3)
   - [Fixed](#fixed-1)
-  - [Security](#security-3)
+  - [Security](#security-4)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-2)
 
 ## [Unreleased]
+
+### Security
+
+- **Re-acceptance target: dot segments refused (SEC-LEGAL-TARGET-DOTSEG).** `RelativeTargetValidator` now refuses
+  `.` / `..` segments (also `%2e` / `%2E`-encoded, either case), `//` anywhere in the path, `%5c` backslashes and
+  encoded control characters, checking the path raw and once percent-decoded. Browsers normalise `/..//evil.example`
+  to `//evil.example`; such targets are refused (fallback to `acceptance.default_target` or `/`), never normalised.
+  The encoded form of the re-acceptance page is refused too. One unit case per form.
+- README: the re-acceptance gate redirects HTML navigations only (XHR / `fetch` / JSON / Turbo pass unless
+  `acceptance.non_html: deny`); it is a UX gate, not an access control (SEC-LEGAL-GATE-NONHTML).
 
 ## [1.4.0] - 2026-11-04
 
