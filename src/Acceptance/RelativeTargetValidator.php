@@ -49,7 +49,7 @@ final readonly class RelativeTargetValidator
         if (str_starts_with($target, '//') || str_starts_with($target, '/\\') || preg_match('/[\x00-\x1F\x7F\\\\]/', $target) === 1) {
             return false;
         }
-        if (self::hasUnsafeSegments((string) strtok($target, '?#'))) {
+        if ($this->hasUnsafeSegments(strtok($target, '?#'))) {
             return false;
         }
         $path       = rtrim(explode('?', explode('#', $target, 2)[0], 2)[0], '/');
@@ -62,7 +62,7 @@ final readonly class RelativeTargetValidator
      * Whether a raw path (before `?` / `#`) holds a dot segment (`.`, `..`, or their `%2e` forms, either case) or,
      * raw or once decoded, an empty segment (`//`), a backslash or a control character.
      */
-    private static function hasUnsafeSegments(string $path): bool
+    private function hasUnsafeSegments(string $path): bool
     {
         $decoded = rawurldecode($path);
         foreach ([$path, $decoded] as $candidate) {
