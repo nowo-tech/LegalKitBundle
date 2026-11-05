@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
   - [Added](#added)
@@ -33,6 +34,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-2)
 
 ## [Unreleased]
+
+## [1.4.1] - 2026-11-05
+
+Patch release. See [UPGRADING](UPGRADING.md#to-141).
 
 ### Security
 
