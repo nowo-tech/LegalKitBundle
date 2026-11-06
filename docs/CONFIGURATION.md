@@ -56,7 +56,7 @@ nowo_legal_kit:
         default_target: null              # route name after accepting without a stored target; null = "/"
         logout_route: null                # null = the firewall logout path (none without one)
         layout_template: null             # null = nowo_ui_layout.guest
-        template: '@NowoLegalKitBundle/acceptance/interstitial.html.twig'
+        template: '@NowoLegalKitBundle/acceptance/interstitial.html.twig' # or acceptance/compact.html.twig (one card)
         cache_pool: cache.app             # requirements map; null = no cache
         action_log: false                 # AuditKit legal_document.accepted per acceptance
     editor:
@@ -66,11 +66,13 @@ nowo_legal_kit:
         outbound_url_guard: auto          # auto | true | false
         ckeditor5_first_pass: false       # true: CKEditor strict sanitiser before the allowlist
         allowed_elements: {}              # element => [attributes], merged into the allowlist
+        heading_anchors: []               # anchors: class legal-anchor--<anchor> on a heading gets id="<anchor>"
     placeholders:
         builtin_markers: true
         extra_markers: []
     public:
         layout_template: null             # null = nowo_ui_layout.guest
+        prose_class: null                 # extra classes of the article, e.g. nowo-legal-doc--typography
         cache: { max_age: 0, shared_max_age: 0 }
     web_ui:
         enabled: true
@@ -148,11 +150,20 @@ or contain wildcards, `?`, `#` or `..`.
 The DOM allowlist keeps p, br, strong, b, em, i, u, s, h1–h4, ul, ol, li, blockquote, a, img, table / thead / tbody /
 tr / th / td, hr, span, div, section, article, header, footer, address, figure, figcaption, code, pre, mark, sup, sub
 with `class` (and per element: `href`, `title`, `rel`, `target`, `data-nowo-open-consent`, `src`, `alt`, `width`,
-`height`, `loading`, `colspan`, `rowspan`, `scope`). `allowed_elements` adds elements / attributes; `style`, `on*`,
+`height`, `loading`, `colspan`, `rowspan`, `scope`). `allowed_elements` adds elements / attributes (an invalid attribute name fails the build); `style`, `on*`,
 `srcdoc`, `formaction` and the removed elements (script, style, iframe, object, embed, svg, math, form controls,
 template, noscript…) can never be allowed. `outbound_url_guard: auto` drops private-network and cloud-metadata targets
 when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: true` runs CKEditor's strict sanitiser first (off by
 default: the allowlist is the stricter one, and CKEditor's pass would drop the `data-nowo-open-consent` opener).
+A body with an estimated element nesting above 512 is refused: the page answers 404, see [UPGRADING](UPGRADING.md#unreleased).
+
+`heading_anchors` (default empty: no `id` is ever printed) gives legal pages stable deep links such as
+`/legal/privacy#retention`, which the allowlist otherwise cannot keep because every input `id` is dropped (DOM
+clobbering). The text marks an `h1`–`h4` or `section` (or `h5`, `h6` if `allowed_elements` adds them with `class`) with the class `legal-anchor--<anchor>`; when `<anchor>` is in the
+list, the element gets `id="<anchor>"` as its first attribute. Names outside the list are ignored and each name is
+printed once (first occurrence in document order). Names match `^[a-z][a-z0-9_-]{0,63}$`. Pick names your layout does not
+use as ids: the bundle cannot see the layout. See [UPGRADING](UPGRADING.md#unreleased) if stored copies already carry
+these classes.
 
 ## Placeholders
 
@@ -163,6 +174,18 @@ identity set `builtin_markers: false` and list their own `extra_markers`. Unreso
 
 `Cache-Control: private` by default; `shared_max_age > 0` makes the response public with `s-maxage`. `Last-Modified`
 follows the stored row. `layout_template` replaces the UiKit guest layout for these pages only.
+
+`public.prose_class` adds classes to the public `<article class="nowo-legal-doc">`: the host's own prose classes, or
+`nowo-legal-doc--typography`, the bundle's document typography (loaded with `css/nowo-legal-kit.css`):
+
+| Token | Without a value | Applies to |
+| --- | --- | --- |
+| `--nowo-legal-doc-h1-size` | `1.875rem` | `h1` |
+| `--nowo-legal-doc-h2-size` | `1.125rem` | `h2` |
+| `--nowo-legal-doc-list-indent` | `1.25rem` | `ul`, `ol` |
+| `--nowo-legal-doc-gap` | `0.5rem` | below `h1` and `h2`, around lists (above `h2`: 3.5 times the gap) |
+
+The tokens only act under that class, so a host that sets nothing keeps its own heading and list styles.
 
 ## Admin UI and security
 

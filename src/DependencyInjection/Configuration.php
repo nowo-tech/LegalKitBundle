@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\DependencyInjection;
 
 use InvalidArgumentException;
 use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
+use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -15,6 +16,8 @@ use function is_string;
 use function preg_match;
 use function sprintf;
 use function str_contains;
+use function strlen;
+use function strtolower;
 
 /**
  * Strict configuration tree of `nowo_legal_kit` (REQ-SF-006); every key is documented in docs/CONFIGURATION.md.
@@ -30,10 +33,13 @@ final class Configuration implements ConfigurationInterface
     public const string SLUG_PATTERN = '/^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/';
 
     /** Path segment of a legal page URL. */
-    public const string PATH_PATTERN = '/^[a-z0-9][a-z0-9\/_-]{0,63}$/';
+    public const string PATH_PATTERN = '/^[a-z0-9][a-z0-9\/_-]{0,63}$/D';
 
     /** Seed revision pattern (`seed.revision`, `legal_document.seed_revision` VARCHAR 32, snapshot directory names). */
     public const string REVISION_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/';
+
+    /** Classes of `public.prose_class` (autoescaped by Twig; no quotes, angle brackets or URL syntax needed). */
+    public const string PROSE_CLASS_PATTERN = '/^[A-Za-z0-9_:\/.-]+(?: [A-Za-z0-9_:\/.-]+)*$/D';
 
     /** Path of the re-acceptance interstitial under `routing.path_prefix` (a page may not use it). */
     public const string ACCEPTANCE_PATH = 'accept';
@@ -162,7 +168,22 @@ final class Configuration implements ConfigurationInterface
                             ->info('Extra elements (name => list of attributes) merged into the built-in allowlist.')
                             ->useAttributeAsKey('name')
                             ->arrayPrototype()
-                                ->scalarPrototype()->end()
+                                ->scalarPrototype()
+                                    ->validate()
+                                        ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match(DomAllowlistSanitizer::ATTRIBUTE_NAME_PATTERN, strtolower($value)) !== 1)
+                                        ->thenInvalid('nowo_legal_kit.sanitizer.allowed_elements attributes must be valid attribute names, got %s.')
+                                    ->end()
+                                ->end()
+                            ->end()
+                            ->defaultValue([])
+                        ->end()
+                        ->arrayNode('heading_anchors')
+                            ->info('Anchor names: a heading or section with the class legal-anchor--<anchor> gets id="<anchor>" (first occurrence only). Empty: no id is ever printed.')
+                            ->scalarPrototype()
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match(DomAllowlistSanitizer::ANCHOR_PATTERN, $value) !== 1)
+                                    ->thenInvalid('nowo_legal_kit.sanitizer.heading_anchors entries must match ' . DomAllowlistSanitizer::ANCHOR_PATTERN . ', got %s.')
+                                ->end()
                             ->end()
                             ->defaultValue([])
                         ->end()
@@ -188,6 +209,14 @@ final class Configuration implements ConfigurationInterface
                         ->scalarNode('layout_template')
                             ->info('Layout of the public pages; null = UiKit nowo_ui_layout.guest.')
                             ->defaultNull()
+                        ->end()
+                        ->scalarNode('prose_class')
+                            ->info('Extra classes of the public article: nowo-legal-doc--typography (the --nowo-legal-doc-* tokens) or the host\'s prose classes. Null = none.')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || strlen($value) > 200 || preg_match(self::PROSE_CLASS_PATTERN, $value) !== 1))
+                                ->thenInvalid('nowo_legal_kit.public.prose_class must be space separated class names (at most 200 characters), got %s.')
+                            ->end()
                         ->end()
                         ->arrayNode('cache')
                             ->addDefaultsIfNotSet()

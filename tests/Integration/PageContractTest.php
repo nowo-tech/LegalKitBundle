@@ -34,6 +34,8 @@ final class PageContractTest extends PageContractTestCase
         yield 'admin compare (side by side)' => new PageFixture('@NowoLegalKitBundle/admin/compare.html.twig', PageFixtures::compare('side'));
         yield 're-acceptance page' => new PageFixture('@NowoLegalKitBundle/acceptance/interstitial.html.twig', PageFixtures::interstitial());
         yield 're-acceptance page (stale)' => new PageFixture('@NowoLegalKitBundle/acceptance/interstitial.html.twig', PageFixtures::interstitial(true));
+        yield 'compact re-acceptance page' => new PageFixture('@NowoLegalKitBundle/acceptance/compact.html.twig', PageFixtures::interstitial());
+        yield 'compact re-acceptance page (stale)' => new PageFixture('@NowoLegalKitBundle/acceptance/compact.html.twig', PageFixtures::interstitial(true));
     }
 
     protected static function templatePaths(): array

@@ -108,7 +108,7 @@ final class SeedSnapshotStoreTest extends TestCase
         self::assertIsArray($manifest);
         unset($manifest['pages']['terms']['es']['hash']);
         file_put_contents($this->dir . '/r1/manifest.json', json_encode($manifest));
-        self::assertNotNull($store->entry('r1', 'terms', 'es'), 'A hand-made manifest without hashes is accepted (recomputed)');
+        self::assertNull($store->entry('r1', 'terms', 'es'), 'A manifest entry without a hash is unknown (Appendix HB, HB-I10)');
 
         file_put_contents($this->dir . '/r1/terms.es.html', str_repeat('a', SeedSnapshotStore::MAX_BYTES + 1));
         self::assertNull($store->entry('r1', 'terms', 'es'), 'Oversized');

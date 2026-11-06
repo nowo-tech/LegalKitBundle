@@ -7,33 +7,68 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.4.1] - 2026-11-05](#141---2026-11-05)
-  - [Security](#security)
-- [[1.4.0] - 2026-11-04](#140---2026-11-04)
   - [Added](#added)
   - [Changed](#changed)
-- [[1.3.2] - 2026-11-04](#132---2026-11-04)
+  - [Security](#security)
+- [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-1)
+- [[1.4.0] - 2026-11-04](#140---2026-11-04)
+  - [Added](#added-1)
+  - [Changed](#changed-1)
+- [[1.3.2] - 2026-11-04](#132---2026-11-04)
+  - [Security](#security-2)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
-  - [Security](#security-2)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-3)
-  - [Changed](#changed-1)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
-  - [Changed](#changed-2)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-1)
-  - [Changed](#changed-3)
-  - [Fixed](#fixed-1)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-4)
+  - [Changed](#changed-2)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
+  - [Changed](#changed-3)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-2)
+  - [Changed](#changed-4)
+  - [Fixed](#fixed-1)
+  - [Security](#security-5)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-2)
+  - [Added](#added-3)
 
 ## [Unreleased]
+
+### Added
+
+- `sanitizer.heading_anchors` (default empty): an allowlist of anchors; an `h1`–`h4` or `section` with the class
+  `legal-anchor--<anchor>` gets `id="<anchor>"`, first occurrence only (`h5`, `h6` if `allowed_elements` adds them with
+  `class`). Every input `id` is still dropped.
+- `@NowoLegalKitBundle/acceptance/compact.html.twig`: the re-acceptance page as one card that fits a phone, opt-in
+  through `acceptance.template`. The default page does not change.
+- `public.prose_class` (default null): extra classes of the public article, and `nowo-legal-doc--typography` with the
+  tokens `--nowo-legal-doc-h1-size`, `-h2-size`, `-list-indent` and `-gap`. Nothing applies without the class.
+- `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash>` (with `acceptance.enabled`): compares a recorded
+  `content_hash` with the current text, with and without the anchor ids. Read-only.
+
+### Changed
+
+- Snapshots and stored `seed_hash` values also match when the only difference is the anchor ids, so turning
+  `sanitizer.heading_anchors` on does not publish a new version of unchanged text.
+- `sanitizer.allowed_elements` refuses an invalid attribute name at container build.
+- A page path with a trailing newline is refused at container build.
+
+### Security
+
+- `sanitizer.heading_anchors` is the only way an `id` reaches sanitised output. See
+  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audited: Appendix HB, Pass (good) / Low, re-verified at `2b0c525`.
+  Read [UPGRADING](UPGRADING.md#unreleased) before turning it on for text that already carries the classes (legal evidence).
+- `xmlns` and `xmlns:*` attributes no longer survive the allowlist on the libxml parser (inert, values stayed escaped).
+- A body with an estimated element nesting above 512 is refused, which stops the plain cases of very deep text crashing
+  PHP 8.4 on the HTML5 parser. It is an estimate: purpose-built text from an administrator or a seed can still crash
+  PHP 8.4.
+- A stored row or seed with no text left after the sanitiser is no longer a blank page that users could accept: the page
+  answers 404, an error is logged, nobody is asked to accept it, and `nowo:legal-kit:doctor` reports it.
+- A seed snapshot entry with no declared hash, or no text left after the sanitiser, counts as unknown.
 
 ## [1.4.1] - 2026-11-05
 

@@ -227,7 +227,8 @@ final readonly class LegalSeedUpgrader
 
         $baseRevision = $document->getSeedRevision() ?? $from;
         $base         = $document->getSeedHash() ?? ($baseRevision === null ? null : $this->snapshots->hash($baseRevision, $slug, $locale));
-        if ($base !== null && $rowHash === $base) {
+        // A base recorded before sanitizer.heading_anchors was turned on has no ids: the copy is still unedited.
+        if ($base !== null && ($rowHash === $base || $this->hasher->hashWithoutAnchorIds($document->getTitle(), $document->getBody()) === $base)) {
             $document->setTitle($seed->title);
             $document->setBody($seed->body);
             $document->setSeedBase($current, $newHash);

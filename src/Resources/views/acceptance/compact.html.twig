@@ -1,0 +1,70 @@
+{#
+  Compact re-acceptance page (opt-in: acceptance.template) — a declared unique page (docs/TEMPLATES.md): one card that
+  fits a phone screen without scrolling. Extends the guest layout (acceptance.layout_template ?? nowo_ui_layout.guest),
+  no app navigation, no JavaScript. Same variables and nowo-legal-kit-* test ids as acceptance/interstitial.html.twig:
+  pending (list<Acceptance\PendingLegalPage>), links (slug => public URL), form (LegalAcceptanceType view:
+  accept_<slug> checkboxes + offer), stale, impersonating, logout_url (?string), layout_template, legal_locale.
+  Extra test ids: legal-acceptance-read-<slug>, legal-acceptance-sign-out, legal-acceptance-impersonating.
+  Terms are accepted (unticked checkbox); privacy information is acknowledged (statement only, never consent). An
+  impersonating user sees no submit button (the controller refuses the POST anyway).
+  Page type "auth": the host's auth card width and theme.pages.auth classes apply. Slots: card, muted, form,
+  flash_warning, btn_primary, btn_secondary; semantic classes nowo-legal-acceptance--compact and
+  nowo-legal-acceptance__* (css/nowo-legal-kit.css, asset package nowo_legal_kit).
+  The link says "Read the <title>" because it is the way to the document: the intro sentence can be hidden on short
+  phones, and that instruction must not depend on the stylesheet.
+  Every text is autoescaped; change summaries are plain text (|nl2br after escaping).
+#}
+{% extends layout_template ?? nowo_ui_layout.guest %}
+{% set nowo_ui_bundle = 'NowoLegalKitBundle' %}
+{% set nowo_ui_page_type = 'auth' %}
+{% set _b = nowo_ui_bundle %}
+{% set _accept = pending|filter(p => p.isAccept)|length > 0 %}
+
+{% block nowo_ui_document_title %}{{ 'acceptance.title'|trans({}, 'NowoLegalKitBundle', legal_locale) }}{% endblock %}
+
+{% block nowo_ui_styles %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/nowo-legal-kit.css', 'nowo_legal_kit') }}">
+{% endblock %}
+
+{% block nowo_ui_content %}
+    <section class="nowo-legal-acceptance nowo-legal-acceptance--compact {{ nowo_ui_class('card', _b) }}" data-testid="nowo-legal-kit-acceptance" aria-labelledby="nowo-legal-acceptance-title"{{ nowo_ui_attrs('card', _b) }}>
+        <h1 id="nowo-legal-acceptance-title" class="nowo-legal-acceptance__title">{{ 'acceptance.title'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</h1>
+        <p class="nowo-legal-acceptance__intro {{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.intro'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% if stale %}
+            <p class="nowo-legal-acceptance__alert {{ nowo_ui_class('flash_warning', _b) }}" role="alert" data-testid="nowo-legal-kit-acceptance-stale">{{ 'acceptance.stale'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% endif %}
+        {% if impersonating %}
+            <p class="nowo-legal-acceptance__alert {{ nowo_ui_class('flash_warning', _b) }}" role="alert" data-testid="legal-acceptance-impersonating">{{ 'acceptance.impersonating'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+        {% endif %}
+        {{ form_start(form, {attr: {class: 'nowo-legal-acceptance__form ' ~ nowo_ui_class('form', _b), 'data-testid': 'nowo-legal-kit-acceptance-form'}}) }}
+            {% for item in pending %}
+                <article class="nowo-legal-acceptance__item" lang="{{ item.contentLocale }}" data-testid="nowo-legal-kit-acceptance-{{ item.page.slug }}" data-nowo-legal-kind="{{ item.kind }}">
+                    <h2 class="nowo-legal-acceptance__item-title">
+                        <a href="{{ links[item.page.slug] }}" target="_blank" rel="noopener" data-testid="legal-acceptance-read-{{ item.page.slug }}">{{ 'acceptance.read'|trans({'%title%': item.title}, 'NowoLegalKitBundle', legal_locale) }}</a>
+                        <span class="nowo-legal-acceptance__version {{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.version'|trans({'%version%': item.currentVersion}, 'NowoLegalKitBundle', legal_locale) }}</span>
+                    </h2>
+                    {% if item.changeSummary is not null %}
+                        <p class="nowo-legal-acceptance__summary {{ nowo_ui_class('muted', _b) }}">{{ item.changeSummary|nl2br }}</p>
+                    {% elseif item.currentVersion > 1 %}
+                        <p class="nowo-legal-acceptance__summary {{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.default_summary'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</p>
+                    {% endif %}
+                    {% if item.isAccept %}
+                        <div class="nowo-legal-acceptance__check">{{ form_row(form['accept_' ~ item.page.slug]) }}</div>
+                    {% else %}
+                        <p class="nowo-legal-acceptance__statement {{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.acknowledge_statement'|trans({'%title%': item.title}, 'NowoLegalKitBundle', legal_locale) }}</p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+            {{ form_rest(form) }}
+            <div class="nowo-legal-acceptance__actions">
+                {% if not impersonating %}
+                    <button type="submit" class="{{ nowo_ui_class('btn_primary', _b) }}" data-testid="nowo-legal-kit-acceptance-submit">{{ (_accept ? 'acceptance.submit_accept' : 'acceptance.submit_continue')|trans({}, 'NowoLegalKitBundle', legal_locale) }}</button>
+                {% endif %}
+                {% if logout_url %}
+                    <a class="{{ nowo_ui_class('btn_secondary', _b) }}" href="{{ logout_url }}" data-testid="legal-acceptance-sign-out">{{ 'acceptance.sign_out'|trans({}, 'NowoLegalKitBundle', legal_locale) }}</a>
+                {% endif %}
+            </div>
+        {{ form_end(form) }}
+    </section>
+{% endblock %}

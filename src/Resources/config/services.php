@@ -62,7 +62,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('nowo_legal_kit.url_policy', UrlPolicy::class)->autowire(false)->args([null]);
     $services->set('nowo_legal_kit.sanitizer', DomAllowlistSanitizer::class)
         ->autowire(false)
-        ->args([service('nowo_legal_kit.url_policy'), param('nowo_legal_kit.sanitizer.allowed_elements'), null]);
+        ->args([service('nowo_legal_kit.url_policy'), param('nowo_legal_kit.sanitizer.allowed_elements'), null, null, param('nowo_legal_kit.sanitizer.heading_anchors')]);
     $services->alias(LegalHtmlSanitizerInterface::class, 'nowo_legal_kit.sanitizer');
 
     $services->set(TwigSeedProvider::class);
@@ -113,6 +113,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$defaultLocaleStyle', param('nowo_legal_kit.routing.default_locale_style'))
         ->arg('$maxAge', param('nowo_legal_kit.public.cache.max_age'))
         ->arg('$sharedMaxAge', param('nowo_legal_kit.public.cache.shared_max_age'))
+        ->arg('$proseClass', param('nowo_legal_kit.public.prose_class'))
         ->arg('$dispatcher', service('event_dispatcher'));
 
     $services->set(LegalDocumentAdminController::class)

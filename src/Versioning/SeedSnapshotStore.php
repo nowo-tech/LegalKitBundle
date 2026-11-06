@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Versioning;
 
 use Nowo\LegalKitBundle\DependencyInjection\Configuration;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use RuntimeException;
 
@@ -170,7 +171,12 @@ final readonly class SeedSnapshotStore
         }
         $hash     = $this->hasher->hash($meta['title'], $body);
         $declared = $meta['hash'] ?? null;
-        if (is_string($declared) && !hash_equals($declared, $hash)) {
+        // A snapshot taken before sanitizer.heading_anchors was turned on declares the text without the ids.
+        // A missing hash proves nothing, and a body with no text left after the sanitiser is not a text to compare with.
+        if (!is_string($declared) || (!hash_equals($declared, $hash) && !hash_equals($declared, $this->hasher->hashWithoutAnchorIds($meta['title'], $body)))) {
+            return null;
+        }
+        if (!LegalDocumentResolver::hasText($this->hasher->normalizeBody($body))) {
             return null;
         }
 

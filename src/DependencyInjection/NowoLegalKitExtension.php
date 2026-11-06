@@ -19,6 +19,7 @@ use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\Command\SeedCommand;
 use Nowo\LegalKitBundle\Command\SnapshotSeedCommand;
 use Nowo\LegalKitBundle\Command\UpgradeSeedCommand;
+use Nowo\LegalKitBundle\Command\VerifyAcceptanceHashCommand;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
 use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
@@ -195,11 +196,11 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $seed = $config['seed'];
         /** @var array{type: string, ckeditor5_profile: string} $editor */
         $editor = $config['editor'];
-        /** @var array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>} $sanitizer */
+        /** @var array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>, heading_anchors: list<string>} $sanitizer */
         $sanitizer = $config['sanitizer'];
         /** @var array{builtin_markers: bool, extra_markers: list<string>} $placeholders */
         $placeholders = $config['placeholders'];
-        /** @var array{layout_template: string|null, cache: array{max_age: int, shared_max_age: int}} $public */
+        /** @var array{layout_template: string|null, prose_class: string|null, cache: array{max_age: int, shared_max_age: int}} $public */
         $public = $config['public'];
         /** @var array{enabled: bool, path_prefix: string, layout_template: string|null, templates: array{index: string, edit: string, public_page: string}} $webUi */
         $webUi = $config['web_ui'];
@@ -224,9 +225,11 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $container->setParameter($p . 'editor.type', $this->editorType($editor['type'], $has(self::CKEDITOR_BUNDLE)));
         $container->setParameter($p . 'editor.ckeditor5_profile', $editor['ckeditor5_profile']);
         $container->setParameter($p . 'sanitizer.allowed_elements', $sanitizer['allowed_elements']);
+        $container->setParameter($p . 'sanitizer.heading_anchors', $sanitizer['heading_anchors']);
         $container->setParameter($p . 'placeholders.builtin_markers', $placeholders['builtin_markers']);
         $container->setParameter($p . 'placeholders.extra_markers', $placeholders['extra_markers']);
         $container->setParameter($p . 'public.layout_template', $public['layout_template']);
+        $container->setParameter($p . 'public.prose_class', $public['prose_class']);
         $container->setParameter($p . 'public.cache.max_age', $public['cache']['max_age']);
         $container->setParameter($p . 'public.cache.shared_max_age', $public['cache']['shared_max_age']);
         $container->setParameter($p . 'web_ui.enabled', $webUi['enabled']);
@@ -421,6 +424,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ->setArgument('$exemptRoutes', $acceptance['exempt_routes'])
             ->setArgument('$exemptPaths', $acceptance['exempt_paths'])
             ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG));
+        $register(VerifyAcceptanceHashCommand::class);
         $register(LegalAcceptanceType::class);
         $register(LegalAcceptanceController::class)
             ->setAutoconfigured(false)
@@ -440,7 +444,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     }
 
     /**
-     * @param array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>} $sanitizer
+     * @param array{outbound_url_guard: bool|string, ckeditor5_first_pass: bool, allowed_elements: array<string, list<string>>, heading_anchors: list<string>} $sanitizer
      * @param callable(string): bool $has
      */
     private function configureSanitizer(ContainerBuilder $container, array $sanitizer, callable $has): void

@@ -22,6 +22,64 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+No action needed by default: all three additions are opt-in, and a host that changes nothing gets the same pages. The
+exceptions are rare: see **Other changes** below.
+
+- **`sanitizer.heading_anchors`.** Mark headings with `legal-anchor--<anchor>` and list the anchors. An `h1`–`h4` or
+  `section` qualifies; `h5` and `h6` too if `allowed_elements` adds them with `class`.
+
+  **Legal evidence.** If the text already carries these classes, `legal_acceptance.content_hash` also changes: rows stay
+  as they are and nobody is asked to accept again, but later acceptances of the same version record another hash, and an
+  old hash matches the current render only after removing the anchor `id` attributes.
+  `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash>` does that comparison, against the current text only
+  (page versions do not keep their text, so a mismatch does not show what was accepted). Keep a note of the date you
+  turned the option on, with your records. A page open during the switch asks the user to review again; nothing is
+  recorded.
+
+  **Seed upgrades.** Stored `seed_hash` values and snapshots from before the switch stay usable, because they are also
+  compared without the ids: `upgrade-seed --requires-acceptance` publishes no version for unchanged text, and an unedited
+  copy still takes a new seed. This works in one direction only. If you turn the option **off** again, bases and snapshots
+  written while it was on stop matching, and `--requires-acceptance` publishes a new version of unchanged text, so users
+  must act again. Check first with `--requires-acceptance --dry-run`.
+
+  Do the switch in a deploy of its own, with no seed change, so the date in your note separates the two hashes cleanly:
+  (1) turn the option on; (2) run `nowo:legal-kit:upgrade-seed --from=<revision> --requires-acceptance --dry-run` and check
+  that it lists no "Version published" line and `seed_unknown: 0`. Without a version flag the dry run never lists a
+  version, so it proves nothing. There is no need to retake snapshots. If you do, run `snapshot-seed --revision=<same revision> --force` only
+  while the seed text is still that revision, or new text is frozen under the old name.
+
+  **Replacing a sanitiser decorator.** A decorator that prints `id` first and then `class` on `h2`, `h3` and `section`
+  gets identical output and hashes, for those elements only. An `h1` or `h4` carrying a class now gets the id too (and can
+  take it from a later `h2`), and a class followed by a newline differs. Search your stored bodies for such elements
+  first; the bundle cannot check them for you. Remove the decorator and set the option in the same deploy: with both on,
+  elements get the `id` attribute twice and hashes change. The bundle cannot detect this at build, because a decorator of
+  the sanitiser may have other purposes.
+- **Compact re-acceptance page.** Set `acceptance.template: '@NowoLegalKitBundle/acceptance/compact.html.twig'`. It
+  loads `css/nowo-legal-kit.css`, so run `assets:install` and keep `nowo_ui_styles` in your layout. The card uses the
+  `card` slot and the page type `auth`; set `theme.pages.auth` or `theme.bundles.NowoLegalKitBundle` for your own classes.
+- **Document typography.** Set `public.prose_class: nowo-legal-doc--typography` and any of the tokens listed in
+  [CONFIGURATION](CONFIGURATION.md#public-pages-and-cache). Rules of your own on `.nowo-legal-doc h1` that load later
+  still win.
+- **Template contract.** `public/page.html.twig` receives a new variable, `prose_class`. A host that overrides the
+  template can ignore it.
+
+**Other changes**, none of which needs a config change unless it applies to you:
+
+- `sanitizer.allowed_elements` now refuses an invalid attribute name at container build (for example `data-@x` or
+  `@click`). Until now such an attribute could reach the output, depending on the parser. Fix or remove it.
+- A body whose estimated element nesting exceeds 512 is refused, because very deep text crashes PHP 8.4 in native code. A
+  stored row or seed with no text left after the sanitiser, for this reason or any other, is treated the same way. An image alone does not count as text, so a seed with only an image is refused too. The
+  page then answers 404 and an error is logged, and users are not asked to accept it until it is fixed; nothing blank is
+  shown or recorded. On PHP 8.3 the libxml parser stops at depth 256 and drops what is deeper, so a text whose only words sit below that depth is refused too. A row refused this way does not fall back to the seed. A stored row with no text of its own still
+  shows the seed, as before. Run `nowo:legal-kit:doctor` after upgrading: it lists any stored text or seed in this state and
+  exits 1. If it cannot read the database, for example before migrations, it warns and exits 0 (1 with `--strict`) and nothing has been checked, so run it again once the database is there. Footer links and the sitemap keep listing such a page until it is fixed.
+- PHP 8.3 and any host using the libxml parser: `xmlns` and `xmlns:*` attributes are now removed. They had no effect in
+  the browser. A snapshot of such text becomes unknown, so `--requires-acceptance` would publish a new version of it;
+  `content_hash` of that text changes too, and `verify-acceptance-hash` cannot explain that difference.
+- A seed snapshot entry whose `hash` key is missing now counts as unknown, so `--requires-acceptance` would publish a new
+  version of it. Snapshots written by `snapshot-seed` always have the key; only a hand-made manifest is affected.
+- A `pages.<slug>.path` with a trailing newline is refused at build.
+
 ## To 1.4.1
 
 From **1.4.0**:

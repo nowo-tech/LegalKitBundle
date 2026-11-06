@@ -50,6 +50,7 @@ final readonly class LegalPageController
      * @param string $defaultLocaleStyle `routing.default_locale_style`
      * @param int $maxAge `public.cache.max_age`
      * @param int $sharedMaxAge `public.cache.shared_max_age`
+     * @param string|null $proseClass `public.prose_class`
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
@@ -63,6 +64,7 @@ final readonly class LegalPageController
         private string $defaultLocaleStyle,
         private int $maxAge = 0,
         private int $sharedMaxAge = 0,
+        private ?string $proseClass = null,
     ) {
     }
 
@@ -100,6 +102,7 @@ final readonly class LegalPageController
             'alternates'      => $alternates,
             'layout_template' => $this->layoutTemplate,
             'legal_locale'    => $locale,
+            'prose_class'     => $this->proseClass,
         ] + $event->templateVariables()));
 
         return $this->cache($response, $document, $request);

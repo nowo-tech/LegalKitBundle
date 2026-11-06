@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Command;
 
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\BuiltinMarkers;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Http\AccessMapInterface;
+use Throwable;
 
 use function count;
 use function in_array;
@@ -51,6 +53,7 @@ final class DoctorCommand extends Command
      * @param string|null $privacyRoute CookieConsent config privacy_route fallback (1.17+)
      * @param bool $builtinMarkers `placeholders.builtin_markers`
      * @param ?LegalDocumentRepository $documents Stored rows (versioning on: rows without a seed base)
+     * @param ?LegalDocumentResolver $resolver Texts refused by the sanitiser
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -63,6 +66,7 @@ final class DoctorCommand extends Command
         private readonly ?string $privacyRoute = null,
         private readonly bool $builtinMarkers = true,
         private readonly ?LegalDocumentRepository $documents = null,
+        private readonly ?LegalDocumentResolver $resolver = null,
     ) {
         parent::__construct(self::NAME);
     }
@@ -133,6 +137,22 @@ final class DoctorCommand extends Command
         $withoutBase = $this->documents?->countWithoutSeedBase() ?? 0;
         if ($withoutBase > 0) {
             $warnings[] = sprintf('Stored legal copies without a seed base: %d. Run nowo:legal-kit:upgrade-seed --from=<revision> (with a snapshot of that revision).', $withoutBase);
+        }
+
+        foreach ($this->catalog->slugs() as $slug) {
+            foreach ($this->locales->all() as $locale) {
+                try {
+                    $sources = $this->resolver?->refusedSources($slug, $locale) ?? [];
+                } catch (Throwable $exception) {
+                    // No database yet, or a seed that cannot render here: not a fault of the text, so only a warning.
+                    $warnings[] = sprintf('The text of "%s" (%s) could not be checked: %s.', $slug, $locale, $exception::class);
+
+                    continue;
+                }
+                foreach ($sources as $source) {
+                    $errors[] = sprintf('The %s text of "%s" (%s) has no text left after the sanitiser (empty, or nested too deeply). Where it applies, the page answers 404 and is not offered for acceptance; fix the text.', $source, $slug, $locale);
+                }
+            }
         }
 
         foreach ($errors as $error) {

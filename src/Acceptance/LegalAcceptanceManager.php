@@ -14,6 +14,7 @@ use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
+use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -134,6 +135,17 @@ final readonly class LegalAcceptanceManager
     public static function contentHash(ResolvedLegalDocument $document): string
     {
         return hash('sha256', $document->title . "\n" . $document->body);
+    }
+
+    /**
+     * Hash of the same text as printed with `sanitizer.heading_anchors` empty: the hash an acceptance recorded before
+     * the option was turned on. Never recorded; `nowo:legal-kit:verify-acceptance-hash` compares with it.
+     *
+     * @return string The hash
+     */
+    public static function contentHashWithoutAnchorIds(ResolvedLegalDocument $document): string
+    {
+        return hash('sha256', $document->title . "\n" . DomAllowlistSanitizer::withoutAnchorIds($document->body));
     }
 
     /**
