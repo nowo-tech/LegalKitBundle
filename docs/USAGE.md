@@ -380,6 +380,7 @@ own personal-data erasure (or keep `action_log: false` and audit `LegalAcceptedE
 | `nowo:legal-kit:doctor [--strict]` | routes, anonymous access, CookieConsent routes / privacy link, seed markers, copies without a seed base (versioning) |
 | `nowo:legal-kit:snapshot-seed [--revision=…] [--force]` | versioning: freeze the current seed (see [Snapshots](#snapshots)) |
 | `nowo:legal-kit:upgrade-seed [--from=…] [--dry-run] [--new-version\|--requires-acceptance] [--fail-on-outdated]` | versioning: refresh unedited copies, flag edited ones, publish versions |
+| `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash>` | acceptance: compare a recorded `content_hash` with the current text, with and without the anchor ids; read-only, exit 1 when it does not match |
 
 ## Events
 

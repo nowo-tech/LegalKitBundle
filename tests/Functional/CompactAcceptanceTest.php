@@ -60,6 +60,7 @@ final class CompactAcceptanceTest extends VersioningTestCase
         self::assertCount(1, $crawler->filter('[data-testid="nowo-legal-kit-acceptance-form"]'));
         self::assertCount(1, $crawler->filter('[data-testid="nowo-legal-kit-acceptance-submit"]'));
         self::assertSame('/legal/terms', $crawler->filter('[data-testid="legal-acceptance-read-terms"]')->attr('href'));
+        self::assertStringStartsWith('Read the ', $crawler->filter('[data-testid="legal-acceptance-read-terms"]')->text(), 'The link says what it does, whatever the stylesheet hides');
         self::assertSame('noopener', $crawler->filter('[data-testid="legal-acceptance-read-terms"]')->attr('rel'));
         self::assertCount(1, $crawler->filter('input[name="nowo_legal_kit_acceptance[_token]"]'), 'CSRF token printed by form_rest');
         self::assertStringContainsString('nowo-legal-kit.css', $crawler->filter('head')->html());
@@ -103,6 +104,7 @@ final class CompactAcceptanceTest extends VersioningTestCase
 
         self::assertStringContainsString("&lt;script&gt;alert(1)&lt;/script&gt;<br />\nSecond line", $html);
         self::assertStringContainsString('&lt;i&gt;Terms&lt;/i&gt;', $html);
+        self::assertStringContainsString('Read the &lt;i&gt;Terms&lt;/i&gt;', $html);
         self::assertStringNotContainsString('<script>alert(1)', $html);
     }
 }

@@ -19,6 +19,7 @@ use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\Command\SeedCommand;
 use Nowo\LegalKitBundle\Command\SnapshotSeedCommand;
 use Nowo\LegalKitBundle\Command\UpgradeSeedCommand;
+use Nowo\LegalKitBundle\Command\VerifyAcceptanceHashCommand;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
 use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
@@ -423,6 +424,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ->setArgument('$exemptRoutes', $acceptance['exempt_routes'])
             ->setArgument('$exemptPaths', $acceptance['exempt_paths'])
             ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG));
+        $register(VerifyAcceptanceHashCommand::class);
         $register(LegalAcceptanceType::class);
         $register(LegalAcceptanceController::class)
             ->setAutoconfigured(false)

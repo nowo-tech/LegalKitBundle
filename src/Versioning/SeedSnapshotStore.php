@@ -170,7 +170,8 @@ final readonly class SeedSnapshotStore
         }
         $hash     = $this->hasher->hash($meta['title'], $body);
         $declared = $meta['hash'] ?? null;
-        if (is_string($declared) && !hash_equals($declared, $hash)) {
+        // A snapshot taken before sanitizer.heading_anchors was turned on declares the text without the ids.
+        if (is_string($declared) && !hash_equals($declared, $hash) && !hash_equals($declared, $this->hasher->hashWithoutAnchorIds($meta['title'], $body))) {
             return null;
         }
 

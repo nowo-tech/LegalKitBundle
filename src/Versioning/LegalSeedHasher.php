@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Versioning;
 
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
+use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 
 use function hash;
@@ -75,6 +76,17 @@ final readonly class LegalSeedHasher
     public function hash(string $title, string $body): string
     {
         return hash('sha256', self::VERSION . "\n" . self::normalizeText($title) . "\n" . $this->normalizeBody($body));
+    }
+
+    /**
+     * Hash of the same text as printed with `sanitizer.heading_anchors` empty. Only for comparing with a hash recorded
+     * before the option was turned on: an unchanged text must not count as an edit or as an unknown snapshot.
+     *
+     * @return string 64 hexadecimal characters
+     */
+    public function hashWithoutAnchorIds(string $title, string $body): string
+    {
+        return hash('sha256', self::VERSION . "\n" . self::normalizeText($title) . "\n" . DomAllowlistSanitizer::withoutAnchorIds($this->normalizeBody($body)));
     }
 
     /**

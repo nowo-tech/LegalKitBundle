@@ -69,6 +69,19 @@ final class PresentationOptionsConfigurationTest extends TestCase
         $this->process(['sanitizer' => ['heading_anchors' => [$anchor]]]);
     }
 
+    public function testInvalidAllowedAttributeNameIsRefused(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->process(['sanitizer' => ['allowed_elements' => ['h2' => ['data-@x']]]]);
+    }
+
+    public function testValidAllowedAttributeNames(): void
+    {
+        $config = $this->process(['sanitizer' => ['allowed_elements' => ['abbr' => ['title', 'data-x', 'aria-label', 'xml:lang', 'TITLE']]]]);
+
+        self::assertSame(['title', 'data-x', 'aria-label', 'xml:lang', 'TITLE'], $config['sanitizer']['allowed_elements']['abbr']);
+    }
+
     /**
      * @return iterable<string, array{mixed}>
      */

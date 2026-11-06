@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\DependencyInjection;
 
 use InvalidArgumentException;
 use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
+use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -16,6 +17,7 @@ use function preg_match;
 use function sprintf;
 use function str_contains;
 use function strlen;
+use function strtolower;
 
 /**
  * Strict configuration tree of `nowo_legal_kit` (REQ-SF-006); every key is documented in docs/CONFIGURATION.md.
@@ -35,9 +37,6 @@ final class Configuration implements ConfigurationInterface
 
     /** Seed revision pattern (`seed.revision`, `legal_document.seed_revision` VARCHAR 32, snapshot directory names). */
     public const string REVISION_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/';
-
-    /** Anchor name of `sanitizer.heading_anchors`: printed as an `id` and read from a class token. */
-    public const string ANCHOR_PATTERN = '/^[a-z][a-z0-9_-]{0,63}$/D';
 
     /** Classes of `public.prose_class` (autoescaped by Twig; no quotes, angle brackets or URL syntax needed). */
     public const string PROSE_CLASS_PATTERN = '/^[A-Za-z0-9_:\/.-]+(?: [A-Za-z0-9_:\/.-]+)*$/D';
@@ -169,7 +168,12 @@ final class Configuration implements ConfigurationInterface
                             ->info('Extra elements (name => list of attributes) merged into the built-in allowlist.')
                             ->useAttributeAsKey('name')
                             ->arrayPrototype()
-                                ->scalarPrototype()->end()
+                                ->scalarPrototype()
+                                    ->validate()
+                                        ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match(DomAllowlistSanitizer::ATTRIBUTE_NAME_PATTERN, strtolower($value)) !== 1)
+                                        ->thenInvalid('nowo_legal_kit.sanitizer.allowed_elements attributes must be valid attribute names, got %s.')
+                                    ->end()
+                                ->end()
                             ->end()
                             ->defaultValue([])
                         ->end()
@@ -177,8 +181,8 @@ final class Configuration implements ConfigurationInterface
                             ->info('Anchor names: a heading or section with the class legal-anchor--<anchor> gets id="<anchor>" (first occurrence only). Empty: no id is ever printed.')
                             ->scalarPrototype()
                                 ->validate()
-                                    ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match(self::ANCHOR_PATTERN, $value) !== 1)
-                                    ->thenInvalid('nowo_legal_kit.sanitizer.heading_anchors entries must match ' . self::ANCHOR_PATTERN . ', got %s.')
+                                    ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match(DomAllowlistSanitizer::ANCHOR_PATTERN, $value) !== 1)
+                                    ->thenInvalid('nowo_legal_kit.sanitizer.heading_anchors entries must match ' . DomAllowlistSanitizer::ANCHOR_PATTERN . ', got %s.')
                                 ->end()
                             ->end()
                             ->defaultValue([])

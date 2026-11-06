@@ -9,6 +9,7 @@ use Nowo\LegalKitBundle\Sanitizer\UrlPolicy;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function str_repeat;
 use function substr_count;
 
 /**
@@ -115,6 +116,83 @@ final class HeadingAnchorsTest extends TestCase
         $once      = $sanitizer->sanitize('<h2 class="legal-anchor--chat">A</h2><h2 class="legal-anchor--chat">B</h2>');
 
         self::assertSame($once, $sanitizer->sanitize($once));
+    }
+
+    #[DataProvider('parsers')]
+    public function testFifthAndSixthLevelNeedTheAllowlist(bool $html5): void
+    {
+        self::assertSame('five', $this->sanitizer($html5)->sanitize('<h5 class="legal-anchor--chat">five</h5>'));
+        self::assertSame(
+            '<h5 id="chat" class="legal-anchor--chat">five</h5>',
+            $this->sanitizer($html5, extra: ['h5' => ['class']])->sanitize('<h5 class="legal-anchor--chat">five</h5>'),
+        );
+    }
+
+    #[DataProvider('parsers')]
+    public function testConstructorFiltersNamesTheConfigWouldRefuse(bool $html5): void
+    {
+        $sanitizer = $this->sanitizer($html5, ['__proto__', 'addEventListener', '0', 'a"b', 'chat']);
+
+        self::assertSame('<h2 class="legal-anchor--__proto__">a</h2>', $sanitizer->sanitize('<h2 class="legal-anchor--__proto__">a</h2>'));
+        self::assertSame('<h2 class="legal-anchor--0">a</h2>', $sanitizer->sanitize('<h2 class="legal-anchor--0">a</h2>'));
+        self::assertSame('<h2 id="chat" class="legal-anchor--chat">a</h2>', $sanitizer->sanitize('<h2 class="legal-anchor--chat">a</h2>'));
+    }
+
+    /** An attribute name the DOM refuses must not reach the re-adding step (HTML5 parser: DOMException). */
+    #[DataProvider('parsers')]
+    public function testInvalidAllowedAttributeNameCannotBreakAnAnchoredElement(bool $html5): void
+    {
+        $html = $this->sanitizer($html5, extra: ['h2' => ['data-@x']])->sanitize('<h2 data-@x="1" class="legal-anchor--chat">a</h2>');
+
+        self::assertSame('<h2 id="chat" class="legal-anchor--chat">a</h2>', $html);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function namespaceDeclarations(): iterable
+    {
+        yield 'default' => ['<p xmlns="x">a</p>', '<p>a</p>'];
+        yield 'prefixed' => ['<h2 xmlns:x="javascript:alert(1)">a</h2>', '<h2>a</h2>'];
+        yield 'prefixed attribute' => ['<p xlink:href="javascript:alert(1)">a</p>', '<p>a</p>'];
+    }
+
+    #[DataProvider('namespaceDeclarations')]
+    public function testNamespaceDeclarationsDoNotSurviveOnEitherParser(string $input, string $expected): void
+    {
+        self::assertSame($expected, (new DomAllowlistSanitizer(html5: false))->sanitize($input));
+        self::assertSame($expected, (new DomAllowlistSanitizer(html5: true))->sanitize($input));
+    }
+
+    #[DataProvider('parsers')]
+    public function testVeryDeepBodyIsRefusedBeforeParsing(bool $html5): void
+    {
+        $sanitizer = new DomAllowlistSanitizer(html5: $html5);
+
+        self::assertSame('', $sanitizer->sanitize(str_repeat('<div>', 50000) . 'x'));
+        self::assertSame('', $sanitizer->sanitize(str_repeat('<b>', DomAllowlistSanitizer::MAX_NESTING_DEPTH + 1) . 'x'));
+    }
+
+    #[DataProvider('parsers')]
+    public function testLongOrdinaryTextIsNotTakenForDeep(bool $html5): void
+    {
+        $sanitizer = new DomAllowlistSanitizer(html5: $html5);
+        $closed    = str_repeat('<div><p>a</p></div>', 2000);
+        $unclosed  = str_repeat('<li>a<br>', 2000);
+
+        self::assertSame($closed, $sanitizer->sanitize($closed));
+        self::assertStringContainsString('<li>a<br></li>', $sanitizer->sanitize($unclosed));
+        self::assertStringContainsString('x', $sanitizer->sanitize(str_repeat('<div>', 100) . 'x'));
+    }
+
+    public function testWithoutAnchorIdsRemovesOnlyAnchorIds(): void
+    {
+        $sanitizer = $this->sanitizer(true, ['chat']);
+        $input     = '<h2 class="legal-anchor--chat" title="x">a</h2><p>&lt;h2 id="chat"</p><a title="&lt;h2 id=&quot;y&quot;">b</a>';
+        $plain     = new DomAllowlistSanitizer(html5: true);
+
+        self::assertSame($plain->sanitize($input), DomAllowlistSanitizer::withoutAnchorIds($sanitizer->sanitize($input)));
+        self::assertStringContainsString('&lt;h2 id="chat"', DomAllowlistSanitizer::withoutAnchorIds($sanitizer->sanitize($input)));
     }
 
     #[DataProvider('parsers')]

@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nowo\LegalKitBundle\Command;
+
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+use function hash_equals;
+use function is_string;
+use function preg_match;
+use function sprintf;
+
+/**
+ * Compares a recorded `legal_acceptance.content_hash` with the current text of a page, with and without the
+ * `sanitizer.heading_anchors` ids. Read-only. Page versions do not keep their text, so only the current text can be
+ * checked: a mismatch does not show what the user accepted, only that it is not this text.
+ *
+ * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
+ * @copyright 2026 Nowo.tech
+ */
+#[AsCommand(name: self::NAME, description: 'Check a recorded acceptance hash against the current text of a legal page')]
+final class VerifyAcceptanceHashCommand extends Command
+{
+    public const string NAME = 'nowo:legal-kit:verify-acceptance-hash';
+
+    /**
+     * @param LegalDocumentResolver $resolver Current text
+     */
+    public function __construct(private readonly LegalDocumentResolver $resolver)
+    {
+        parent::__construct(self::NAME);
+    }
+
+    /**
+     * Arguments: slug, locale, hash.
+     *
+     * @return void Nothing (side effects only)
+     */
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('slug', InputArgument::REQUIRED, 'Page slug')
+            ->addArgument('locale', InputArgument::REQUIRED, 'Locale of the recorded acceptance')
+            ->addArgument('hash', InputArgument::REQUIRED, 'The recorded content_hash');
+    }
+
+    /**
+     * Prints the result: 0 when the hash matches (with or without the anchor ids), 1 when it does not, 2 on bad input.
+     *
+     * @return int Exit code
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io       = new SymfonyStyle($input, $output);
+        $slug     = $input->getArgument('slug');
+        $locale   = $input->getArgument('locale');
+        $recorded = $input->getArgument('hash');
+        if (!is_string($slug) || !is_string($locale) || !is_string($recorded) || preg_match('/^[0-9a-f]{64}$/D', $recorded) !== 1) {
+            $io->error('The hash must be 64 lowercase hexadecimal characters.');
+
+            return Command::INVALID;
+        }
+        $document = $this->resolver->resolve($slug, $locale);
+        if (!$document instanceof ResolvedLegalDocument) {
+            $io->error(sprintf('No text for the page "%s" in "%s".', $slug, $locale));
+
+            return Command::INVALID;
+        }
+
+        if (hash_equals($recorded, LegalAcceptanceManager::contentHash($document))) {
+            $io->success('The hash matches the current text.');
+
+            return Command::SUCCESS;
+        }
+        if (hash_equals($recorded, LegalAcceptanceManager::contentHashWithoutAnchorIds($document))) {
+            $io->success('The hash matches the current text without its anchor ids: it was recorded before sanitizer.heading_anchors applied to this text.');
+
+            return Command::SUCCESS;
+        }
+        $io->warning('The hash does not match the current text. Only the current text can be checked: page versions do not keep their text.');
+
+        return Command::FAILURE;
+    }
+}

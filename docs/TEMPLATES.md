@@ -41,7 +41,7 @@ The public legal page has no list / form / show shape: it is prose with a cross 
 - `@NowoLegalKitBundle/acceptance/compact.html.twig` (1.5, opt-in through `acceptance.template`) — the same page as one
   card that fits a phone screen without scrolling: same variables and `nowo-legal-kit-*` test ids as the interstitial,
   plus `legal-acceptance-read-<slug>`, `legal-acceptance-sign-out` and `legal-acceptance-impersonating`. Each document
-  is a row (linked title, version, summary, checkbox or statement), the page type is `auth`, it also fills
+  is a row (a "Read the <title>" link, version, summary, checkbox or statement), the page type is `auth`, it also fills
   `nowo_ui_styles` (`css/nowo-legal-kit.css`) and an impersonating user sees no submit button. No JavaScript. Semantic
   classes: `nowo-legal-acceptance--compact`, `nowo-legal-acceptance__*`. On a phone the host still has to keep its shell
   from adding height of its own (bottom padding, a tall footer).

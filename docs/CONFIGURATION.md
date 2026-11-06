@@ -150,15 +150,16 @@ or contain wildcards, `?`, `#` or `..`.
 The DOM allowlist keeps p, br, strong, b, em, i, u, s, h1–h4, ul, ol, li, blockquote, a, img, table / thead / tbody /
 tr / th / td, hr, span, div, section, article, header, footer, address, figure, figcaption, code, pre, mark, sup, sub
 with `class` (and per element: `href`, `title`, `rel`, `target`, `data-nowo-open-consent`, `src`, `alt`, `width`,
-`height`, `loading`, `colspan`, `rowspan`, `scope`). `allowed_elements` adds elements / attributes; `style`, `on*`,
+`height`, `loading`, `colspan`, `rowspan`, `scope`). `allowed_elements` adds elements / attributes (an invalid attribute name fails the build); `style`, `on*`,
 `srcdoc`, `formaction` and the removed elements (script, style, iframe, object, embed, svg, math, form controls,
 template, noscript…) can never be allowed. `outbound_url_guard: auto` drops private-network and cloud-metadata targets
 when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: true` runs CKEditor's strict sanitiser first (off by
 default: the allowlist is the stricter one, and CKEditor's pass would drop the `data-nowo-open-consent` opener).
+A body with an estimated element nesting above 512 sanitises to an empty string.
 
 `heading_anchors` (default empty: no `id` is ever printed) gives legal pages stable deep links such as
 `/legal/privacy#retention`, which the allowlist otherwise cannot keep because every input `id` is dropped (DOM
-clobbering). The text marks an `h1`–`h6` or `section` with the class `legal-anchor--<anchor>`; when `<anchor>` is in the
+clobbering). The text marks an `h1`–`h4` or `section` (or `h5`, `h6` if `allowed_elements` adds them with `class`) with the class `legal-anchor--<anchor>`; when `<anchor>` is in the
 list, the element gets `id="<anchor>"` as its first attribute. Names outside the list are ignored and each name is
 printed once (first occurrence in document order). Names match `^[a-z][a-z0-9_-]{0,63}$`. Pick names your layout does not
 use as ids: the bundle cannot see the layout. See [UPGRADING](UPGRADING.md#unreleased) if stored copies already carry

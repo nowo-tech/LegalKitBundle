@@ -10,6 +10,8 @@
   Page type "auth": the host's auth card width and theme.pages.auth classes apply. Slots: card, muted, form,
   flash_warning, btn_primary, btn_secondary; semantic classes nowo-legal-acceptance--compact and
   nowo-legal-acceptance__* (css/nowo-legal-kit.css, asset package nowo_legal_kit).
+  The link says "Read the <title>" because it is the way to the document: the intro sentence can be hidden on short
+  phones, and that instruction must not depend on the stylesheet.
   Every text is autoescaped; change summaries are plain text (|nl2br after escaping).
 #}
 {% extends layout_template ?? nowo_ui_layout.guest %}
@@ -39,7 +41,7 @@
             {% for item in pending %}
                 <article class="nowo-legal-acceptance__item" lang="{{ item.contentLocale }}" data-testid="nowo-legal-kit-acceptance-{{ item.page.slug }}" data-nowo-legal-kind="{{ item.kind }}">
                     <h2 class="nowo-legal-acceptance__item-title">
-                        <a href="{{ links[item.page.slug] }}" target="_blank" rel="noopener" data-testid="legal-acceptance-read-{{ item.page.slug }}">{{ item.title }}</a>
+                        <a href="{{ links[item.page.slug] }}" target="_blank" rel="noopener" data-testid="legal-acceptance-read-{{ item.page.slug }}">{{ 'acceptance.read'|trans({'%title%': item.title}, 'NowoLegalKitBundle', legal_locale) }}</a>
                         <span class="nowo-legal-acceptance__version {{ nowo_ui_class('muted', _b) }}">{{ 'acceptance.version'|trans({'%version%': item.currentVersion}, 'NowoLegalKitBundle', legal_locale) }}</span>
                     </h2>
                     {% if item.changeSummary is not null %}
