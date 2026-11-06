@@ -70,7 +70,7 @@ exceptions are rare: see **Other changes** below.
 - A body whose estimated element nesting exceeds 512 is refused, because very deep text crashes PHP 8.4 in native code. A
   stored row or seed with no text left after the sanitiser, for this reason or any other, is treated the same way. The
   page then answers 404 and an error is logged, and users are not asked to accept it until it is fixed; nothing blank is
-  shown or recorded. A row refused this way does not fall back to the seed. A stored row with no text of its own still
+  shown or recorded. On PHP 8.3 the libxml parser stops at depth 256 and drops what is deeper, so a text whose only words sit below that depth is refused too. A row refused this way does not fall back to the seed. A stored row with no text of its own still
   shows the seed, as before. Run `nowo:legal-kit:doctor` after upgrading: it lists any stored text or seed in this state,
   and exits 1. Footer links and the sitemap keep listing such a page until it is fixed.
 - PHP 8.3 and any host using the libxml parser: `xmlns` and `xmlns:*` attributes are now removed. They had no effect in

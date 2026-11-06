@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Functional;
 
+use Dom\HTMLDocument;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\Command\VerifyAcceptanceHashCommand;
@@ -21,6 +22,7 @@ use Psr\Log\AbstractLogger;
 use Stringable;
 use Symfony\Component\Console\Command\Command;
 
+use function class_exists;
 use function dirname;
 use function file_get_contents;
 use function file_put_contents;
@@ -79,8 +81,10 @@ final class RefusedTextTest extends VersioningTestCase
 
     public function testBelowTheLimitIsServed(): void
     {
+        // 500 levels on the HTML5 parser; libxml (PHP 8.3) stops at 256 and drops what is deeper.
+        $depth  = class_exists(HTMLDocument::class) ? 500 : 200;
         $kernel = $this->kernel();
-        $this->store($kernel, 'terms', 'en', 'Terms', str_repeat(self::DEEP, 500) . 'Terms text');
+        $this->store($kernel, 'terms', 'en', 'Terms', str_repeat(self::DEEP, $depth) . 'Terms text');
         $client = $this->adminClient($kernel);
         $client->request('GET', '/legal/terms');
 
