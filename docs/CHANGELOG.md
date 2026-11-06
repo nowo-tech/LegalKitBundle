@@ -60,7 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Security
 
 - `sanitizer.heading_anchors` is the only way an `id` reaches sanitised output. See
-  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audited: Appendix HB, Pass (good) / Low, re-verified at `<final>`.
+  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audited: Appendix HB, Pass (good) / Low, re-verified at `2b0c525`.
   Read [UPGRADING](UPGRADING.md#unreleased) before turning it on for text that already carries the classes (legal evidence).
 - `xmlns` and `xmlns:*` attributes no longer survive the allowlist on the libxml parser (inert, values stayed escaped).
 - A body with an estimated element nesting above 512 is refused, which stops the plain cases of very deep text crashing
