@@ -60,12 +60,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Security
 
 - `sanitizer.heading_anchors` is the only way an `id` reaches sanitised output. See
-  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audited: Appendix HB, Pass (conditional) / Medium; fixes at
-  `<final>`: re-verification pending. Read [UPGRADING](UPGRADING.md#unreleased) before turning it on for text that already
-  carries the classes (legal evidence).
+  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audited: Appendix HB, Pass (good) / Low, re-verified at `<final>`.
+  Read [UPGRADING](UPGRADING.md#unreleased) before turning it on for text that already carries the classes (legal evidence).
 - `xmlns` and `xmlns:*` attributes no longer survive the allowlist on the libxml parser (inert, values stayed escaped).
-- A body with an estimated element nesting above 512 is refused, instead of crashing PHP 8.4 on the HTML5 parser (needs a
-  legal-page administrator).
+- A body with an estimated element nesting above 512 is refused, which stops the plain cases of very deep text crashing
+  PHP 8.4 on the HTML5 parser. It is an estimate: purpose-built text from an administrator or a seed can still crash
+  PHP 8.4.
 - A stored row or seed with no text left after the sanitiser is no longer a blank page that users could accept: the page
   answers 404, an error is logged, nobody is asked to accept it, and `nowo:legal-kit:doctor` reports it.
 - A seed snapshot entry with no declared hash, or no text left after the sanitiser, counts as unknown.

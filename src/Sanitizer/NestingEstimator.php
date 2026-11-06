@@ -24,16 +24,17 @@ use const PHP_INT_MAX;
 
 /**
  * Estimates the element nesting of raw HTML before any parser sees it (very deep text crashes the HTML5 parser of
- * PHP 8.4 in native code, where nothing can catch it).
+ * PHP 8.4 in native code, where nothing can catch it). This is a best-effort estimate, not a guarantee.
  *
  * The tag scan follows the HTML tokenizer (comments, quoted attribute values, raw-text elements), and the stack follows
- * only those tree-building rules that are certain: an end tag removes an entry only when the parser would do the same,
- * and unclosed formatting elements stay counted because the parser reopens them. Whatever the scan cannot follow
- * exactly (CDATA in foreign content, raw-text tags where the parser may not treat them as raw) counts as too deep.
+ * a set of tree-building rules: unclosed formatting elements stay counted because the parser reopens them. Whatever the
+ * scan cannot follow exactly (CDATA in foreign content, raw-text tags where the parser may not treat them as raw) counts
+ * as too deep.
  *
- * Elements that are not counted (void, optional end tags, implied table parts) make real nesting up to about six times
- * the estimate on purpose-built text, which stays far below what crashes the parser. Malformed text can also be
- * estimated above its real nesting. So the limit is an estimate in both directions, not an exact element count.
+ * Elements that are not counted (void, optional end tags, implied table parts) can make real nesting much larger than
+ * the estimate on purpose-built text, without a known bound (alternating li and dd), so this does not guarantee that the
+ * parser survives. Malformed text can also be estimated above its real nesting. So the limit is an estimate in both
+ * directions, not an exact element count.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech

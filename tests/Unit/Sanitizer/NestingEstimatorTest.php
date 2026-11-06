@@ -21,9 +21,9 @@ use function str_repeat;
 use const PHP_INT_MAX;
 
 /**
- * The estimate that keeps very deep text away from the HTML5 parser: what must be refused, what must not, and a fuzz
- * against the real parser. Each refusal case below crashes PHP 8.4.27 if it reaches the parser, so a regression here
- * can take the test process down.
+ * The estimate that keeps very deep text away from the HTML5 parser: what must be refused, what must not, its known
+ * limits, and a fuzz against the real parser. Many refusal cases below crash PHP 8.4.27 if they reach the parser, so a
+ * regression here can take the test process down.
  */
 final class NestingEstimatorTest extends TestCase
 {
@@ -114,10 +114,36 @@ final class NestingEstimatorTest extends TestCase
     }
 
     /**
-     * Real nesting stays within six times the estimate on random markup, as the class documents.
+     * Known limits of the estimate, recorded rather than wanted (Appendix HB, HB-L4, open): purpose-built text can nest
+     * far deeper than the estimate. The estimate is best effort, not a guarantee.
+     *
+     * @return iterable<string, array{string, int}>
+     */
+    public static function knownLimits(): iterable
+    {
+        yield 'alternating li and dd' => [str_repeat('<li><dd>', 400), 0];
+        yield 'end tags the parser ignores' => [str_repeat('<x-a><li></x-a><x-b><dd></x-b>', 400), 1];
+    }
+
+    #[DataProvider('knownLimits')]
+    public function testKnownLimitsOfTheEstimate(string $html, int $estimate): void
+    {
+        self::assertSame($estimate, NestingEstimator::peak($html));
+        self::assertFalse(NestingEstimator::exceeds($html, self::LIMIT));
+    }
+
+    #[DataProvider('knownLimits')]
+    #[RequiresPhp('>=8.4')]
+    public function testKnownLimitsNestDeeperThanTheLimitOnTheParser(string $html): void
+    {
+        self::assertGreaterThan(self::LIMIT, self::realDepth($html));
+    }
+
+    /**
+     * A regression check on this random markup, which does not hold in general: see {@see self::knownLimits()}.
      */
     #[RequiresPhp('>=8.4')]
-    public function testEstimateBoundsTheRealParser(): void
+    public function testEstimateOnRandomMarkup(): void
     {
         $atoms = [
             '<div>', '</div>', '<span>', '</span>', '<b>', '</b>', '<i a="1">', '</i>', '<a href="x">', '</a>', '<p>', '</p>', '<table>', '</table>',

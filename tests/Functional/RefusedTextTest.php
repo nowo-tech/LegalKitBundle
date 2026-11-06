@@ -175,6 +175,37 @@ final class RefusedTextTest extends VersioningTestCase
         self::assertStringContainsString('The seed text of "privacy" (en)', $display);
     }
 
+    public function testDoctorWarnsAndExitsZeroWhenItCannotReadTheDatabase(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->entityManager($kernel)->getConnection()->executeStatement('DROP TABLE legal_document');
+        $tester = $this->tester($kernel, DoctorCommand::NAME);
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]), 'For example before migrations: as in 1.4');
+        self::assertStringContainsString('could not be checked', (string) preg_replace('/\s+/', ' ', $tester->getDisplay()));
+        self::assertSame(Command::FAILURE, $tester->execute(['--strict' => true]));
+    }
+
+    public function testDoctorExitsOneForARealRefusedTextWithoutStrict(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->store($kernel, 'terms', 'en', 'Terms', self::overLimit());
+
+        self::assertSame(Command::FAILURE, $this->tester($kernel, DoctorCommand::NAME)->execute([]));
+    }
+
+    /**
+     * An image alone does not count as text (`alt` neither), as in the editor and import. Appendix HB, HB-I11.
+     */
+    public function testImageOnlySeedIsRefused(): void
+    {
+        $kernel = $this->seedKernel('r0', 'image_only');
+
+        self::assertNull($this->service($kernel, LegalDocumentResolver::class)->resolve('privacy', 'en'));
+        self::assertSame(['seed'], $this->service($kernel, LegalDocumentResolver::class)->refusedSources('privacy', 'en'));
+        self::assertNull($this->service($kernel, LegalSeedTracker::class)->currentSeed('privacy', 'en'));
+    }
+
     public function testDoctorIsQuietAboutGoodTexts(): void
     {
         $tester = $this->tester($this->kernel(), DoctorCommand::NAME);

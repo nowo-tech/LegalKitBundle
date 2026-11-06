@@ -144,8 +144,8 @@ final class DoctorCommand extends Command
                 try {
                     $sources = $this->resolver?->refusedSources($slug, $locale) ?? [];
                 } catch (Throwable $exception) {
-                    // A seed that cannot render (for example routes missing, reported above) must not stop the report.
-                    $errors[] = sprintf('The text of "%s" (%s) could not be checked: %s.', $slug, $locale, $exception::class);
+                    // No database yet, or a seed that cannot render here: not a fault of the text, so only a warning.
+                    $warnings[] = sprintf('The text of "%s" (%s) could not be checked: %s.', $slug, $locale, $exception::class);
 
                     continue;
                 }

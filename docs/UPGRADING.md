@@ -68,15 +68,16 @@ exceptions are rare: see **Other changes** below.
 - `sanitizer.allowed_elements` now refuses an invalid attribute name at container build (for example `data-@x` or
   `@click`). Until now such an attribute could reach the output, depending on the parser. Fix or remove it.
 - A body whose estimated element nesting exceeds 512 is refused, because very deep text crashes PHP 8.4 in native code. A
-  stored row or seed with no text left after the sanitiser, for this reason or any other, is treated the same way. The
+  stored row or seed with no text left after the sanitiser, for this reason or any other, is treated the same way. An image alone does not count as text, so a seed with only an image is refused too. The
   page then answers 404 and an error is logged, and users are not asked to accept it until it is fixed; nothing blank is
   shown or recorded. On PHP 8.3 the libxml parser stops at depth 256 and drops what is deeper, so a text whose only words sit below that depth is refused too. A row refused this way does not fall back to the seed. A stored row with no text of its own still
-  shows the seed, as before. Run `nowo:legal-kit:doctor` after upgrading: it lists any stored text or seed in this state,
-  and exits 1. Footer links and the sitemap keep listing such a page until it is fixed.
+  shows the seed, as before. Run `nowo:legal-kit:doctor` after upgrading: it lists any stored text or seed in this state and
+  exits 1. If it cannot read the database, for example before migrations, it warns and exits 0 (1 with `--strict`). Footer links and the sitemap keep listing such a page until it is fixed.
 - PHP 8.3 and any host using the libxml parser: `xmlns` and `xmlns:*` attributes are now removed. They had no effect in
   the browser. A snapshot of such text becomes unknown, so `--requires-acceptance` would publish a new version of it;
   `content_hash` of that text changes too, and `verify-acceptance-hash` cannot explain that difference.
-- A seed snapshot entry whose `hash` key is missing now counts as unknown.
+- A seed snapshot entry whose `hash` key is missing now counts as unknown, so `--requires-acceptance` would publish a new
+  version of it. Snapshots written by `snapshot-seed` always have the key; only a hand-made manifest is affected.
 - A `pages.<slug>.path` with a trailing newline is refused at build.
 
 ## To 1.4.1
