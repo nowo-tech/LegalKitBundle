@@ -22,6 +22,23 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+No action needed: all three additions are opt-in, and a host that changes nothing gets the same pages.
+
+- **`sanitizer.heading_anchors`.** Mark headings with `legal-anchor--<anchor>` and list the anchors. Seed hashes are
+  computed on sanitised text, so turning this on for text that already carries these classes changes its hash. Stored
+  `seed_hash` values and existing seed snapshots of that text stop matching: `upgrade-seed` treats those copies as edited
+  and leaves them alone, and the snapshots count as unknown until you take them again. A host that already added the
+  same ids with a sanitiser decorator (`id` first, then `class`) gets identical output, so its hashes hold. Remove the
+  decorator and set the option in the same deploy.
+- **Compact re-acceptance page.** Set `acceptance.template: '@NowoLegalKitBundle/acceptance/compact.html.twig'`. It
+  loads `css/nowo-legal-kit.css`, so run `assets:install` and keep `nowo_ui_styles` in your layout. The card uses the
+  `card` slot and the page type `auth`; set `theme.pages.auth` or `theme.bundles.NowoLegalKitBundle` for your own classes.
+- **Document typography.** Set `public.prose_class: nowo-legal-doc--typography` and any of the tokens listed in
+  [CONFIGURATION](CONFIGURATION.md#public-pages-and-cache). Rules of your own on `.nowo-legal-doc h1` that load later
+  still win.
+- **Template contract.** `public/page.html.twig` receives a new variable, `prose_class`. A host that overrides the
+  template can ignore it.
+
 ## To 1.4.1
 
 From **1.4.0**:

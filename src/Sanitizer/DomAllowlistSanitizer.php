@@ -16,17 +16,21 @@ use DOMNode;
 use DOMText;
 use Nowo\Ckeditor5EditorBundle\Security\Ckeditor5HtmlSanitizerInterface;
 
+use function array_fill_keys;
 use function array_merge;
 use function array_unique;
 use function array_values;
 use function assert;
 use function class_exists;
+use function explode;
 use function in_array;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
 use function preg_match;
 use function str_starts_with;
+use function strlen;
 use function strtolower;
+use function substr;
 use function trim;
 
 use const LIBXML_HTML_NODEFDTD;
@@ -44,7 +48,8 @@ use const LIBXML_NONET;
  *
  * Unknown elements are unwrapped (their text stays); script-like and embedding elements are removed with their
  * content; comments are dropped; only allowlisted attributes survive (`class` is the only presentational one, never
- * `style`); `target="_blank"` links get `rel="noopener noreferrer"`. Stateless (FrankenPHP worker safe).
+ * `style`); `target="_blank"` links get `rel="noopener noreferrer"`. No input `id` survives; the only ids printed are
+ * the configured `sanitizer.heading_anchors`. Stateless (FrankenPHP worker safe).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -107,12 +112,21 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         'id', 'name', 'is', 'cite', 'longdesc', 'usemap', 'lowsrc', 'dynsrc',
     ];
 
+    /** Class prefix marking a heading anchor: `legal-anchor--<anchor>` (`sanitizer.heading_anchors`). */
+    public const string ANCHOR_CLASS_PREFIX = 'legal-anchor--';
+
+    /** Elements that can carry a heading anchor (the only `id` this sanitiser ever prints). */
+    public const array ANCHOR_ELEMENTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
+
     private const string ROOT_ID = 'nowo-legal-kit-root';
 
     private const string HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 
     /** @var array<string, list<string>> */
     private array $allowed;
+
+    /** @var array<string, true> Allowlisted anchor names */
+    private array $anchors;
 
     /** Whether the HTML5 parser is used (PHP 8.4+, unless disabled). */
     public bool $html5;
@@ -122,12 +136,14 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
      * @param array<string, list<string>> $extraElements `sanitizer.allowed_elements` (merged; removed elements stay removed)
      * @param Ckeditor5HtmlSanitizerInterface|null $firstPass Optional CKEditor 5 strict sanitiser run first
      * @param bool|null $html5 HTML5 parser (`Dom\HTMLDocument`); null: whenever PHP provides it (8.4+)
+     * @param list<string> $headingAnchors `sanitizer.heading_anchors`: anchors turned into an `id` (empty: never an `id`)
      */
     public function __construct(
         private UrlPolicy $urlPolicy = new UrlPolicy(),
         array $extraElements = [],
         private ?Ckeditor5HtmlSanitizerInterface $firstPass = null,
         ?bool $html5 = null,
+        array $headingAnchors = [],
     ) {
         $this->html5 = ($html5 ?? true) && class_exists(HTMLDocument::class);
         $allowed     = self::ALLOWED_ELEMENTS;
@@ -146,6 +162,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
             $allowed[$element] = array_values(array_unique(array_merge($allowed[$element] ?? [], $safe)));
         }
         $this->allowed = $allowed;
+        $this->anchors = array_fill_keys($headingAnchors, true);
     }
 
     /**
@@ -175,6 +192,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         // A stray "</div>" cannot close the context element: fragment parsing ignores it.
         $root->innerHTML = $html;
         $this->sanitizeChildren($root);
+        $this->applyAnchors($root);
 
         return trim($root->innerHTML);
     }
@@ -201,6 +219,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
             $root->appendChild($root->nextSibling);
         }
         $this->sanitizeChildren($root);
+        $this->applyAnchors($root);
 
         $out = '';
         foreach ($root->childNodes as $child) {
@@ -208,6 +227,75 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
         }
 
         return trim($out);
+    }
+
+    /**
+     * Turns `legal-anchor--<anchor>` classes into ids, after the allowlist dropped every `id` of the input: only the
+     * configured names can reach the output, each one at most once (document order).
+     */
+    private function applyAnchors(DOMNode|Node $root): void
+    {
+        if ($this->anchors === []) {
+            return;
+        }
+        $used = [];
+        $this->walkAnchors($root, $used);
+    }
+
+    /**
+     * @param array<string, true> $used Anchors already printed
+     */
+    private function walkAnchors(DOMNode|Node $node, array &$used): void
+    {
+        foreach ($node->childNodes as $child) {
+            if (!$child instanceof DOMElement && !$child instanceof Element) {
+                continue;
+            }
+            $tag = strtolower($child instanceof Element ? $child->localName : $child->tagName);
+            if (in_array($tag, self::ANCHOR_ELEMENTS, true)) {
+                $this->anchorElement($child, $used);
+            }
+            $this->walkAnchors($child, $used);
+        }
+    }
+
+    /**
+     * @param array<string, true> $used Anchors already printed
+     */
+    private function anchorElement(DOMElement|Element $element, array &$used): void
+    {
+        foreach (explode(' ', (string) $element->getAttribute('class')) as $token) {
+            if (!str_starts_with($token, self::ANCHOR_CLASS_PREFIX)) {
+                continue;
+            }
+            $anchor = substr($token, strlen(self::ANCHOR_CLASS_PREFIX));
+            if (isset($this->anchors[$anchor]) && !isset($used[$anchor])) {
+                $used[$anchor] = true;
+                $this->prependId($element, $anchor);
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * `id` becomes the first attribute: the serialised text (and the seed hash built on it) must not depend on how
+     * many attributes the element keeps.
+     */
+    private function prependId(DOMElement|Element $element, string $id): void
+    {
+        $attributes = [];
+        /** @var Attr|DOMAttr $attribute The attributes map only yields attribute nodes */
+        foreach ($element->attributes as $attribute) {
+            $attributes[$attribute->name] = $attribute->value;
+        }
+        foreach ($attributes as $name => $_value) {
+            $element->removeAttribute($name);
+        }
+        $element->setAttribute('id', $id);
+        foreach ($attributes as $name => $value) {
+            $element->setAttribute($name, $value);
+        }
     }
 
     private function sanitizeChildren(DOMNode|Node $node): void

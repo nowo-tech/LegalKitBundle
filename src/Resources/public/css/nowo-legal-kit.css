@@ -29,6 +29,133 @@
     width: 100%;
 }
 
+/*
+ * Document typography (opt-in: public.prose_class: nowo-legal-doc--typography). Without the class the host's heading
+ * and list styles apply untouched. Tokens: --nowo-legal-doc-h1-size, -h2-size, -list-indent, -gap.
+ */
+.nowo-legal-doc--typography h1 {
+    font-size: var(--nowo-legal-doc-h1-size, 1.875rem);
+    font-weight: 700;
+    margin-block: 0 var(--nowo-legal-doc-gap, 0.5rem);
+}
+
+.nowo-legal-doc--typography h2 {
+    font-size: var(--nowo-legal-doc-h2-size, 1.125rem);
+    font-weight: 600;
+    margin-block: calc(var(--nowo-legal-doc-gap, 0.5rem) * 3.5) var(--nowo-legal-doc-gap, 0.5rem);
+}
+
+.nowo-legal-doc--typography ul,
+.nowo-legal-doc--typography ol {
+    margin-block: var(--nowo-legal-doc-gap, 0.5rem);
+    margin-inline-start: var(--nowo-legal-doc-list-indent, 1.25rem);
+    padding-inline-start: 0;
+}
+
+.nowo-legal-doc--typography ul {
+    list-style: disc;
+}
+
+.nowo-legal-doc--typography ol {
+    list-style: decimal;
+}
+
+/* Compact re-acceptance page (acceptance.template: @NowoLegalKitBundle/acceptance/compact.html.twig). */
+.nowo-legal-acceptance--compact,
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.nowo-legal-acceptance--compact {
+    text-align: start;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__intro,
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__summary,
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__statement {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__alert {
+    margin: 0;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding-block-start: 0.75rem;
+    border-block-start: 1px solid var(--nowo-ui-border, currentColor);
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__item-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__item-title a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__version {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__check > * {
+    margin-block-end: 0;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.nowo-legal-acceptance--compact .nowo-legal-acceptance__actions > * {
+    flex: 1 1 10rem;
+    justify-content: center;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .nowo-legal-acceptance--compact,
+    .nowo-legal-acceptance--compact .nowo-legal-acceptance__form {
+        gap: 0.5rem;
+    }
+
+    .nowo-legal-acceptance--compact {
+        padding: 1rem;
+    }
+
+    .nowo-legal-acceptance--compact .nowo-legal-acceptance__item {
+        padding-block-start: 0.5rem;
+    }
+}
+
+@media (max-width: 640px) and (max-height: 760px) {
+    .nowo-legal-acceptance--compact .nowo-legal-acceptance__intro {
+        display: none;
+    }
+}
+
 /* Versioning compare page (1.4): side-by-side columns and the text diff. */
 .nowo-legal-compare__side {
     display: grid;

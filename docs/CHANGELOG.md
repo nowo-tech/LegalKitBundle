@@ -7,33 +7,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.4.1] - 2026-11-05](#141---2026-11-05)
-  - [Security](#security)
-- [[1.4.0] - 2026-11-04](#140---2026-11-04)
   - [Added](#added)
+  - [Security](#security)
+- [[1.4.1] - 2026-11-05](#141---2026-11-05)
+  - [Security](#security-1)
+- [[1.4.0] - 2026-11-04](#140---2026-11-04)
+  - [Added](#added-1)
   - [Changed](#changed)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
-  - [Security](#security-1)
+  - [Security](#security-2)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
-  - [Security](#security-2)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-3)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
+  - [Security](#security-4)
   - [Changed](#changed-1)
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-2)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-1)
+  - [Added](#added-2)
   - [Changed](#changed-3)
   - [Fixed](#fixed-1)
-  - [Security](#security-4)
+  - [Security](#security-5)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-2)
+  - [Added](#added-3)
 
 ## [Unreleased]
+
+### Added
+
+- `sanitizer.heading_anchors` (default empty): an allowlist of anchors; an `h1`–`h6` or `section` with the class
+  `legal-anchor--<anchor>` gets `id="<anchor>"`, first occurrence only. Every input `id` is still dropped.
+- `@NowoLegalKitBundle/acceptance/compact.html.twig`: the re-acceptance page as one card that fits a phone, opt-in
+  through `acceptance.template`. The default page does not change.
+- `public.prose_class` (default null): extra classes of the public article, and `nowo-legal-doc--typography` with the
+  tokens `--nowo-legal-doc-h1-size`, `-h2-size`, `-list-indent` and `-gap`. Nothing applies without the class.
+
+### Security
+
+- `sanitizer.heading_anchors` is the only way an `id` reaches sanitised output. See
+  [SECURITY](SECURITY.md#threat-model-and-mitigations). Audit status: re-verification pending.
 
 ## [1.4.1] - 2026-11-05
 
