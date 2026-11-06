@@ -27,21 +27,17 @@ use function explode;
 use function in_array;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
-use function max;
 use function preg_match;
-use function preg_match_all;
 use function preg_replace;
 use function str_starts_with;
 use function strlen;
 use function strtolower;
 use function substr;
-use function substr_count;
 use function trim;
 
 use const LIBXML_HTML_NODEFDTD;
 use const LIBXML_HTML_NOIMPLIED;
 use const LIBXML_NONET;
-use const PREG_SET_ORDER;
 
 /**
  * Canonical legal HTML sanitiser: optional CKEditor 5 strict pass, then a DOM allowlist (ported from
@@ -128,16 +124,11 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
     public const string ATTRIBUTE_NAME_PATTERN = '/^[a-z][a-z0-9_.:-]*$/D';
 
     /**
-     * Estimated element nesting above which a body is refused (empty result): very deep bodies crash the HTML5 parser
-     * in native code, where no exception can be caught. libxml stops at 256 by itself; real legal text stays far below.
+     * Estimated element nesting ({@see NestingEstimator}) above which a body is refused (empty result): very deep bodies
+     * crash the HTML5 parser in native code, where no exception can be caught. `LegalDocumentResolver` then answers no
+     * document, so a refused text is never shown or accepted as a blank page.
      */
     public const int MAX_NESTING_DEPTH = 512;
-
-    /** Void elements and those whose end tag is optional: they do not add nesting when repeated. */
-    private const array NON_NESTING_ELEMENTS = [
-        'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr',
-        'p', 'li', 'dt', 'dd', 'tr', 'td', 'th', 'tbody', 'thead', 'tfoot', 'option', 'optgroup', 'rt', 'rp', 'colgroup',
-    ];
 
     /** Elements that can carry a heading anchor (the only `id` this sanitiser ever prints). */
     public const array ANCHOR_ELEMENTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
@@ -198,7 +189,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
             $html = $this->firstPass->sanitize($html);
         }
         $html = trim($html);
-        if ($html === '' || $this->tooDeep($html)) {
+        if ($html === '' || NestingEstimator::exceeds($html, self::MAX_NESTING_DEPTH)) {
             return '';
         }
 
@@ -207,8 +198,9 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
 
     /**
      * The same HTML without the ids of {@see self::$anchors}: what the sanitiser printed with `heading_anchors` empty.
-     * Safe on sanitised output only: there, `<` in text is escaped and `"` in attribute values too, so this shape can
-     * only be a real start tag, and an anchor is the only `id` such a tag can have.
+     * Only for sanitised output, where an anchor is the only `id` a start tag can have. The HTML5 serialiser escapes `"`
+     * but not `<` in attribute values, so `<h2 id="` can appear inside a value. It cannot be followed by an anchor name and
+     * a closing quote there: the quote that ends the value is followed by a space or `>`, which the name pattern refuses.
      *
      * @param string $html Sanitised HTML
      *
@@ -216,31 +208,7 @@ final readonly class DomAllowlistSanitizer implements LegalHtmlSanitizerInterfac
      */
     public static function withoutAnchorIds(string $html): string
     {
-        return preg_replace('/<(h[1-6]|section) id="[^"]*"/', '<$1', $html) ?? $html;
-    }
-
-    /**
-     * Estimates the nesting from the tags alone, before any parser sees the text. It can only overestimate real
-     * nesting of well-formed text, and only text with hundreds of unclosed elements gets near the limit.
-     */
-    private function tooDeep(string $html): bool
-    {
-        if (substr_count($html, '<') <= self::MAX_NESTING_DEPTH) {
-            return false;
-        }
-        preg_match_all('#<(/?)([a-zA-Z][a-zA-Z0-9-]*)#', $html, $tags, PREG_SET_ORDER);
-        $depth = 0;
-        foreach ($tags as [, $closing, $name]) {
-            if (in_array(strtolower($name), self::NON_NESTING_ELEMENTS, true)) {
-                continue;
-            }
-            $depth = $closing === '' ? $depth + 1 : max(0, $depth - 1);
-            if ($depth > self::MAX_NESTING_DEPTH) {
-                return true;
-            }
-        }
-
-        return false;
+        return preg_replace('/<(h[1-6]|section) id="[a-z][a-z0-9_-]{0,63}"/', '<$1', $html) ?? $html;
     }
 
     /**

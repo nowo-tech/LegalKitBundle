@@ -13,6 +13,8 @@ use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Nowo\LegalKitBundle\Token\LegalTokenContext;
 use Nowo\LegalKitBundle\Token\LegalTokenRenderer;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 use function html_entity_decode;
 use function preg_replace;
@@ -37,6 +39,7 @@ final readonly class LegalDocumentResolver
      * @param LegalHtmlSanitizerInterface $sanitizer HTML sanitiser
      * @param LegalTokenRenderer $tokens Token chain
      * @param ?LegalPageVersions $versions Page versions (versioning on; null otherwise)
+     * @param LoggerInterface $logger Logger of refused texts
      */
     public function __construct(
         private LegalDocumentRepository $documents,
@@ -44,11 +47,15 @@ final readonly class LegalDocumentResolver
         private LegalHtmlSanitizerInterface $sanitizer,
         private LegalTokenRenderer $tokens,
         private ?LegalPageVersions $versions = null,
+        private LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
     /**
-     * The published page, or null when there is neither a stored row nor a seed.
+     * The published page, or null when there is neither a stored row nor a seed, or when the text that applies has no
+     * text left after the sanitiser (an error is logged, see {@see self::refusedSources()}): such a page answers 404 and
+     * nobody is asked to accept it, so a blank page is never shown or recorded as accepted. A stored row without text
+     * of its own is not refused: the seed applies, as always.
      *
      * @return ?ResolvedLegalDocument The result
      */
@@ -57,12 +64,16 @@ final readonly class LegalDocumentResolver
         $stored = $this->documents->findOneBySlugAndLocale($slug, $locale);
         if ($stored instanceof LegalDocument && self::hasText($stored->getBody())) {
             $context = new LegalTokenContext($slug, $locale, $stored->getUpdatedAt() ?? $stored->getCreatedAt());
+            $body    = $this->sanitizer->sanitize($this->tokens->renderHtml($stored->getBody(), $context));
+            if (!self::hasText($body)) {
+                return $this->refused($slug, $locale, ResolvedLegalDocument::SOURCE_STORED);
+            }
 
             return new ResolvedLegalDocument(
                 $slug,
                 $locale,
                 $this->tokens->renderText($stored->getTitle(), $context),
-                $this->sanitizer->sanitize($this->tokens->renderHtml($stored->getBody(), $context)),
+                $body,
                 ResolvedLegalDocument::SOURCE_STORED,
                 $locale,
                 $context->updatedAt,
@@ -75,17 +86,52 @@ final readonly class LegalDocumentResolver
             return null;
         }
         $context = new LegalTokenContext($slug, $locale);
+        $body    = $this->sanitizer->sanitize($this->tokens->renderHtml($seed->body, $context));
+        if (!self::hasText($body)) {
+            return $this->refused($slug, $locale, ResolvedLegalDocument::SOURCE_SEED);
+        }
 
         return new ResolvedLegalDocument(
             $slug,
             $locale,
             $this->tokens->renderText($seed->title, $context),
-            $this->sanitizer->sanitize($this->tokens->renderHtml($seed->body, $context)),
+            $body,
             $seed->fallback ? ResolvedLegalDocument::SOURCE_FALLBACK : ResolvedLegalDocument::SOURCE_SEED,
             $seed->locale,
             null,
             $this->versions?->current($slug),
         );
+    }
+
+    /**
+     * Which texts of a page have no text left after the sanitiser, also a seed that a stored row hides today
+     * (`nowo:legal-kit:doctor`). A stored row without text of its own is not listed: the seed applies.
+     *
+     * @return list<'seed'|'stored'> The sources
+     */
+    public function refusedSources(string $slug, string $locale): array
+    {
+        $sources = [];
+        $stored  = $this->documents->findOneBySlugAndLocale($slug, $locale);
+        if ($stored instanceof LegalDocument && self::hasText($stored->getBody())) {
+            $context = new LegalTokenContext($slug, $locale, $stored->getUpdatedAt() ?? $stored->getCreatedAt());
+            if (!self::hasText($this->sanitizer->sanitize($this->tokens->renderHtml($stored->getBody(), $context)))) {
+                $sources[] = ResolvedLegalDocument::SOURCE_STORED;
+            }
+        }
+        $seed = $this->seeds->find($slug, $locale);
+        if ($seed instanceof LegalSeed && !self::hasText($this->sanitizer->sanitize($this->tokens->renderHtml($seed->body, new LegalTokenContext($slug, $locale))))) {
+            $sources[] = ResolvedLegalDocument::SOURCE_SEED;
+        }
+
+        return $sources;
+    }
+
+    private function refused(string $slug, string $locale, string $source): null
+    {
+        $this->logger->error('Legal page refused: no text left after the sanitiser (empty, or nested too deeply). The page answers 404 and is not offered for acceptance until it is fixed.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'legal_text_refused', 'slug' => $slug, 'locale' => $locale, 'source' => $source]);
+
+        return null;
     }
 
     /**

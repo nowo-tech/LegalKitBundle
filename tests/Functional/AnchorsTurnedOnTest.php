@@ -22,6 +22,7 @@ use function hash;
 use function json_decode;
 use function json_encode;
 use function str_repeat;
+use function unlink;
 
 /**
  * Turning `sanitizer.heading_anchors` on for text that already carries the classes (Appendix HB, HB-M1): snapshots and
@@ -115,6 +116,59 @@ final class AnchorsTurnedOnTest extends VersioningTestCase
         $this->tester($kernel, 'nowo:legal-kit:upgrade-seed')->execute(['--from' => 'r0']);
 
         self::assertStringContainsString('Mine', $this->found($kernel, 'privacy', 'en')->getBody());
+    }
+
+    /**
+     * Appendix HB, HB-L3: an earlier text holds `<a title="<h2" ...>`, a later one adds a clause inside the same shape.
+     * Stripping must not make them the same text, with the option on or off.
+     */
+    public function testPlantedAttributeValueIsNotAnAnchorForTheCommandTheSnapshotOrARow(): void
+    {
+        $earlier = '<p>Intro</p><a title="<h2">x</a>';
+        $later   = '<p>Intro</p><a title="<h2 id=">NEW CLAUSE: we may sell your data.</a><a title="">x</a>';
+
+        foreach ([[], self::ON] as $config) {
+            $kernel = $this->kernel('r0', config: $config);
+            $this->store($kernel, 'privacy', 'en', 'Privacy', $earlier);
+            $recorded = LegalAcceptanceManager::contentHash($this->resolved($kernel));
+            $document = $this->found($kernel, 'privacy', 'en');
+            $document->setBody($later);
+            $this->entityManager($kernel)->flush();
+            self::assertSame(Command::FAILURE, $this->tester($kernel, VerifyAcceptanceHashCommand::NAME)->execute(['slug' => 'privacy', 'locale' => 'en', 'hash' => $recorded]), 'The command must not call the later text a match');
+
+            $store = $this->service($kernel, SeedSnapshotStore::class);
+            $store->write('planted', ['privacy' => ['en' => ['title' => 'Privacy', 'body' => $earlier]]], true);
+            file_put_contents(self::snapshotsDir() . '/planted/privacy.en.html', $later);
+            self::assertNull($store->entry('planted', 'privacy', 'en'), 'A replaced snapshot file is unknown');
+
+            $edited = $this->kernel('r1', 'privacy_new', $config);
+            $base   = $this->service($edited, LegalSeedHasher::class)->hash('Privacy', $earlier);
+            $this->storeWithBase($edited, 'privacy', 'en', 'Privacy', $later, 'r0', $base);
+            $this->tester($edited, 'nowo:legal-kit:upgrade-seed')->execute(['--from' => 'r0']);
+            self::assertStringContainsString('NEW CLAUSE', $this->found($edited, 'privacy', 'en')->getBody(), 'An edited row is not overwritten');
+        }
+    }
+
+    /**
+     * What UPGRADING tells the reader to check. Appendix HB, HB-L5.
+     */
+    public function testTheDryRunOfTheUpgradeGuideCanFail(): void
+    {
+        $this->tester($this->kernel('r0'), 'nowo:legal-kit:snapshot-seed')->execute([]);
+        $kernel = $this->kernel('r0', config: self::ON);
+        $tester = $this->tester($kernel, 'nowo:legal-kit:upgrade-seed');
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--from' => 'r0', '--requires-acceptance' => true, '--dry-run' => true]));
+        self::assertStringContainsString('seed_unknown: 0', $tester->getDisplay());
+        self::assertStringNotContainsString('Version published', $tester->getDisplay());
+
+        unlink(self::snapshotsDir() . '/r0/privacy.en.html');
+        self::assertSame(Command::SUCCESS, $tester->execute(['--from' => 'r0', '--requires-acceptance' => true, '--dry-run' => true]));
+        self::assertStringContainsString('seed_unknown: 1', $tester->getDisplay());
+        self::assertStringContainsString('Version published: privacy', $tester->getDisplay(), 'The check shows the problem');
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--from' => 'r0', '--dry-run' => true]));
+        self::assertStringNotContainsString('Version published', $tester->getDisplay(), 'Without the flag the dry run proves nothing');
     }
 
     public function testVerifyCommand(): void

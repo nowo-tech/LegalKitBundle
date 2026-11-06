@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Versioning;
 
+use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
@@ -43,7 +44,8 @@ final readonly class LegalSeedTracker
     }
 
     /**
-     * Current built-in text of a page in a locale, sanitized (tokens kept); null without a seed.
+     * Current built-in text of a page in a locale, sanitized (tokens kept); null without a seed, or when nothing is left
+     * of it after the sanitiser: two refused texts must never compare as "the same text".
      *
      * @return ?LegalSeed The seed
      */
@@ -54,7 +56,9 @@ final readonly class LegalSeedTracker
             return null;
         }
 
-        return new LegalSeed($seed->title, $this->sanitizer->sanitize($seed->body), $seed->locale, $seed->fallback);
+        $body = $this->sanitizer->sanitize($seed->body);
+
+        return LegalDocumentResolver::hasText($body) ? new LegalSeed($seed->title, $body, $seed->locale, $seed->fallback) : null;
     }
 
     /**

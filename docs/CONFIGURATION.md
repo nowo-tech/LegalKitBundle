@@ -155,7 +155,7 @@ with `class` (and per element: `href`, `title`, `rel`, `target`, `data-nowo-open
 template, noscript…) can never be allowed. `outbound_url_guard: auto` drops private-network and cloud-metadata targets
 when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: true` runs CKEditor's strict sanitiser first (off by
 default: the allowlist is the stricter one, and CKEditor's pass would drop the `data-nowo-open-consent` opener).
-A body with an estimated element nesting above 512 sanitises to an empty string.
+A body with an estimated element nesting above 512 is refused: the page answers 404, see [UPGRADING](UPGRADING.md#unreleased).
 
 `heading_anchors` (default empty: no `id` is ever printed) gives legal pages stable deep links such as
 `/legal/privacy#retention`, which the allowlist otherwise cannot keep because every input `id` is dropped (DOM

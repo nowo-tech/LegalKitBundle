@@ -40,11 +40,12 @@ exceptions are rare: see **Other changes** below.
   compared without the ids: `upgrade-seed --requires-acceptance` publishes no version for unchanged text, and an unedited
   copy still takes a new seed. This works in one direction only. If you turn the option **off** again, bases and snapshots
   written while it was on stop matching, and `--requires-acceptance` publishes a new version of unchanged text, so users
-  must act again. Use `--dry-run` first.
+  must act again. Check first with `--requires-acceptance --dry-run`.
 
   Do the switch in a deploy of its own, with no seed change, so the date in your note separates the two hashes cleanly:
-  (1) turn the option on; (2) run `nowo:legal-kit:upgrade-seed --from=<revision> --dry-run` and check that it publishes
-  no version. There is no need to retake snapshots. If you do, run `snapshot-seed --revision=<same revision> --force` only
+  (1) turn the option on; (2) run `nowo:legal-kit:upgrade-seed --from=<revision> --requires-acceptance --dry-run` and check
+  that it lists no "Version published" line and `seed_unknown: 0`. Without a version flag the dry run never lists a
+  version, so it proves nothing. There is no need to retake snapshots. If you do, run `snapshot-seed --revision=<same revision> --force` only
   while the seed text is still that revision, or new text is frozen under the old name.
 
   **Replacing a sanitiser decorator.** A decorator that prints `id` first and then `class` on `h2`, `h3` and `section`
@@ -64,13 +65,18 @@ exceptions are rare: see **Other changes** below.
 
 **Other changes**, none of which needs a config change unless it applies to you:
 
-- `sanitizer.allowed_elements` now refuses an invalid attribute name at container build (for example `data-@x`). Such a
-  name never worked; fix or remove it.
-- A body whose estimated element nesting exceeds 512 sanitises to an empty string. Before, it could crash the PHP process
-  on the HTML5 parser. Real legal text stays far below this.
-- PHP 8.3 and any host using the libxml parser: `xmlns` and `xmlns:*` attributes are now removed. If a stored text had
-  them, its seed hash changes as in **Seed upgrades**, without the tolerance described there. They had no effect in the
-  browser.
+- `sanitizer.allowed_elements` now refuses an invalid attribute name at container build (for example `data-@x` or
+  `@click`). Until now such an attribute could reach the output, depending on the parser. Fix or remove it.
+- A body whose estimated element nesting exceeds 512 is refused, because very deep text crashes PHP 8.4 in native code. A
+  stored row or seed with no text left after the sanitiser, for this reason or any other, is treated the same way. The
+  page then answers 404 and an error is logged, and users are not asked to accept it until it is fixed; nothing blank is
+  shown or recorded. A row refused this way does not fall back to the seed. A stored row with no text of its own still
+  shows the seed, as before. Run `nowo:legal-kit:doctor` after upgrading: it lists any stored text or seed in this state,
+  and exits 1. Footer links and the sitemap keep listing such a page until it is fixed.
+- PHP 8.3 and any host using the libxml parser: `xmlns` and `xmlns:*` attributes are now removed. They had no effect in
+  the browser. A snapshot of such text becomes unknown, so `--requires-acceptance` would publish a new version of it;
+  `content_hash` of that text changes too, and `verify-acceptance-hash` cannot explain that difference.
+- A seed snapshot entry whose `hash` key is missing now counts as unknown.
 - A `pages.<slug>.path` with a trailing newline is refused at build.
 
 ## To 1.4.1

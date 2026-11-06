@@ -170,18 +170,6 @@ final class HeadingAnchorsTest extends TestCase
         $sanitizer = new DomAllowlistSanitizer(html5: $html5);
 
         self::assertSame('', $sanitizer->sanitize(str_repeat('<div>', 50000) . 'x'));
-        self::assertSame('', $sanitizer->sanitize(str_repeat('<b>', DomAllowlistSanitizer::MAX_NESTING_DEPTH + 1) . 'x'));
-    }
-
-    #[DataProvider('parsers')]
-    public function testLongOrdinaryTextIsNotTakenForDeep(bool $html5): void
-    {
-        $sanitizer = new DomAllowlistSanitizer(html5: $html5);
-        $closed    = str_repeat('<div><p>a</p></div>', 2000);
-        $unclosed  = str_repeat('<li>a<br>', 2000);
-
-        self::assertSame($closed, $sanitizer->sanitize($closed));
-        self::assertStringContainsString('<li>a<br></li>', $sanitizer->sanitize($unclosed));
         self::assertStringContainsString('x', $sanitizer->sanitize(str_repeat('<div>', 100) . 'x'));
     }
 
