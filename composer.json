@@ -74,6 +74,7 @@
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.64",
         "igor-php/igor-php": "^0.9.7",
+        "nowo-tech/brand-contracts": "^1.0",
         "nowo-tech/ckeditor5-editor-bundle": "^1.9",
         "nowo-tech/cookie-consent-bundle": "^1.17",
         "nowo-tech/outbound-url-guard-bundle": "^1.2",
@@ -92,7 +93,11 @@
         "symfony/yaml": "^7.4 || ^8.0",
         "vincentlanglet/twig-cs-fixer": "^3.0 || ^4.0"
     },
+    "conflict": {
+        "nowo-tech/brand-contracts": "<1.0 || >=2.0"
+    },
     "suggest": {
+        "nowo-tech/brand-contracts": "^1.0 — %brand% from a BrandProviderInterface service such as InstanceSettings' brand bridge (nowo_legal_kit.brand, spec 220)",
         "nowo-tech/cookie-consent-bundle": "^1.17 — legal routes prepended to disabled_routes / render_routes, legal_privacy as the modal privacy_route fallback, %cookie_inventory% token from the consent inventory",
         "nowo-tech/ckeditor5-editor-bundle": "^1.9 — CKEditor 5 body widget (editor.type: ckeditor5) and its strict sanitiser as the first pass",
         "nowo-tech/outbound-url-guard-bundle": "^1.2 — drop private-network / metadata link and image targets from stored legal HTML",

@@ -23,6 +23,33 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+Target 1.6.0 (spec 220 S5). From **1.5.0**: `composer update nowo-tech/legal-kit-bundle`.
+
+Nothing changes unless the app has a `Nowo\Brand\Contract\BrandProviderInterface` service (package
+`nowo-tech/brand-contracts`, for example InstanceSettings 1.5 with `nowo_instance_settings.brand.enabled: true`).
+With one, and the default `nowo_legal_kit.brand: auto`:
+
+- **`%brand%` is the provider's brand name**, in the seed and in stored documents, also while the brand is still the
+  default one (nothing stored). `brand_name` is only the fallback: without a provider, when the provider throws (logged)
+  and with `brand: off`. Hosts whose `brand_name` differs from the brand on purpose (a legal entity name, for example)
+  either set `brand: off` or use their own token (`%legal_name%`, see [USAGE](USAGE.md#tokens)).
+- **Legal evidence.** `legal_acceptance.content_hash` covers the rendered text, so a different name (on upgrade, or a
+  rename later) changes the hash recorded for the same version. Nobody is asked to accept again (the version decides).
+  The acceptance row does not record the name in effect (no schema change in 1.6), so keep an audit trail of brand
+  renames with their dates (InstanceSettings logs and dispatches every setting change; AuditKit can record it) and note
+  the date of the switch. To check a hash recorded before a rename, pass the past names:
+  `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash> --brand-name="Old name" [--brand-name=…]`. A host
+  resolver for `brand` (priority above -100) still wins over `--brand-name`.
+- **Keep `brand_name` set** to the brand name as the fallback. With `brand_name: ''`, a provider that fails at run time
+  leaves `%brand%` printed literally, although the placeholder gate passed while the provider answered.
+- **HTTP caching.** The public page carries an `ETag` and no `Last-Modified`. Shared caches (`public.cache.shared_max_age`)
+  may still serve the old name until they expire. The ETag hashes the whole page, so a layout with per-request content
+  (a CSRF or logout token, flashes) never gets a 304 while a brand applies.
+- **The placeholder gate** (`check-placeholders`, `doctor`) counts `%brand%` as resolved when the provider answers.
+
+**symfony-beacon:** delete `App\Shared\Appearance\LegalBrandTokenResolver` once the InstanceSettings brand bridge
+serves the brand (spec 220 B4); until then it keeps winning (host resolvers run before the built-in one).
+
 ## To 1.5.0
 
 From **1.4.1**:

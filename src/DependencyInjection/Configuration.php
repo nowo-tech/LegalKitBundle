@@ -47,6 +47,11 @@ final class Configuration implements ConfigurationInterface
     /** Re-acceptance modes of a page. */
     public const array ACCEPTANCE_MODES = ['accept', 'acknowledge', 'none'];
 
+    /** `brand.mode` values (spec 220 S5): read `%brand%` from a brand provider when the app has one, or ignore it. */
+    public const string BRAND_AUTO = 'auto';
+
+    public const string BRAND_OFF = 'off';
+
     /** The four canonical pages (REQ-CC-003), in footer order. */
     public const array DEFAULT_PAGES = ['notice', 'privacy', 'terms', 'cookies'];
 
@@ -75,8 +80,23 @@ final class Configuration implements ConfigurationInterface
                     ->defaultNull()
                 ->end()
                 ->scalarNode('brand_name')
-                    ->info('Value of the %brand% token in the seed and in stored documents.')
+                    ->info('Value of the %brand% token in the seed and in stored documents (the fallback when a brand provider applies).')
                     ->defaultValue('')
+                ->end()
+                ->arrayNode('brand')
+                    ->info('Spec 220: take %brand% from a nowo-tech/brand-contracts BrandProviderInterface service when the app has one. "auto" or "off" is accepted as a shorthand for mode.')
+                    ->addDefaultsIfNotSet()
+                    ->beforeNormalization()
+                        ->ifString()
+                        ->then(static fn (string $mode): array => ['mode' => $mode])
+                    ->end()
+                    ->children()
+                        ->enumNode('mode')
+                            ->info('auto: the provider\'s brand name wins over brand_name (which stays the fallback without a provider or when it fails). off: brand_name only.')
+                            ->values([self::BRAND_AUTO, self::BRAND_OFF])
+                            ->defaultValue(self::BRAND_AUTO)
+                        ->end()
+                    ->end()
                 ->end()
                 ->append($this->pagesNode())
                 ->arrayNode('routing')

@@ -12,6 +12,7 @@
   - [Seed providers](#seed-providers)
   - [Fallback locale](#fallback-locale)
 - [Tokens](#tokens)
+  - [Brand name from the brand contract](#brand-name-from-the-brand-contract)
 - [Placeholder gate](#placeholder-gate)
 - [Ops-seed portability](#ops-seed-portability)
 - [Versions and seed upgrades](#versions-and-seed-upgrades)
@@ -142,7 +143,7 @@ from the seed stays linked to your configuration:
 
 | Token | Value |
 | --- | --- |
-| `%brand%` | `brand_name` |
+| `%brand%` | the brand name of a `nowo-tech/brand-contracts` provider (`brand: auto`), else `brand_name` |
 | `%last_updated%` | row update date, else `seed.date` |
 | `%cookie_inventory%` | CookieConsent cookie table (nothing without CookieConsent) |
 
@@ -165,6 +166,21 @@ final readonly class CompanyTokens implements LegalTokenResolverInterface
 
 Strings are HTML-escaped on insertion; return `LegalTokenValue::html(...)` only for markup you produced safely.
 An unresolved token stays visible and is reported by the placeholder gate.
+
+### Brand name from the brand contract
+
+With `nowo-tech/brand-contracts` installed and a `Nowo\Brand\Contract\BrandProviderInterface` service in the app
+(InstanceSettings 1.5 registers one with `nowo_instance_settings.brand.enabled: true`; a host can write its own),
+`%brand%` is `Brand::$name`, read on every render (the provider memoises per request). The order is: a host token
+resolver for `brand` (priority above -100), then the provider, then `brand_name`. A provider that throws is logged and
+`brand_name` applies. `nowo_legal_kit.brand: off` ignores the provider.
+
+Only the name is read: legal pages and their exports print no brand logo, so no brand asset is read, linked or inlined.
+A host template that adds a logo to its legal layout prints `BrandAsset::$url` in an `<img src>` and inlines bytes only
+when `BrandAsset::isInlineSafe()` is true (spec 220 §7.5).
+
+With a provider the public page is validated by an `ETag` over the brand version and the rendered body instead of
+`Last-Modified`, so a renamed brand is not answered with a 304 of the old text.
 
 ## Placeholder gate
 
@@ -380,7 +396,7 @@ own personal-data erasure (or keep `action_log: false` and audit `LegalAcceptedE
 | `nowo:legal-kit:doctor [--strict]` | routes, anonymous access, CookieConsent routes / privacy link, seed markers, copies without a seed base (versioning) |
 | `nowo:legal-kit:snapshot-seed [--revision=…] [--force]` | versioning: freeze the current seed (see [Snapshots](#snapshots)) |
 | `nowo:legal-kit:upgrade-seed [--from=…] [--dry-run] [--new-version\|--requires-acceptance] [--fail-on-outdated]` | versioning: refresh unedited copies, flag edited ones, publish versions |
-| `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash>` | acceptance: compare a recorded `content_hash` with the current text, with and without the anchor ids; read-only, exit 1 when it does not match |
+| `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash> [--brand-name=<past name>]…` | acceptance: compare a recorded `content_hash` with the current text, with and without the anchor ids, and with each given past `%brand%` name; read-only, exit 1 when it does not match |
 
 ## Events
 

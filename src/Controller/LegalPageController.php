@@ -6,6 +6,8 @@ namespace Nowo\LegalKitBundle\Controller;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Nowo\Brand\Contract\Brand;
+use Nowo\LegalKitBundle\Brand\LegalBrand;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -22,7 +24,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
+use function hash;
 use function is_string;
+use function substr;
 
 /**
  * Public legal pages: the stored operator copy, else the seed (unique page on the guest layout, no JavaScript).
@@ -30,6 +34,10 @@ use function is_string;
  * `Cache-Control: private` by default (layouts may show the signed-in user); `public.cache.shared_max_age > 0`
  * opts into shared caches. `Last-Modified` follows the stored row. The content locale is published as the
  * `_content_locale` request attribute (layout `lang` / canonical).
+ *
+ * With a brand provider (spec 220 S5) `%brand%` can change at run time without touching the row, so the page is
+ * validated by an `ETag` over the brand version and the rendered body instead of `Last-Modified`: a renamed brand
+ * never answers 304 with the old name. Without a provider the headers are those of 1.5.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -51,6 +59,7 @@ final readonly class LegalPageController
      * @param int $maxAge `public.cache.max_age`
      * @param int $sharedMaxAge `public.cache.shared_max_age`
      * @param string|null $proseClass `public.prose_class`
+     * @param LegalBrand|null $brand Brand provider consumer (null with `brand.mode: off` or without brand-contracts)
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
@@ -65,6 +74,7 @@ final readonly class LegalPageController
         private int $maxAge = 0,
         private int $sharedMaxAge = 0,
         private ?string $proseClass = null,
+        private ?LegalBrand $brand = null,
     ) {
     }
 
@@ -162,7 +172,10 @@ final readonly class LegalPageController
         if ($this->maxAge > 0) {
             $response->setMaxAge($this->maxAge);
         }
-        if ($document->updatedAt instanceof DateTimeInterface) {
+        $brand = $this->brand?->current();
+        if ($brand instanceof Brand) {
+            $response->setEtag($brand->version . '-' . substr(hash('sha256', (string) $response->getContent()), 0, 16));
+        } elseif ($document->updatedAt instanceof DateTimeInterface) {
             $response->setLastModified(DateTimeImmutable::createFromInterface($document->updatedAt));
         }
         $response->isNotModified($request);
