@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use InvalidArgumentException;
 use Nowo\AuditKitBundle\NowoAuditKitBundle;
+use Nowo\Brand\Contract\BrandProviderInterface;
 use Nowo\Ckeditor5EditorBundle\NowoCkeditor5EditorBundle;
 use Nowo\CookieConsentBundle\NowoCookieConsentBundle;
 use Nowo\FormKitBundle\NowoFormKitBundle;
@@ -58,10 +59,11 @@ final class TestKernel extends Kernel
     use MicroKernelTrait;
 
     /**
-     * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, no route import, only the
+     * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, host brand provider
+     * (`brand_provider`, aliased as the brand-contracts `BrandProviderInterface`), no route import, only the
      * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider'];
 
     private readonly string $cacheKey;
 
@@ -191,6 +193,10 @@ final class TestKernel extends Kernel
         $container->register('test.legal_kit.allow_all', AllowAllLegalKitAccessChecker::class);
         if (in_array('test_seed', $this->extraBundles, true)) {
             $container->register(TestSeedProvider::class, TestSeedProvider::class)->addTag(LegalSeedProviderInterface::TAG, ['priority' => 10]);
+        }
+        if (in_array('brand_provider', $this->extraBundles, true)) {
+            $container->register(TestBrandProvider::class, TestBrandProvider::class)->setPublic(true);
+            $container->setAlias(BrandProviderInterface::class, TestBrandProvider::class);
         }
         if (in_array('consent_stub', $this->extraBundles, true)) {
             $container->register(ConsentStubTwigExtension::class, ConsentStubTwigExtension::class)->addTag('twig.extension');

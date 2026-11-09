@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\DependencyInjection;
 
+use Nowo\Brand\Contract\BrandProviderInterface;
 use Nowo\Ckeditor5EditorBundle\Form\Ckeditor5EditorType;
 use Nowo\Ckeditor5EditorBundle\Security\AllowlistCkeditor5HtmlSanitizer;
 use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
@@ -12,6 +13,7 @@ use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
+use Nowo\LegalKitBundle\Brand\LegalBrand;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Command\AdaptSeedCommand;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
@@ -23,6 +25,7 @@ use Nowo\LegalKitBundle\Command\VerifyAcceptanceHashCommand;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
 use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
+use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
 use Nowo\LegalKitBundle\Doctrine\VersioningMappingListener;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -37,6 +40,7 @@ use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
 use Nowo\LegalKitBundle\Seo\LegalSitemapProvider;
+use Nowo\LegalKitBundle\Token\BuiltinTokenResolver;
 use Nowo\LegalKitBundle\Token\LegalTokenResolverInterface;
 use Nowo\LegalKitBundle\Twig\LegalKitExtension;
 use Nowo\LegalKitBundle\Versioning\AccessLegalVersionPublisherChecker;
@@ -248,6 +252,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
         (new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config')))->load('services.php');
 
+        /** @var array{mode: string} $brand */
+        $brand = $config['brand'];
+        $this->configureBrand($container, $brand['mode']);
         $this->configureSanitizer($container, $sanitizer, $has);
         $this->configureVersioning($container, $config, $configs);
         $this->configureCommands($container, (bool) ($config['console']['legacy_aliases'] ?? true));
@@ -276,6 +283,28 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 ->setArguments([new Reference(SeoRuntime::class), new Reference(LegalLocales::class)])
                 ->addTag('kernel.event_listener', ['event' => LegalPageRenderEvent::class, 'method' => '__invoke']);
         }
+    }
+
+    /**
+     * Spec 220 S5: the brand consumer, only with `brand.mode: auto` and nowo-tech/brand-contracts installed. The
+     * provider is an optional reference: without a BrandProviderInterface service `%brand%` stays `brand_name`, and the
+     * public page keeps its 1.5 cache headers.
+     *
+     * @param string $mode `brand.mode`
+     */
+    private function configureBrand(ContainerBuilder $container, string $mode): void
+    {
+        if ($mode !== Configuration::BRAND_AUTO || !interface_exists(BrandProviderInterface::class)) {
+            return;
+        }
+
+        $container->register(LegalBrand::class, LegalBrand::class)
+            ->setArguments([
+                new Reference(BrandProviderInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
+                new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE),
+            ]);
+        $container->getDefinition(BuiltinTokenResolver::class)->setArgument('$brand', new Reference(LegalBrand::class));
+        $container->getDefinition(LegalPageController::class)->setArgument('$brand', new Reference(LegalBrand::class));
     }
 
     /**

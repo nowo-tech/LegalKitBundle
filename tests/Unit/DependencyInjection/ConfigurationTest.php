@@ -42,6 +42,13 @@ final class ConfigurationTest extends TestCase
         self::assertSame('cache.app', $config['acceptance']['cache_pool']);
     }
 
+    public function testBrandMode(): void
+    {
+        self::assertSame(['mode' => 'auto'], $this->process([])['brand']);
+        self::assertSame(['mode' => 'off'], $this->process(['brand' => 'off'])['brand']);
+        self::assertSame(['mode' => 'auto'], $this->process(['brand' => ['mode' => 'auto']])['brand']);
+    }
+
     public function testAcceptanceSetup(): void
     {
         $config = $this->process([
@@ -92,6 +99,8 @@ final class ConfigurationTest extends TestCase
         yield 'non html' => [['acceptance' => ['non_html' => 'block']]];
         yield 'table prefix' => [['doctrine' => ['table_prefix' => 'App-']]];
         yield 'cache' => [['public' => ['cache' => ['max_age' => -1]]]];
+        yield 'brand mode' => [['brand' => 'on']];
+        yield 'brand mode key' => [['brand' => ['mode' => 'always']]];
     }
 
     /**
