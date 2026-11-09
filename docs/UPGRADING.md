@@ -24,6 +24,23 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+From **1.6.x**: nothing to change. The public pages print exactly the 1.6 markup until you opt into the new header
+(MUX-150):
+
+```yaml
+nowo_legal_kit:
+    public:
+        header:
+            enabled: true
+            home: app_home          # route name, root-relative path or http(s) URL; default "/"
+            sign_in: app_login      # same rule; default none (no link)
+            logo: true              # the brand provider's light logo instead of the name, when it has one
+```
+
+A host that already prints a brand or a way back in its own `public.layout_template` keeps the header off. A value
+with another scheme (`javascript:`, `data:`, `mailto:`), a protocol-relative URL (`//host`), quotes, angle brackets,
+backslashes or whitespace fails the container build.
+
 ## To 1.6.0
 
 From **1.5.0**:

@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
+use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -60,6 +61,7 @@ final readonly class LegalPageController
      * @param int $sharedMaxAge `public.cache.shared_max_age`
      * @param string|null $proseClass `public.prose_class`
      * @param LegalBrand|null $brand Brand provider consumer (null with `brand.mode: off` or without brand-contracts)
+     * @param LegalPublicHeader|null $header The optional public header (`public.header`, MUX-150)
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
@@ -75,6 +77,7 @@ final readonly class LegalPageController
         private int $sharedMaxAge = 0,
         private ?string $proseClass = null,
         private ?LegalBrand $brand = null,
+        private ?LegalPublicHeader $header = null,
     ) {
     }
 
@@ -113,6 +116,7 @@ final readonly class LegalPageController
             'layout_template' => $this->layoutTemplate,
             'legal_locale'    => $locale,
             'prose_class'     => $this->proseClass,
+            'legal_header'    => $this->header?->view(),
         ] + $event->templateVariables()));
 
         return $this->cache($response, $document, $request);

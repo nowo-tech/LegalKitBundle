@@ -42,6 +42,17 @@ final class ConfigurationTest extends TestCase
         self::assertSame('cache.app', $config['acceptance']['cache_pool']);
     }
 
+    public function testPublicHeader(): void
+    {
+        self::assertSame(['enabled' => false, 'logo' => true, 'home' => '/', 'sign_in' => null], $this->process([])['public']['header']);
+        self::assertTrue($this->process(['public' => ['header' => true]])['public']['header']['enabled']);
+        $header = $this->process(['public' => ['header' => ['home' => 'https://example.com/', 'sign_in' => 'app_login']]])['public']['header'];
+        self::assertTrue($header['enabled'], 'Configuring the section enables it');
+        self::assertSame('https://example.com/', $header['home']);
+        self::assertSame('app_login', $header['sign_in']);
+        self::assertNull($this->process(['public' => ['header' => ['home' => null]]])['public']['header']['home']);
+    }
+
     public function testBrandMode(): void
     {
         self::assertSame(['mode' => 'auto'], $this->process([])['brand']);
@@ -101,6 +112,13 @@ final class ConfigurationTest extends TestCase
         yield 'cache' => [['public' => ['cache' => ['max_age' => -1]]]];
         yield 'brand mode' => [['brand' => 'on']];
         yield 'brand mode key' => [['brand' => ['mode' => 'always']]];
+        yield 'header javascript home' => [['public' => ['header' => ['home' => 'javascript:alert(1)']]]];
+        yield 'header javascript sign in' => [['public' => ['header' => ['sign_in' => 'JavaScript:alert(1)']]]];
+        yield 'header data url' => [['public' => ['header' => ['sign_in' => 'data:text/html,x']]]];
+        yield 'header protocol relative' => [['public' => ['header' => ['home' => '//evil.example']]]];
+        yield 'header quote' => [['public' => ['header' => ['home' => '/x"onmouseover=y']]]];
+        yield 'header space' => [['public' => ['header' => ['sign_in' => 'app login']]]];
+        yield 'header non string' => [['public' => ['header' => ['home' => ['/']]]]];
     }
 
     /**

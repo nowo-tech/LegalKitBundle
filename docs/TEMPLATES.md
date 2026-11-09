@@ -29,7 +29,7 @@ The public legal page has no list / form / show shape: it is prose with a cross 
   `nowo_ui_document_title` (document title), `nowo_ui_styles` (`css/nowo-legal-kit.css`, asset package
   `nowo_legal_kit`) and `nowo_ui_content` (`<article class="nowo-legal-doc">` with the body printed through
   `|nowo_legal_kit_sanitize_html` — never `|raw` —, the meta line and the cross navigation). Variables: `page` (`LegalPage`), `document` (`ResolvedLegalDocument`), `alternates`,
-  `layout_template`, `legal_locale`, `prose_class` (1.5, `public.prose_class`) + `LegalPageRenderEvent` variables. No JavaScript.
+  `layout_template`, `legal_locale`, `prose_class` (1.5, `public.prose_class`), `legal_header` (1.7, `LegalPublicHeader::view()`, null unless `public.header.enabled`) + `LegalPageRenderEvent` variables. Also fills `nowo_ui_page_header` (the optional header, then `parent()`). No JavaScript.
 
 - `@NowoLegalKitBundle/acceptance/interstitial.html.twig` (1.4, acceptance) — the re-acceptance page: extends
   `acceptance.layout_template ?? nowo_ui_layout.guest` (no app navigation), fills `nowo_ui_document_title` and
@@ -51,6 +51,7 @@ The public legal page has no list / form / show shape: it is prose with a cross 
 | Partial | Purpose |
 | --- | --- |
 | `public/_nav.html.twig` | cross navigation (`current`, `locale`) |
+| `public/_header.html.twig` | 1.7 optional header: brand linked home + sign-in link (`header` = `{brand, logo, home, sign_in}`, `locale`) |
 | `admin/_diff.html.twig` | side-by-side text diff (`diff`, `caption`, `bundle`); plain-text segments printed autoescaped, never `\|raw` |
 | `_footer_nav.html.twig` | footer links + Manage cookies (`locale`, `attr`) |
 | `_placeholder_banner.html.twig` | Ops banner (`locale`, `limit`) |

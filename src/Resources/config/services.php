@@ -15,6 +15,7 @@ use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\Form\LegalDocumentType;
+use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
@@ -104,6 +105,19 @@ return static function (ContainerConfigurator $container): void {
     // Controllers are not autoconfigured (REQ-SF-004 rule 7): on Symfony >= 7.3 a #[Route] class is autoconfigured
     // with the routing.controller tag, and the host's `routing.controllers` resource would then expose the admin
     // routes without the host importing the `nowo_legal_kit` route type (bypassing web_ui.enabled / path_prefix).
+    $services->set(LegalPublicHeader::class)
+        ->args([
+            service('router'),
+            param('nowo_legal_kit.public.header.enabled'),
+            param('nowo_legal_kit.brand_name'),
+            param('nowo_legal_kit.public.header.logo'),
+            param('nowo_legal_kit.public.header.home'),
+            param('nowo_legal_kit.public.header.sign_in'),
+            null,
+            service('logger')->nullOnInvalid(),
+            service('security.token_storage')->nullOnInvalid(),
+        ]);
+
     $services->set(LegalPageController::class)
         ->autoconfigure(false)
         ->tag('controller.service_arguments')
@@ -114,6 +128,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$maxAge', param('nowo_legal_kit.public.cache.max_age'))
         ->arg('$sharedMaxAge', param('nowo_legal_kit.public.cache.shared_max_age'))
         ->arg('$proseClass', param('nowo_legal_kit.public.prose_class'))
+        ->arg('$header', service(LegalPublicHeader::class))
         ->arg('$dispatcher', service('event_dispatcher'));
 
     $services->set(LegalDocumentAdminController::class)

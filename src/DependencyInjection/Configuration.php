@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\DependencyInjection;
 
 use InvalidArgumentException;
 use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
+use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -238,6 +239,7 @@ final class Configuration implements ConfigurationInterface
                                 ->thenInvalid('nowo_legal_kit.public.prose_class must be space separated class names (at most 200 characters), got %s.')
                             ->end()
                         ->end()
+                        ->append($this->headerNode())
                         ->arrayNode('cache')
                             ->addDefaultsIfNotSet()
                             ->children()
@@ -384,6 +386,43 @@ final class Configuration implements ConfigurationInterface
                 throw new InvalidArgumentException(sprintf('nowo_legal_kit.pages.%s.path "%s" is reserved for the re-acceptance page while acceptance.enabled is true.', $slug, self::ACCEPTANCE_PATH));
             }
         }
+    }
+
+    /**
+     * `public.header` (MUX-150, 1.7): the optional brand / home / sign-in header of the public pages. Off by default.
+     *
+     * @return ArrayNodeDefinition The node
+     */
+    private function headerNode(): ArrayNodeDefinition
+    {
+        $node = new ArrayNodeDefinition('header');
+        $node
+            ->info('MUX-150: header of the public pages with the brand (name, or the brand provider\'s light logo) linked home and a sign-in link. true / false is accepted as a shorthand for enabled.')
+            ->canBeEnabled()
+            ->children()
+                ->booleanNode('logo')
+                    ->info('Print the brand provider\'s light logo (an escaped <img src>, alt = the brand name) instead of the name when it has one.')
+                    ->defaultTrue()
+                ->end()
+                ->scalarNode('home')
+                    ->info('Target of the brand link: a route name, a root-relative path or an http(s) URL. Null = the brand is not a link.')
+                    ->defaultValue('/')
+                    ->validate()
+                        ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || !LegalPublicHeader::isValidTarget($value)))
+                        ->thenInvalid('nowo_legal_kit.public.header.home must be a route name, a root-relative path or an http(s) URL, got %s.')
+                    ->end()
+                ->end()
+                ->scalarNode('sign_in')
+                    ->info('Target of the sign-in link (hidden for a signed-in user): a route name, a root-relative path or an http(s) URL. Null = no link.')
+                    ->defaultNull()
+                    ->validate()
+                        ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || !LegalPublicHeader::isValidTarget($value)))
+                        ->thenInvalid('nowo_legal_kit.public.header.sign_in must be a route name, a root-relative path or an http(s) URL, got %s.')
+                    ->end()
+                ->end()
+            ->end();
+
+        return $node;
     }
 
     /**

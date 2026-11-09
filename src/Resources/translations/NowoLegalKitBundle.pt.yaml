@@ -7,6 +7,10 @@ page:
 nav:
   label: Legal
   manage_cookies: Definições de cookies
+header:
+  home: "Início"
+  sign_in: "Iniciar sessão"
+  account: "Conta"
 public:
   last_updated: 'Última atualização: %date%'
   version: "Versão %version%"

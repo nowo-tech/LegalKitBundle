@@ -7,18 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
+  - [Added](#added-1)
   - [Changed](#changed)
   - [Security](#security)
 - [[1.5.0] - 2026-11-06](#150---2026-11-06)
-  - [Added](#added-1)
+  - [Added](#added-2)
   - [Changed](#changed-1)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-2)
+  - [Added](#added-3)
   - [Changed](#changed-2)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
@@ -32,16 +33,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-4)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-3)
+  - [Added](#added-4)
   - [Changed](#changed-5)
   - [Fixed](#fixed-1)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-4)
+  - [Added](#added-5)
 
 ## [Unreleased]
+
+Target: 1.7.0 (MUX-150, mobile UX audit 2026-11-09). See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- Optional header on the public legal pages (`nowo_legal_kit.public.header`, off by default): the brand linked to
+  the home page and a sign-in link, so a visitor who lands on a legal page has a way back besides the browser. The
+  brand is the brand provider's name (spec 220, `LegalBrand`), else `brand_name`. With `logo: true` (the default)
+  the provider's light logo prints as an `<img src>` (alt = the brand name); the URL is checked with
+  `BrandAsset::isSafeUrl()` again and escaped, and is never inlined. `home` (default `/`) and `sign_in` (default
+  none) take a route name, a root-relative path or an `http(s)://` URL; any other scheme (`javascript:`, `data:`…),
+  protocol-relative URLs, quotes, angle brackets, backslashes and whitespace fail the configuration. An unknown route
+  is logged and its link left out. No sign-in link for a signed-in user. `public.header: true` is a shorthand.
+- `Header\LegalPublicHeader`, the `legal_header` variable of `public/page.html.twig`, the partial
+  `public/_header.html.twig` (printed in `nowo_ui_page_header`, before the layout's own page header), the classes
+  `nowo-legal-header*`, the token `--nowo-legal-header-logo-height` and the translations `header.home`,
+  `header.sign_in`, `header.account` (7 locales).
 
 ## [1.6.0] - 2026-11-09
 

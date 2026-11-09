@@ -3,7 +3,8 @@
   ?? nowo_ui_layout.guest) and fills the canonical blocks. No JavaScript.
   Variables: page (Catalog\LegalPage), document (Document\ResolvedLegalDocument: title, body = sanitised HTML printed
   through |nowo_legal_kit_sanitize_html, source, contentLocale, updatedAt, version), alternates (locale => absolute URL), layout_template, legal_locale, prose_class (public.prose_class, ?string), plus the
-  LegalPageRenderEvent template variables.
+  LegalPageRenderEvent template variables, and legal_header (Header\LegalPublicHeader::view(): brand, logo, home, sign_in;
+  null unless public.header.enabled).
   Slots: section (article), muted (meta line), btn_link (cross navigation links); semantic classes nowo-legal-doc,
   nowo-legal-doc__meta, nowo-legal-nav (stylesheet css/nowo-legal-kit.css, asset package nowo_legal_kit).
 #}
@@ -15,6 +16,12 @@
 {% block nowo_ui_styles %}
     {{ parent() }}
     <link rel="stylesheet" href="{{ asset('css/nowo-legal-kit.css', 'nowo_legal_kit') }}">
+{% endblock %}
+
+{# MUX-150: the optional header (brand linked home, sign-in link) on top of the layout's own page header. #}
+{% block nowo_ui_page_header %}
+    {%- if legal_header|default(null) %}{{ include('@NowoLegalKitBundle/public/_header.html.twig', {header: legal_header, locale: legal_locale}, false) }}{% endif -%}
+    {{ parent() }}
 {% endblock %}
 
 {% block nowo_ui_content %}
