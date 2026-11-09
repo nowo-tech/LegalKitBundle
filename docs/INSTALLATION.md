@@ -69,6 +69,10 @@ use Nowo\AuditKitBundle\Model\AuditUserInterface;
 class User implements UserInterface, AuditUserInterface { /* … */ }
 ```
 
+A hexagonal host whose user is no Doctrine entity (or should not carry a bundle interface) sets
+`nowo_legal_kit.doctrine.blame: actor_id` (string actor ids, no foreign key) or `none` instead — see
+[CONFIGURATION](CONFIGURATION.md#doctrine-blame).
+
 ## Configure and import the routes
 
 ```yaml

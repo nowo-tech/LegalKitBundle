@@ -96,7 +96,7 @@ nowo_legal_kit:
     seo: { sitemap: auto, head: auto }
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
-    doctrine: { table_prefix: '' }
+    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [] }   # blame: relation | actor_id | none
 ```
 
 ## Locales
@@ -248,6 +248,47 @@ security:
 `doctrine.table_prefix: app_` → table `app_legal_document`, indexes `app_uniq_legal_document_slug_locale`,
 `app_idx_legal_document_created_by`, `app_idx_legal_document_updated_by` (REQ-ORM-002). Adopters of an existing table
 keep it empty.
+
+## Doctrine blame
+
+`doctrine.blame` chooses the blame columns of `legal_document` and `legal_page_version` (since 1.8):
+
+| Value | Columns | Host requirements |
+| --- | --- | --- |
+| `relation` (default) | `created_by_id` / `updated_by_id` → host users table (`ON DELETE SET NULL`), indexes `idx_<table>_created_by` / `_updated_by` | AuditKit `user_class` implementing `AuditUserInterface` (`resolve_target_entities`); unchanged from 1.7 |
+| `actor_id` | `created_by` / `updated_by` VARCHAR(191) NULL, no foreign key, no index | none; `LegalActorIdResolverInterface` (default `SecurityLegalActorIdResolver`: the signed-in user's `getId()`, else its user identifier) — alias it to your own service |
+| `none` | no blame columns | none |
+
+In `actor_id` mode the ids are stamped on flush; without a signed-in user (CLI) the value already on the row is kept,
+for example the id of the `$actor` given to `LegalDocumentPortability::apply()`; a signed-in user whose id cannot be
+recorded (class not in `accepted_user_classes`, unusable id) writes null, so the edit is never credited to the
+previous editor. The admin index shows the actor id. A custom resolver implements `hasCurrentActor()` (is anyone
+signed in?) next to `currentActorId()`.
+
+The default resolver writes `getId()` (else the user identifier) of whoever is signed in, and ids of every user class
+share one column: with `accepted_user_classes: []` (default) it suits **one identity domain only**. A host with several
+user classes or providers (Admin#5 next to Customer#5) lists the class whose ids it records — actors of other classes
+are then recorded as unknown (null) — or aliases `LegalActorIdResolverInterface` to a resolver that prefixes the
+domain (`admin:5`). An id of 0, a negative id or a blank id is never recorded (null, no fallback to the identifier).
+
+```yaml
+nowo_legal_kit:
+    doctrine:
+        blame: actor_id
+        accepted_user_classes: [App\Security\BackOfficeUser]
+```
+
+```yaml
+nowo_legal_kit:
+    doctrine:
+        blame: actor_id
+services:
+    Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface: '@App\Infrastructure\Legal\AccountActorIdResolver'
+```
+
+Switching an existing table changes the schema: run `doctrine:migrations:diff` (the old `created_by_id` /
+`updated_by_id` columns, their foreign keys and indexes are dropped by the diff; copy them into the new columns first
+if you need the history).
 
 ## Timeouts
 

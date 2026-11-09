@@ -7,25 +7,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.7.0] - 2026-11-09](#170---2026-11-09)
   - [Added](#added)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
+  - [Fixed](#fixed)
+- [[1.7.0] - 2026-11-09](#170---2026-11-09)
   - [Added](#added-1)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
+  - [Added](#added-2)
   - [Changed](#changed)
   - [Security](#security)
 - [[1.5.0] - 2026-11-06](#150---2026-11-06)
-  - [Added](#added-2)
+  - [Added](#added-3)
   - [Changed](#changed-1)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-3)
+  - [Added](#added-4)
   - [Changed](#changed-2)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
-  - [Fixed](#fixed)
+  - [Fixed](#fixed-1)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
@@ -34,16 +36,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-4)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-4)
+  - [Added](#added-5)
   - [Changed](#changed-5)
-  - [Fixed](#fixed-1)
+  - [Fixed](#fixed-2)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
-  - [Fixed](#fixed-2)
+  - [Fixed](#fixed-3)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-5)
+  - [Added](#added-6)
 
 ## [Unreleased]
+
+Target: 1.8.0 (DDD / hexagonal adapter fixes, audit 2026-11-09). See [UPGRADING](UPGRADING.md#to-180).
+
+### Added
+
+- `LegalAcceptanceManagerInterface` (public alias of `LegalAcceptanceManager`): the acceptance port (`pendingFor`,
+  `record`, `recordInTransaction`, `afterCommit`, `exportFor`, `eraseFor`). The re-acceptance gate and page depend on
+  it, so a host decorator applies to them too.
+- `LegalAcceptanceManager::recordInTransaction()` + `afterCommit(LegalAcceptanceBatch ...)`: record acceptances
+  inside the host transaction (sign-up flows) and dispatch `LegalAcceptedEvent` only after the host commit; a
+  rollback leaves no row and no event. New DTO `LegalAcceptanceBatch`.
+- `LegalDocumentPortability::afterCommit($rows)`: dispatches `LegalDocumentsImportedEvent` after the host committed an
+  `apply(..., flush: false)` (before, that path never dispatched the event, so no AuditKit action-log row either).
+- `nowo_legal_kit.doctrine.blame: relation|actor_id|none` (default `relation`, unchanged): `actor_id` maps string
+  columns `created_by` / `updated_by` filled from the new `LegalActorIdResolverInterface` port (default
+  `SecurityLegalActorIdResolver`, works with security users that are no Doctrine entity); `none` drops the blame
+  columns. Neither needs `AuditUserInterface` nor `resolve_target_entities`. `doctrine.accepted_user_classes`
+  (default `[]` = any actor, one identity domain) limits the recorded actors to the listed classes (audit JX-L1);
+  ids ≤ 0 and blank ids are never recorded. Without a signed-in user (CLI) the row keeps its values; a signed-in user
+  that cannot be recorded writes null (`LegalActorIdResolverInterface::hasCurrentActor()`, JX-L4).
+- Docs: USAGE section "Using it from a DDD / hexagonal application"; CONFIGURATION "Doctrine blame".
+
+### Fixed
+
+- `record()` / `recordInTransaction()` called inside an open transaction insert each row in a savepoint: a duplicate
+  row (double submit) no longer aborts the caller's transaction on PostgreSQL.
 
 ## [1.7.0] - 2026-11-09
 

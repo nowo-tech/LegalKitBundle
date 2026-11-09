@@ -6,7 +6,7 @@ namespace Nowo\LegalKitBundle\EventSubscriber;
 
 use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
 use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
-use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
@@ -49,7 +49,7 @@ final readonly class AcceptanceGateSubscriber implements EventSubscriberInterfac
 
     /**
      * @param CurrentLegalSubject $subject Subject of the security token
-     * @param LegalAcceptanceManager $manager Pending pages
+     * @param LegalAcceptanceManagerInterface $manager Pending pages
      * @param LegalPageVersions $versions Requirements fingerprint
      * @param AcceptanceRequestMatcher $matcher Exemptions and the HTML test
      * @param RelativeTargetValidator $targets Target rules
@@ -61,7 +61,7 @@ final readonly class AcceptanceGateSubscriber implements EventSubscriberInterfac
      */
     public function __construct(
         private CurrentLegalSubject $subject,
-        private LegalAcceptanceManager $manager,
+        private LegalAcceptanceManagerInterface $manager,
         private LegalPageVersions $versions,
         private AcceptanceRequestMatcher $matcher,
         private RelativeTargetValidator $targets,

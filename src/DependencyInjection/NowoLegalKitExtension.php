@@ -11,8 +11,13 @@ use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
 use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
+use Nowo\LegalKitBundle\Blame\ActorIdBlameListener;
+use Nowo\LegalKitBundle\Blame\BlameMappingListener;
+use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
+use Nowo\LegalKitBundle\Blame\SecurityLegalActorIdResolver;
 use Nowo\LegalKitBundle\Brand\LegalBrand;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Command\AdaptSeedCommand;
@@ -264,7 +269,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $this->configureVersioning($container, $config, $configs);
         $this->configureCommands($container, (bool) ($config['console']['legacy_aliases'] ?? true));
 
-        /** @var array{table_prefix: string} $doctrine */
+        /** @var array{table_prefix: string, blame: string, accepted_user_classes: list<string>} $doctrine */
         $doctrine = $config['doctrine'];
         if ($doctrine['table_prefix'] !== '') {
             $container->register(TablePrefixListener::class, TablePrefixListener::class)
@@ -272,6 +277,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 // Conditional registration (non-empty prefix only): tagged here, not through an attribute.
                 ->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
         }
+        $this->configureBlame($container, $doctrine['blame'], $doctrine['accepted_user_classes']);
 
         /** @var array{sitemap: bool|string, head: bool|string} $seo */
         $seo          = $config['seo'];
@@ -288,6 +294,35 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 ->setArguments([new Reference(SeoRuntime::class), new Reference(LegalLocales::class)])
                 ->addTag('kernel.event_listener', ['event' => LegalPageRenderEvent::class, 'method' => '__invoke']);
         }
+    }
+
+    /**
+     * `doctrine.blame`: `relation` (default) keeps AuditKit's ManyToOne untouched and registers nothing; `actor_id` /
+     * `none` rewrite the mapping, and `actor_id` stamps string actor ids through {@see LegalActorIdResolverInterface}.
+     *
+     * @param string $mode `doctrine.blame`
+     * @param list<string> $acceptedUserClasses `doctrine.accepted_user_classes`
+     */
+    private function configureBlame(ContainerBuilder $container, string $mode, array $acceptedUserClasses): void
+    {
+        $container->setParameter(Configuration::ALIAS . '.doctrine.blame', $mode);
+        if ($mode === Configuration::BLAME_RELATION) {
+            return;
+        }
+        $container->register(BlameMappingListener::class, BlameMappingListener::class)
+            ->setArguments([$mode])
+            ->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
+        if ($mode !== Configuration::BLAME_ACTOR_ID) {
+            return;
+        }
+        $container->register(SecurityLegalActorIdResolver::class, SecurityLegalActorIdResolver::class)
+            ->setArguments([new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE), $acceptedUserClasses]);
+        // Alias: a host service definition / alias for the interface wins over this one.
+        $container->setAlias(LegalActorIdResolverInterface::class, SecurityLegalActorIdResolver::class);
+        $container->register(ActorIdBlameListener::class, ActorIdBlameListener::class)
+            ->setArguments([new Reference(LegalActorIdResolverInterface::class)])
+            ->addTag('doctrine.event_listener', ['event' => 'onFlush']);
+        $container->getDefinition(LegalDocumentPortability::class)->setArgument('$actorIds', new Reference(LegalActorIdResolverInterface::class));
     }
 
     /**
@@ -451,6 +486,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $register(LegalAcceptanceManager::class)
             ->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->setPublic(true);
+        $container->setAlias(LegalAcceptanceManagerInterface::class, LegalAcceptanceManager::class)->setPublic(true);
         $register(CurrentLegalSubject::class)
             ->setArgument('$resolver', new Reference($resolver))
             ->setArgument('$tokenStorage', new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE));

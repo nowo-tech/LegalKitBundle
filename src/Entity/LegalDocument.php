@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Nowo\AuditKitBundle\Model\AuditableInterface;
 use Nowo\AuditKitBundle\Model\BlameableTrait;
 use Nowo\AuditKitBundle\Model\TimestampableTrait;
+use Nowo\LegalKitBundle\Blame\ActorIdBlameTrait;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 
@@ -16,7 +17,8 @@ use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
  * Operator copy of one legal page in one locale. No row = the built-in seed is published.
  *
  * Maps the `legal_document` table of the six adopting apps as is (column names, lengths, nullability, index names):
- * `created_by_id` / `updated_by_id` target AuditKit's AuditUserInterface (resolve_target_entities → host user).
+ * `created_by_id` / `updated_by_id` target AuditKit's AuditUserInterface (resolve_target_entities → host user). With
+ * `doctrine.blame: actor_id` they are replaced by the string columns `created_by` / `updated_by`; with `none` dropped.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -33,6 +35,7 @@ use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 ])]
 class LegalDocument implements AuditableInterface
 {
+    use ActorIdBlameTrait;
     use BlameableTrait;
     use TimestampableTrait;
 

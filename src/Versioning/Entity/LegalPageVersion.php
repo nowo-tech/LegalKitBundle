@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Nowo\AuditKitBundle\Model\AuditableInterface;
 use Nowo\AuditKitBundle\Model\BlameableTrait;
 use Nowo\AuditKitBundle\Model\TimestampableTrait;
+use Nowo\LegalKitBundle\Blame\ActorIdBlameTrait;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionRepository;
 
 /**
@@ -31,6 +32,7 @@ use Nowo\LegalKitBundle\Versioning\LegalPageVersionRepository;
 ])]
 class LegalPageVersion implements AuditableInterface
 {
+    use ActorIdBlameTrait;
     use BlameableTrait;
     use TimestampableTrait;
 

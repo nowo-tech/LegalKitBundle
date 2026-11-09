@@ -66,10 +66,14 @@ class LegalDocumentRepository extends ServiceEntityRepository
      */
     public function customMap(): array
     {
+        $relation = $this->getClassMetadata()->hasAssociation('updatedBy');
+        $builder  = $this->createQueryBuilder('document');
+        if ($relation) {
+            $builder->leftJoin('document.createdBy', 'creator')->addSelect('creator')
+                ->leftJoin('document.updatedBy', 'editor')->addSelect('editor');
+        }
         /** @var list<LegalDocument> $documents */
-        $documents = $this->createQueryBuilder('document')
-            ->leftJoin('document.createdBy', 'creator')->addSelect('creator')
-            ->leftJoin('document.updatedBy', 'editor')->addSelect('editor')
+        $documents = $builder
             ->orderBy('document.slug', 'ASC')
             ->addOrderBy('document.locale', 'ASC')
             ->getQuery()
@@ -77,10 +81,16 @@ class LegalDocumentRepository extends ServiceEntityRepository
 
         $map = [];
         foreach ($documents as $document) {
-            $editor                                            = $document->getUpdatedBy() ?? $document->getCreatedBy();
+            if ($relation) {
+                $editor = $document->getUpdatedBy() ?? $document->getCreatedBy();
+                $editor = $editor !== null ? $this->describe($editor) : null;
+            } else {
+                // doctrine.blame actor_id (string ids) or none (both null).
+                $editor = $document->getUpdatedByActorId() ?? $document->getCreatedByActorId();
+            }
             $map[$document->getSlug()][$document->getLocale()] = [
                 'updated_at'    => $document->getUpdatedAt() ?? $document->getCreatedAt(),
-                'updated_by'    => $editor !== null ? $this->describe($editor) : null,
+                'updated_by'    => $editor,
                 'seed_revision' => $document->getSeedRevision(),
             ];
         }

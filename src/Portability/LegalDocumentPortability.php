@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Portability;
 
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
+use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
@@ -47,6 +48,8 @@ final readonly class LegalDocumentPortability
      * @param LegalLocales $locales Enabled locales
      * @param LegalHtmlSanitizerInterface $sanitizer HTML sanitiser
      * @param EventDispatcherInterface|null $dispatcher Dispatches LegalDocumentsImportedEvent after a flush
+     * @param ?LegalSeedTracker $seedTracker Seed stamps (versioning on only)
+     * @param ?LegalActorIdResolverInterface $actorIds Actor ids of `$actor` (`doctrine.blame: actor_id` only)
      */
     public function __construct(
         private LegalDocumentRepository $documents,
@@ -56,6 +59,7 @@ final readonly class LegalDocumentPortability
         private LegalHtmlSanitizerInterface $sanitizer,
         private ?EventDispatcherInterface $dispatcher = null,
         private ?LegalSeedTracker $seedTracker = null,
+        private ?LegalActorIdResolverInterface $actorIds = null,
     ) {
     }
 
@@ -137,7 +141,8 @@ final readonly class LegalDocumentPortability
      * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
      * @param object|null $actor User set as created_by / updated_by before persisting; AuditKit's blame listener replaces it
      *                           with the signed-in user (null in CLI) when blame is enabled for the user class
-     * @param bool $flush Flush (and dispatch LegalDocumentsImportedEvent); false keeps the host transaction open
+     * @param bool $flush Flush (and dispatch LegalDocumentsImportedEvent); false keeps the host transaction open: the
+     *                    caller then calls {@see afterCommit()} with the same rows once its transaction committed
      *
      * @return int Number of rows written
      */
@@ -150,6 +155,7 @@ final readonly class LegalDocumentPortability
                 $document = new LegalDocument($row['slug'], $row['locale']);
                 if ($actor !== null) {
                     $document->setCreatedBy($actor);
+                    $document->setCreatedByActorId($this->actorIds?->actorIdFor($actor));
                 }
             }
             $document->setTitle($row['title']);
@@ -157,6 +163,9 @@ final readonly class LegalDocumentPortability
             $this->seedTracker?->stampImported($document);
             if ($actor !== null) {
                 $document->setUpdatedBy($actor);
+                if ($this->actorIds instanceof LegalActorIdResolverInterface) {
+                    $document->setUpdatedByActorId($this->actorIds->actorIdFor($actor));
+                }
             }
             $this->entityManager->persist($document);
             $written[] = ['slug' => $row['slug'], 'locale' => $row['locale']];
@@ -164,9 +173,26 @@ final readonly class LegalDocumentPortability
 
         if ($flush) {
             $this->entityManager->flush();
-            $this->dispatcher?->dispatch(new LegalDocumentsImportedEvent($written));
+            $this->afterCommit($written);
         }
 
         return count($written);
+    }
+
+    /**
+     * After the host committed an {@see apply()} made with `flush: false`: dispatches
+     * {@see LegalDocumentsImportedEvent} for the rows (as `apply(..., flush: true)` does itself, an empty list included).
+     *
+     * @param list<array{slug: string, locale: string, ...}> $rows The rows given to apply() (only slug and locale are read)
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function afterCommit(array $rows): void
+    {
+        $documents = [];
+        foreach ($rows as $row) {
+            $documents[] = ['slug' => $row['slug'], 'locale' => $row['locale']];
+        }
+        $this->dispatcher?->dispatch(new LegalDocumentsImportedEvent($documents));
     }
 }
