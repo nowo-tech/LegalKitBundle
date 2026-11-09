@@ -162,14 +162,14 @@ with `class` (and per element: `href`, `title`, `rel`, `target`, `data-nowo-open
 template, noscript…) can never be allowed. `outbound_url_guard: auto` drops private-network and cloud-metadata targets
 when OutboundUrlGuardBundle is registered; `ckeditor5_first_pass: true` runs CKEditor's strict sanitiser first (off by
 default: the allowlist is the stricter one, and CKEditor's pass would drop the `data-nowo-open-consent` opener).
-A body with an estimated element nesting above 512 is refused: the page answers 404, see [UPGRADING](UPGRADING.md#unreleased).
+A body with an estimated element nesting above 512 is refused: the page answers 404, see [UPGRADING](UPGRADING.md#to-180).
 
 `heading_anchors` (default empty: no `id` is ever printed) gives legal pages stable deep links such as
 `/legal/privacy#retention`, which the allowlist otherwise cannot keep because every input `id` is dropped (DOM
 clobbering). The text marks an `h1`–`h4` or `section` (or `h5`, `h6` if `allowed_elements` adds them with `class`) with the class `legal-anchor--<anchor>`; when `<anchor>` is in the
 list, the element gets `id="<anchor>"` as its first attribute. Names outside the list are ignored and each name is
 printed once (first occurrence in document order). Names match `^[a-z][a-z0-9_-]{0,63}$`. Pick names your layout does not
-use as ids: the bundle cannot see the layout. See [UPGRADING](UPGRADING.md#unreleased) if stored copies already carry
+use as ids: the bundle cannot see the layout. See [UPGRADING](UPGRADING.md#to-180) if stored copies already carry
 these classes.
 
 ## Placeholders

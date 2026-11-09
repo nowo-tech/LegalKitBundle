@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added)
   - [Fixed](#fixed)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
@@ -46,6 +47,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-6)
 
 ## [Unreleased]
+
+## [1.8.0] - 2026-11-09
 
 Target: 1.8.0 (DDD / hexagonal adapter fixes, audit 2026-11-09). See [UPGRADING](UPGRADING.md#to-180).
 
