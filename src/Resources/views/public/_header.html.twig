@@ -1,0 +1,18 @@
+{#
+  Optional header of the public legal pages (MUX-150, 1.7; public.header.enabled): the brand linked to the home page
+  and a sign-in link, so a visitor who lands on a legal page has a way back besides the browser.
+  Variables: header (Header\LegalPublicHeader::view(): brand = plain text, logo = a validated root-relative or https URL
+  or null, home / sign_in = resolved hrefs or null), locale.
+  Every value is auto-escaped; the logo is an <img src> only (never inlined). sign_in is null for a signed-in user.
+  Semantic classes nowo-legal-header, __brand, __logo, __name, __nav, __sign-in.
+#}
+{%- set _home_label = 'header.home'|trans({}, 'NowoLegalKitBundle', locale) -%}
+{%- set _name = header.brand ?: _home_label -%}
+<div class="nowo-legal-header" data-testid="nowo-legal-kit-header">
+    {%- if header.home %}<a class="nowo-legal-header__brand" href="{{ header.home }}" aria-label="{{ _name }} — {{ _home_label }}">{% else %}<span class="nowo-legal-header__brand">{% endif -%}
+    {%- if header.logo %}<img class="nowo-legal-header__logo" src="{{ header.logo }}" alt="{{ _name }}">{% else %}<span class="nowo-legal-header__name">{{ _name }}</span>{% endif -%}
+    {%- if header.home %}</a>{% else %}</span>{% endif -%}
+    {%- if header.sign_in %}
+    <nav class="nowo-legal-header__nav" aria-label="{{ 'header.account'|trans({}, 'NowoLegalKitBundle', locale) }}"><a class="{{ nowo_ui_class('btn_secondary', 'NowoLegalKitBundle') }} nowo-legal-header__sign-in" href="{{ header.sign_in }}"{{ nowo_ui_attrs('btn_secondary', 'NowoLegalKitBundle') }}>{{ 'header.sign_in'|trans({}, 'NowoLegalKitBundle', locale) }}</a></nav>
+    {%- endif %}
+</div>

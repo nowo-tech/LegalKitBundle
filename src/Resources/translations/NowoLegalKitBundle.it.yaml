@@ -7,6 +7,10 @@ page:
 nav:
   label: Note legali
   manage_cookies: Impostazioni dei cookie
+header:
+  home: "Home"
+  sign_in: "Accedi"
+  account: "Account"
 public:
   last_updated: 'Ultimo aggiornamento: %date%'
   version: "Versione %version%"

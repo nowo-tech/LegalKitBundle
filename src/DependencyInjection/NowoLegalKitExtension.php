@@ -33,6 +33,7 @@ use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
 use Nowo\LegalKitBundle\EventListener\SeoKitHeadListener;
 use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
 use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
+use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
@@ -204,7 +205,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $sanitizer = $config['sanitizer'];
         /** @var array{builtin_markers: bool, extra_markers: list<string>} $placeholders */
         $placeholders = $config['placeholders'];
-        /** @var array{layout_template: string|null, prose_class: string|null, cache: array{max_age: int, shared_max_age: int}} $public */
+        /** @var array{layout_template: string|null, prose_class: string|null, header: array{enabled: bool, logo: bool, home: string|null, sign_in: string|null}, cache: array{max_age: int, shared_max_age: int}} $public */
         $public = $config['public'];
         /** @var array{enabled: bool, path_prefix: string, layout_template: string|null, templates: array{index: string, edit: string, public_page: string}} $webUi */
         $webUi = $config['web_ui'];
@@ -234,6 +235,10 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $container->setParameter($p . 'placeholders.extra_markers', $placeholders['extra_markers']);
         $container->setParameter($p . 'public.layout_template', $public['layout_template']);
         $container->setParameter($p . 'public.prose_class', $public['prose_class']);
+        $container->setParameter($p . 'public.header.enabled', $public['header']['enabled']);
+        $container->setParameter($p . 'public.header.logo', $public['header']['logo']);
+        $container->setParameter($p . 'public.header.home', $public['header']['home']);
+        $container->setParameter($p . 'public.header.sign_in', $public['header']['sign_in']);
         $container->setParameter($p . 'public.cache.max_age', $public['cache']['max_age']);
         $container->setParameter($p . 'public.cache.shared_max_age', $public['cache']['shared_max_age']);
         $container->setParameter($p . 'web_ui.enabled', $webUi['enabled']);
@@ -305,6 +310,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ]);
         $container->getDefinition(BuiltinTokenResolver::class)->setArgument('$brand', new Reference(LegalBrand::class));
         $container->getDefinition(LegalPageController::class)->setArgument('$brand', new Reference(LegalBrand::class));
+        $container->getDefinition(LegalPublicHeader::class)->setArgument('$brand', new Reference(LegalBrand::class));
     }
 
     /**

@@ -199,3 +199,41 @@
         border: 1px solid CanvasText;
     }
 }
+
+/*
+ * Optional header (public.header.enabled, MUX-150): the brand linked home and a sign-in link, on the prose width.
+ * Tokens: --nowo-legal-header-logo-height (default 2rem), --nowo-ui-legal-max-width.
+ */
+.nowo-legal-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    max-width: var(--nowo-ui-legal-max-width, 48rem);
+    margin-inline: auto;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--nowo-ui-border, currentColor);
+}
+
+.nowo-legal-header__brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.nowo-legal-header__logo {
+    display: block;
+    height: var(--nowo-legal-header-logo-height, 2rem);
+    width: auto;
+    max-width: 100%;
+}
+
+.nowo-legal-header__sign-in {
+    min-height: 2.75rem;
+}

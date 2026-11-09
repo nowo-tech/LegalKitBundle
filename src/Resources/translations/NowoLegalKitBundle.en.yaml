@@ -7,6 +7,10 @@ page:
 nav:
   label: Legal
   manage_cookies: Cookie settings
+header:
+  home: "Home"
+  sign_in: "Sign in"
+  account: "Account"
 public:
   last_updated: 'Last updated: %date%'
   version: "Version %version%"

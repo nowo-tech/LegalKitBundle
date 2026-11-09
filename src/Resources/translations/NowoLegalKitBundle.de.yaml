@@ -7,6 +7,10 @@ page:
 nav:
   label: Rechtliches
   manage_cookies: Cookie-Einstellungen
+header:
+  home: "Startseite"
+  sign_in: "Anmelden"
+  account: "Konto"
 public:
   last_updated: 'Zuletzt aktualisiert: %date%'
   version: "Version %version%"
