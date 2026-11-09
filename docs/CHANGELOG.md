@@ -55,7 +55,9 @@ Target: 1.7.0 (MUX-150, mobile UX audit 2026-11-09). See [UPGRADING](UPGRADING.m
   `BrandAsset::isSafeUrl()` again and escaped, and is never inlined. `home` (default `/`) and `sign_in` (default
   none) take a route name, a root-relative path or an `http(s)://` URL; any other scheme (`javascript:`, `data:`…),
   protocol-relative URLs, quotes, angle brackets, backslashes and whitespace fail the configuration. An unknown route
-  is logged and its link left out. No sign-in link for a signed-in user. `public.header: true` is a shorthand.
+  is logged and its link left out. No sign-in link for a signed-in user; that variant is always `Cache-Control:
+  private`, also with `public.cache.shared_max_age` and no session, so a shared cache never serves it to guests.
+  With the header off the output is byte-identical to 1.6. `public.header: true` is a shorthand.
 - `Header\LegalPublicHeader`, the `legal_header` variable of `public/page.html.twig`, the partial
   `public/_header.html.twig` (printed in `nowo_ui_page_header`, before the layout's own page header), the classes
   `nowo-legal-header*`, the token `--nowo-legal-header-logo-height` and the translations `header.home`,

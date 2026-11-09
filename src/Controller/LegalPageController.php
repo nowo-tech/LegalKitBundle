@@ -165,7 +165,10 @@ final readonly class LegalPageController
         // Shared caching only for visitors without a session cookie: a visitor who already has a session may see a
         // personalised layout (flashes, user menu, logout CSRF token), so that render stays private. A session the
         // layout starts for an anonymous visitor carries nothing personal yet, so it does not block caching.
-        if ($this->sharedMaxAge > 0 && !$request->hasPreviousSession()) {
+        // The optional header (1.7) drops the sign-in link for a signed-in user: that variant stays private even
+        // without a session (HTTP basic, stateless authenticators), so a shared cache only ever stores the guest one.
+        $userVariant = $this->header?->hidesSignInForCurrentUser() ?? false;
+        if ($this->sharedMaxAge > 0 && !$request->hasPreviousSession() && !$userVariant) {
             $response->setPublic();
             $response->setSharedMaxAge($this->sharedMaxAge);
             // Opt-in shared cache: keep these headers even when the layout touched the session (flashes).

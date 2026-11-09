@@ -128,6 +128,12 @@ final class LegalPublicHeaderTest extends TestCase
         self::assertNotNull($signedIn);
         self::assertNull($signedIn['sign_in']);
         self::assertSame('/', $signedIn['home']);
+        self::assertTrue($header->hidesSignInForCurrentUser());
+
+        self::assertFalse((new LegalPublicHeader($this->urls(), true, 'Acme', true, '/', null, tokens: $tokens))->hidesSignInForCurrentUser(), 'No sign-in target');
+        self::assertFalse((new LegalPublicHeader($this->urls(), false, 'Acme', true, '/', '/login', tokens: $tokens))->hidesSignInForCurrentUser(), 'Header off');
+        $tokens->setToken(null);
+        self::assertFalse($header->hidesSignInForCurrentUser(), 'Anonymous');
     }
 
     private function urls(): UrlGenerator

@@ -21,7 +21,7 @@
 {# MUX-150: the optional header (brand linked home, sign-in link) on top of the layout's own page header. #}
 {% block nowo_ui_page_header %}
     {%- if legal_header|default(null) %}{{ include('@NowoLegalKitBundle/public/_header.html.twig', {header: legal_header, locale: legal_locale}, false) }}{% endif -%}
-    {{ parent() }}
+    {{- parent() -}}
 {% endblock %}
 
 {% block nowo_ui_content %}

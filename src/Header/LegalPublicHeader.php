@@ -122,6 +122,17 @@ final readonly class LegalPublicHeader
         return $asset instanceof BrandAsset && BrandAsset::isSafeUrl($asset->url) ? $asset->url : null;
     }
 
+    /**
+     * Whether this render is the signed-in variant (header on, a sign-in target, a user in the token storage): the
+     * controller then keeps the response private, so a shared cache never stores it for guests (audit JD-L2).
+     *
+     * @return bool Whether the header hides the sign-in link for the current user
+     */
+    public function hidesSignInForCurrentUser(): bool
+    {
+        return $this->enabled && $this->signIn !== null && $this->signedIn();
+    }
+
     private function signedIn(): bool
     {
         return $this->tokens?->getToken()?->getUser() instanceof UserInterface;

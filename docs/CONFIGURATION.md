@@ -210,7 +210,10 @@ a sign-in link (UiKit slot `btn_secondary`). Off by default, so the 1.6 markup i
   (`javascript:`, `data:`, `mailto:`), quotes, angle brackets, backslashes, backticks, whitespace. A route that does not
   exist at run time is logged (warning) and its link is left out; the page never fails.
 - **Signed-in users:** no sign-in link when the security token storage holds a user.
-- **Cache:** the header is static per brand; with a brand provider the page keeps its brand ETag.
+- **Cache:** with a brand provider the page keeps its brand ETag. With `public.cache.shared_max_age > 0` and a
+  `sign_in` target, a request with a signed-in user (even without a session: HTTP basic, stateless authenticators)
+  is answered `Cache-Control: private`, so a shared cache only ever stores the guest variant. A guest variant cached
+  earlier can still show *Sign in* to a member who reaches the page through that cache; the link is harmless there.
 - **Styles:** `nowo-legal-header`, `__brand`, `__logo`, `__name`, `__nav`, `__sign-in` in `css/nowo-legal-kit.css`
   (44px tap targets, wraps on phones); token `--nowo-legal-header-logo-height` (default `2rem`).
 
