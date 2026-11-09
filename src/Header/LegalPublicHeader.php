@@ -12,6 +12,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 use function preg_match;
 use function str_starts_with;
@@ -123,7 +124,7 @@ final readonly class LegalPublicHeader
 
     private function signedIn(): bool
     {
-        return $this->tokens?->getToken()?->getUser() !== null;
+        return $this->tokens?->getToken()?->getUser() instanceof UserInterface;
     }
 
     private function href(?string $target, string $key): ?string
