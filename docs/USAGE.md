@@ -35,6 +35,12 @@
   - [Forms](#forms)
   - [Twig functions](#twig-functions)
 - [Extension points](#extension-points)
+- [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
+  - [Keep your domain free of the bundle](#keep-your-domain-free-of-the-bundle)
+  - [Ports you implement (infrastructure adapters)](#ports-you-implement-infrastructure-adapters)
+  - [Signals you consume](#signals-you-consume)
+  - [Example: anti-corruption adapter](#example-anti-corruption-adapter)
+  - [Known limitations](#known-limitations)
 - [Translations](#translations)
 - [Naming conventions](#naming-conventions)
 
@@ -503,6 +509,99 @@ The category column of the cookie table shows `cookies.category.<key>` (domain `
 | `LegalAcceptanceManager` | pending pages, records, `exportFor` / `eraseFor` |
 | Events | see [Events](#events) |
 | `LegalDocumentPortability` | export / normalize / apply |
+
+## Using it from a DDD / hexagonal application
+
+LegalKit is a **self-contained bounded context** (legal pages, page versions, acceptances) with its own tables
+(`legal_document`, `legal_page_version`, `legal_acceptance`) and its own UI (public pages, admin, re-acceptance page,
+request gate). Treat it as a supporting subdomain next to yours: your domain never needs to reference a LegalKit class.
+
+### Keep your domain free of the bundle
+
+- **Acceptances are keyed by a string subject id**, not by a relation to your user. Implement
+  `LegalAcceptanceSubjectResolverInterface` in your infrastructure layer and return a stable, non-personal id
+  (e.g. the public id of your user aggregate).
+- **Blame columns** (`created_by_id` / `updated_by_id` on `legal_document` and `legal_page_version`) are an AuditKit
+  `ManyToOne` to `AuditUserInterface`, resolved to `nowo_audit_kit.user_class`. If your domain `User` must stay free of
+  framework interfaces, point `user_class` at your infrastructure Doctrine user class (persistence model) and implement
+  `AuditUserInterface` there.
+- Do not inject `LegalDocumentRepository`, `LegalAcceptanceRepository` or the entities into your application layer;
+  use the services, DTOs and events below.
+
+### Ports you implement (infrastructure adapters)
+
+| Port | Use |
+| --- | --- |
+| `LegalAcceptanceSubjectResolverInterface` | Symfony user → subject id (`acceptance.subject_resolver`) |
+| `LegalAcceptanceExemptionInterface` | requests never sent to the re-acceptance page |
+| `LegalSeedProviderInterface`, `LegalTokenResolverInterface` | texts and `%token%` values from your own sources |
+| `LegalPageCatalogInterface`, `LegalHtmlSanitizerInterface` | replace the catalogue or the sanitiser (alias) |
+| `LegalKitAccessCheckerInterface`, `LegalVersionPublisherCheckerInterface` | admin / publish authorisation from your own policy |
+
+### Signals you consume
+
+All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subjectId`, `slug`, `version`, `locale`,
+`kind`, `acceptedAt`, `contentHash`), `LegalVersionPublishedEvent`, `LegalDocumentSavedEvent`,
+`LegalDocumentRestoredEvent`, `LegalDocumentRebasedEvent`, `LegalDocumentsImportedEvent`, `LegalSeedUpgradedEvent`,
+`LegalPageRenderEvent` (with a `ResolvedLegalDocument`). Translate them into your own domain events in a listener.
+
+### Example: anti-corruption adapter
+
+```php
+namespace App\Infrastructure\Legal;
+
+use App\Domain\Account\AccountId;
+use App\Domain\Account\TermsAccepted;          // your domain event
+use App\Domain\Shared\DomainEventBus;           // your port
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
+use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+final class LegalSubjectResolver implements LegalAcceptanceSubjectResolverInterface
+{
+    public function resolve(UserInterface $user): ?string
+    {
+        return $user instanceof SecurityUser ? $user->accountPublicId() : null; // never an e-mail
+    }
+}
+
+final readonly class LegalAcceptanceBridge
+{
+    public function __construct(private LegalAcceptanceManager $legal, private DomainEventBus $bus) {}
+
+    /** Port used by the application layer: does this account still have to accept something? */
+    public function hasPending(AccountId $id, string $locale): bool
+    {
+        return $this->legal->pendingFor($id->toString(), $locale) !== [];
+    }
+
+    /** GDPR erasure provider of the host. */
+    public function erase(AccountId $id): int
+    {
+        return $this->legal->eraseFor($id->toString());
+    }
+
+    #[AsEventListener]
+    public function onAccepted(LegalAcceptedEvent $event): void
+    {
+        $this->bus->publish(new TermsAccepted($event->subjectId, $event->slug, $event->version, $event->acceptedAt));
+    }
+}
+```
+
+### Known limitations
+
+- `LegalAcceptanceManager` is a final class without an interface; wrap it in your own port as above.
+- `LegalAcceptanceManager::record()` inserts with autocommit, outside your transaction, and dispatches
+  `LegalAcceptedEvent` immediately. In a sign-up flow, record the acceptance after your own commit.
+- `LegalDocumentPortability::apply(..., flush: false)` does not dispatch `LegalDocumentsImportedEvent`; dispatch your
+  own signal after your commit, or call `apply(..., flush: true)`.
+- `eraseFor()` and `nowo:legal-kit:seed` dispatch no event.
+- `LegalPageVersions::latest()` / `publish()` return the `LegalPageVersion` entity; keep them inside your adapter.
+- Hosts that declare `doctrine.orm.entity_managers` must register the bundle mappings themselves; the admin editor
+  uses the default entity manager.
 
 ## Translations
 
