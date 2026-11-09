@@ -50,6 +50,9 @@ Target: 1.6.0 (spec 220 S5). See [UPGRADING](UPGRADING.md#unreleased).
   (for example InstanceSettings 1.5 with `brand.enabled: true`), the token is the brand name. `brand_name` stays the
   fallback without a provider, when the provider fails and with `brand: off`.
 - `nowo_legal_kit.brand` (`auto` default, or `off`; also `{mode: …}`).
+- `nowo:legal-kit:verify-acceptance-hash --brand-name=<name>` (repeatable): also checks the text rendered with a past
+  `%brand%` name, for acceptances recorded before a brand rename (audit IW-L1). `LegalTokenContext::$brandName` and
+  the optional `$brandName` argument of `LegalDocumentResolver::resolve()` carry it.
 - `nowo-tech/brand-contracts` in `suggest` (optional; `conflict` below 1.0 and from 2.0).
 
 ### Changed
@@ -62,7 +65,7 @@ Target: 1.6.0 (spec 220 S5). See [UPGRADING](UPGRADING.md#unreleased).
 
 - The brand name is plain text: escaped in the body by the token renderer and auto-escaped in titles. A failing provider
   is logged (warning, or error for a PHP `Error`) and never reaches the page. No brand image is read, inlined or linked.
-  Audit: re-verification pending.
+  Audit: Appendix IW Pass-Low; the IW-L1 follow-up (`--brand-name`) is re-verification pending.
 
 ## [1.5.0] - 2026-11-06
 

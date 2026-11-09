@@ -57,13 +57,16 @@ final readonly class LegalDocumentResolver
      * nobody is asked to accept it, so a blank page is never shown or recorded as accepted. A stored row without text
      * of its own is not refused: the seed applies, as always.
      *
+     * `$brandName` renders `%brand%` with that name instead of the current brand (to check evidence recorded under a
+     * past name); null for the current brand.
+     *
      * @return ?ResolvedLegalDocument The result
      */
-    public function resolve(string $slug, string $locale): ?ResolvedLegalDocument
+    public function resolve(string $slug, string $locale, ?string $brandName = null): ?ResolvedLegalDocument
     {
         $stored = $this->documents->findOneBySlugAndLocale($slug, $locale);
         if ($stored instanceof LegalDocument && self::hasText($stored->getBody())) {
-            $context = new LegalTokenContext($slug, $locale, $stored->getUpdatedAt() ?? $stored->getCreatedAt());
+            $context = new LegalTokenContext($slug, $locale, $stored->getUpdatedAt() ?? $stored->getCreatedAt(), $brandName);
             $body    = $this->sanitizer->sanitize($this->tokens->renderHtml($stored->getBody(), $context));
             if (!self::hasText($body)) {
                 return $this->refused($slug, $locale, ResolvedLegalDocument::SOURCE_STORED);
@@ -85,7 +88,7 @@ final readonly class LegalDocumentResolver
         if (!$seed instanceof LegalSeed) {
             return null;
         }
-        $context = new LegalTokenContext($slug, $locale);
+        $context = new LegalTokenContext($slug, $locale, null, $brandName);
         $body    = $this->sanitizer->sanitize($this->tokens->renderHtml($seed->body, $context));
         if (!self::hasText($body)) {
             return $this->refused($slug, $locale, ResolvedLegalDocument::SOURCE_SEED);

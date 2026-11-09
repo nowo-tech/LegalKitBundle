@@ -34,10 +34,17 @@ With one, and the default `nowo_legal_kit.brand: auto`:
   and with `brand: off`. Hosts whose `brand_name` differs from the brand on purpose (a legal entity name, for example)
   either set `brand: off` or use their own token (`%legal_name%`, see [USAGE](USAGE.md#tokens)).
 - **Legal evidence.** `legal_acceptance.content_hash` covers the rendered text, so a different name (on upgrade, or a
-  rename later) changes the hash recorded for the same version. Nobody is asked to accept again (the version decides);
-  `nowo:legal-kit:verify-acceptance-hash` compares against the current name only. Note the date of the switch.
+  rename later) changes the hash recorded for the same version. Nobody is asked to accept again (the version decides).
+  The acceptance row does not record the name in effect (no schema change in 1.6), so keep an audit trail of brand
+  renames with their dates (InstanceSettings logs and dispatches every setting change; AuditKit can record it) and note
+  the date of the switch. To check a hash recorded before a rename, pass the past names:
+  `nowo:legal-kit:verify-acceptance-hash <slug> <locale> <hash> --brand-name="Old name" [--brand-name=…]`. A host
+  resolver for `brand` (priority above -100) still wins over `--brand-name`.
+- **Keep `brand_name` set** to the brand name as the fallback. With `brand_name: ''`, a provider that fails at run time
+  leaves `%brand%` printed literally, although the placeholder gate passed while the provider answered.
 - **HTTP caching.** The public page carries an `ETag` and no `Last-Modified`. Shared caches (`public.cache.shared_max_age`)
-  may still serve the old name until they expire.
+  may still serve the old name until they expire. The ETag hashes the whole page, so a layout with per-request content
+  (a CSRF or logout token, flashes) never gets a 304 while a brand applies.
 - **The placeholder gate** (`check-placeholders`, `doctor`) counts `%brand%` as resolved when the provider answers.
 
 **symfony-beacon:** delete `App\Shared\Appearance\LegalBrandTokenResolver` once the InstanceSettings brand bridge
