@@ -73,7 +73,7 @@
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.64",
-        "igor-php/igor-php": "^0.9.7",
+        "igor-php/igor-php": "^0.9.7 || ^0.10.0",
         "nowo-tech/brand-contracts": "^1.0",
         "nowo-tech/ckeditor5-editor-bundle": "^1.9",
         "nowo-tech/cookie-consent-bundle": "^1.17",
