@@ -260,7 +260,10 @@ keep it empty.
 | `none` | no blame columns | none |
 
 In `actor_id` mode the ids are stamped on flush; without a signed-in user (CLI) the value already on the row is kept,
-for example the id of the `$actor` given to `LegalDocumentPortability::apply()`. The admin index shows the actor id.
+for example the id of the `$actor` given to `LegalDocumentPortability::apply()`; a signed-in user whose id cannot be
+recorded (class not in `accepted_user_classes`, unusable id) writes null, so the edit is never credited to the
+previous editor. The admin index shows the actor id. A custom resolver implements `hasCurrentActor()` (is anyone
+signed in?) next to `currentActorId()`.
 
 The default resolver writes `getId()` (else the user identifier) of whoever is signed in, and ids of every user class
 share one column: with `accepted_user_classes: []` (default) it suits **one identity domain only**. A host with several

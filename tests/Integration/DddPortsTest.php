@@ -15,6 +15,8 @@ use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
+use Nowo\LegalKitBundle\Tests\Support\Blame\TestAdminUser;
+use Nowo\LegalKitBundle\Tests\Support\Blame\TestCustomerUser;
 use Nowo\LegalKitBundle\Tests\Support\Entity\User;
 use Nowo\LegalKitBundle\Tests\Support\TestKernel;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
@@ -24,6 +26,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\InMemoryUser;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 use function implode;
 
@@ -97,6 +100,38 @@ final class DddPortsTest extends VersioningTestCase
         self::assertSame('admin', $notice->getCreatedByActorId());
         self::assertSame((string) $actor->getId(), $notice->getUpdatedByActorId());
         self::assertSame((string) $actor->getId(), $this->find($kernel, 'terms', 'en')?->getCreatedByActorId());
+    }
+
+    public function testAnUnrecordableSignedInUserIsNotCreditedWithThePreviousEdit(): void
+    {
+        $kernel  = $this->versioningKernel(['doctrine' => ['blame' => 'actor_id', 'accepted_user_classes' => [TestCustomerUser::class]]]);
+        $manager = $this->entityManager($kernel);
+
+        $this->signInAs($kernel, new TestCustomerUser(5, 'customer'));
+        $this->store($kernel, 'notice', 'en', 'Notice', '<p>A</p>');
+        self::assertSame('5', $this->find($kernel, 'notice', 'en')?->getUpdatedByActorId());
+
+        // Admin#5 of another identity domain edits: recorded as unknown, not as the customer (JX-L1 / JX-L4).
+        $this->signInAs($kernel, new TestAdminUser(5, 'admin'));
+        $stored = $this->find($kernel, 'notice', 'en');
+        self::assertNotNull($stored);
+        $stored->setTitle('Notice 2');
+        $manager->flush();
+        $edited = $this->find($kernel, 'notice', 'en');
+        self::assertNotNull($edited);
+        self::assertSame('5', $edited->getCreatedByActorId(), 'The creator stays');
+        self::assertNull($edited->getUpdatedByActorId(), 'Not credited to the previous editor');
+
+        // No signed-in user (CLI): the row keeps what it has.
+        $this->signInAs($kernel, new TestCustomerUser(5, 'customer'));
+        $edited->setTitle('Notice 3');
+        $manager->flush();
+        $this->signOut($kernel);
+        $stored = $this->find($kernel, 'notice', 'en');
+        self::assertNotNull($stored);
+        $stored->setTitle('Notice 4');
+        $manager->flush();
+        self::assertSame('5', $this->find($kernel, 'notice', 'en')?->getUpdatedByActorId());
     }
 
     public function testActorIdBlameWithAHostResolver(): void
@@ -188,6 +223,11 @@ final class DddPortsTest extends VersioningTestCase
     private function signIn(TestKernel $kernel, string $identifier): void
     {
         $user = new InMemoryUser($identifier, null, ['ROLE_ADMIN']);
+        $this->tokenStorage($kernel)->setToken(new UsernamePasswordToken($user, 'main', $user->getRoles()));
+    }
+
+    private function signInAs(TestKernel $kernel, UserInterface $user): void
+    {
         $this->tokenStorage($kernel)->setToken(new UsernamePasswordToken($user, 'main', $user->getRoles()));
     }
 

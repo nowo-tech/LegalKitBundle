@@ -30,6 +30,9 @@ final class SecurityLegalActorIdResolverTest extends TestCase
         $user = new InMemoryUser('ann', null);
         $storage->setToken(new UsernamePasswordToken($user, 'main'));
         self::assertSame('ann', $resolver->currentActorId());
+        self::assertTrue($resolver->hasCurrentActor());
+        self::assertFalse((new SecurityLegalActorIdResolver())->hasCurrentActor());
+        self::assertFalse((new SecurityLegalActorIdResolver(new TokenStorage()))->hasCurrentActor());
     }
 
     public function testActorIds(): void

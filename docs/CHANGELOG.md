@@ -64,7 +64,8 @@ Target: 1.8.0 (DDD / hexagonal adapter fixes, audit 2026-11-09). See [UPGRADING]
   `SecurityLegalActorIdResolver`, works with security users that are no Doctrine entity); `none` drops the blame
   columns. Neither needs `AuditUserInterface` nor `resolve_target_entities`. `doctrine.accepted_user_classes`
   (default `[]` = any actor, one identity domain) limits the recorded actors to the listed classes (audit JX-L1);
-  ids ≤ 0 and blank ids are never recorded.
+  ids ≤ 0 and blank ids are never recorded. Without a signed-in user (CLI) the row keeps its values; a signed-in user
+  that cannot be recorded writes null (`LegalActorIdResolverInterface::hasCurrentActor()`, JX-L4).
 - Docs: USAGE section "Using it from a DDD / hexagonal application"; CONFIGURATION "Doctrine blame".
 
 ### Fixed

@@ -25,6 +25,11 @@ final readonly class TestActorIdResolver implements LegalActorIdResolverInterfac
         return $user !== null ? 'acc-' . $user->getUserIdentifier() : null;
     }
 
+    public function hasCurrentActor(): bool
+    {
+        return $this->tokenStorage->getToken()?->getUser() !== null;
+    }
+
     public function actorIdFor(object $actor): string
     {
         return 'acc-explicit';

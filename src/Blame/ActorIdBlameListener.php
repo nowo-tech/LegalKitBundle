@@ -10,8 +10,8 @@ use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 
 /**
  * `doctrine.blame: actor_id` only: stamps `created_by` / `updated_by` with the current actor id on flush. Without a
- * current actor (CLI, anonymous) the values already set on the row are kept (for example the `$actor` given to an
- * import).
+ * signed-in user (CLI, anonymous) the values already set on the row are kept (for example the `$actor` given to an
+ * import); a signed-in user that cannot be recorded writes null.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -33,10 +33,12 @@ final readonly class ActorIdBlameListener
      */
     public function onFlush(OnFlushEventArgs $event): void
     {
-        $actorId = $this->actorIds->currentActorId();
-        if ($actorId === null) {
+        // No signed-in user (CLI, anonymous): keep the values already on the row. A signed-in user whose id cannot be
+        // recorded (class not accepted, unusable id) writes null: the edit is not credited to the previous editor (JX-L4).
+        if (!$this->actorIds->hasCurrentActor()) {
             return;
         }
+        $actorId = $this->actorIds->currentActorId();
         $manager = $event->getObjectManager();
         $uow     = $manager->getUnitOfWork();
         foreach ([[true, $uow->getScheduledEntityInsertions()], [false, $uow->getScheduledEntityUpdates()]] as [$insert, $entities]) {

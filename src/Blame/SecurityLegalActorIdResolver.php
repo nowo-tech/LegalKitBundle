@@ -53,6 +53,14 @@ final readonly class SecurityLegalActorIdResolver implements LegalActorIdResolve
     }
 
     /**
+     * Whether the token holds a user (an actor that may still be recorded as unknown).
+     */
+    public function hasCurrentActor(): bool
+    {
+        return $this->tokenStorage?->getToken()?->getUser() instanceof UserInterface;
+    }
+
+    /**
      * `getId()` (int, string, Stringable) when not empty, else the user identifier of a security user; null when longer
      * than {@see LegalActorIdResolverInterface::MAX_LENGTH}, not an actor, of a class not listed in
      * `doctrine.accepted_user_classes` (when the list is set), or when `getId()` is 0, negative or blank.

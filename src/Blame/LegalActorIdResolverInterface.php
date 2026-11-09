@@ -28,6 +28,13 @@ interface LegalActorIdResolverInterface
     public function currentActorId(): ?string;
 
     /**
+     * Whether a user is signed in at all (JX-L4): true with a token user even when {@see currentActorId()} is null
+     * (class not accepted, unusable id). Without one (CLI, anonymous) the bundle keeps the row's values; with one it
+     * writes the actor id, null included, so an edit is never credited to the previous editor.
+     */
+    public function hasCurrentActor(): bool;
+
+    /**
      * Actor id of an explicit actor (the `$actor` of {@see LegalDocumentPortability::apply()}).
      *
      * @return ?string The actor id, null when the object is not an actor
