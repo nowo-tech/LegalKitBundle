@@ -27,7 +27,8 @@ The tree is strict (unknown keys fail the container build) and validated at comp
 nowo_legal_kit:
     locales: [en]                         # list, "%parameter%", "en,es", "en|es" or a JSON list
     default_locale: null                  # null = first locale
-    brand_name: ''                        # %brand% token ('' = unresolved, reported by the gate)
+    brand_name: ''                        # %brand% token ('' = unresolved, reported by the gate); fallback of `brand`
+    brand: auto                           # auto | off (or {mode: auto|off}); auto: %brand% from a brand-contracts provider
     pages:                                # ordered; defaults shown
         notice:  { path: notice,  enabled: true, nav: true, seed_template: null, acceptance: none }
         privacy: { path: privacy, enabled: true, nav: true, seed_template: null, acceptance: acknowledge }

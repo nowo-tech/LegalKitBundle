@@ -37,6 +37,7 @@ the legal content itself (counsel review stays the operator's duty).
 | Admin `GET …/{slug}/{locale}/compare`, `POST …/rebase`, editor publication fields | `LegalSeedCompareController`, `LegalDocumentAdminController` | users passing the access checker (+ publisher checker) |
 | `GET|POST <path_prefix>/accept`, the request gate | `LegalAcceptanceController`, `AcceptanceGateSubscriber` | signed-in users |
 | Configuration | DI extension | deployers |
+| Brand name (`BrandProviderInterface`, optional) | `LegalBrand`, `BuiltinTokenResolver` (`%brand%`) | whoever may edit the brand in the host (e.g. InstanceSettings `brand` section admins) |
 
 ## Threat model and mitigations
 
@@ -63,6 +64,7 @@ the legal content itself (counsel review stays the operator's duty).
 | **Snapshot overwrite** | `snapshot-seed --force` refuses a revision path that is a symlink or not a directory before deleting anything. |
 | **`\|raw` regressions** | `.scripts/check-twig-extra.sh` (CI) and `TemplatesNoRawTest` fail on any `\|raw` outside a Twig comment in the bundle templates. |
 | **Concurrent publication** | The editor posts back the version and the row stamp it was opened with; a mismatch saves nothing. The version is checked again inside the save transaction with the row locked, and a new version is inserted as base + 1, so a concurrent publish fails on the unique key ("changed meanwhile") instead of stacking. `upgrade-seed` runs in one transaction with write-locked rows. |
+| **Brand name from a provider (spec 220 S5)** | `%brand%` takes `Brand::$name` from a `nowo-tech/brand-contracts` provider when one exists (`brand: auto`). It is a plain string, never `LegalTokenValue::html()`: the token renderer HTML-escapes it in bodies (before the sanitiser runs) and titles are auto-escaped, so a name such as `<script>` or `" onload="` stays text. The contract refuses an empty name and control characters. The provider is asked on every render (no state kept in the service, worker-safe). A throwing provider is caught, logged (warning; error for a PHP `Error`) with the exception in the log context only, and `brand_name` applies: the message never reaches the page. Only the name is read: no brand asset is fetched, linked or inlined, so the `isInlineSafe()` rule has nothing to gate here. With a provider the page is validated by an `ETag` (brand version + body hash) instead of `Last-Modified`, so a renamed brand is not answered with a 304 of the old text. A brand editor can change the text users accept (evidence hash), which the host must treat like `brand_name` edits. Audit: re-verification pending. |
 | **CSP** | No inline script or style in bundle templates; one external stylesheet from the `nowo_legal_kit` asset package; CKEditor assets only on the edit page. |
 
 ## Secrets and cryptography
@@ -94,6 +96,8 @@ released as patch versions of the supported line ([`.github/SECURITY.md`](../.gi
 ## Host responsibilities (residual risks)
 
 - Keep `allow_unauthenticated: false` and add the `access_control` rule for the admin prefix.
+- A brand provider (and whoever edits the brand) sets the `%brand%` text of every legal page; give that role only to
+  people trusted with legal text, or set `nowo_legal_kit.brand: off`.
 - Host seed providers and token resolvers return trusted text; use `LegalTokenValue::html()` only for markup you
   escape yourself.
 - Extra `sanitizer.allowed_elements` widen the attack surface — keep them minimal. `class` values are free (operators
@@ -110,6 +114,7 @@ released as patch versions of the supported line ([`.github/SECURITY.md`](../.gi
 | Re-audit | Every finding **fixed or documented** before tagging 1.0.0 (same day) → Overall **Low**, **Pass (good)** |
 | Findings | LEGAL-SEC-01 (Medium) tokens resolved after sanitising (a host resolver value could reach an attribute or bring markup) → **fixed** (tokens first, then sanitise on every render); LEGAL-SEC-02 (Low) `/\host` / `\\host` accepted as relative URLs → **fixed** (URLs with `\` refused); LEGAL-SEC-03 (Low) an unbalanced `</div>` dropped the rest of the body → **fixed** (following nodes kept and sanitised); LEGAL-SEC-04 (Low) unbounded body size → **fixed** (1 000 000 characters in the editor and imports); LEGAL-SEC-05 (Info) extra attributes from `allowed_elements` (`srcset`, `ping`, `id`, `name`…) → **fixed** (fixed deny list); LEGAL-SEC-06 (Info) `class` accepts any host class (UI redress by an operator) → **documented** (operators are trusted; keep the allowlist minimal); LEGAL-SEC-07 (Info) sub-requests to the admin controller without an admin route → **fixed** (the subscriber also guards the controller) |
 | Recorded in | `BUNDLES_SECURITY_ANALYSIS.md` (monorepo security report) |
+| Unreleased (1.6.0) | `%brand%` from the brand contract (spec 220 S5), `brand: auto\|off`, `ETag` with a provider: **re-verification pending** (batch audit before the tag) |
 | 1.5.0 | `sanitizer.heading_anchors`, `public.prose_class` and the compact re-acceptance template: Appendix HB (2026-11-06, PR #20): audited at `e3a3f4a` and `5485bc5` as Pass (conditional) / Medium; fixes re-verified at `2b0c525`: **Pass (good) / Low**, no open Critical, High or Medium. Open residuals: turning anchors on for text that already carries the classes changes `content_hash` for the same version (records stay, nobody is asked again; see [UPGRADING](UPGRADING.md#to-150)); purpose-built text from an administrator or a seed can still crash PHP 8.4 below the nesting limit |
 
 ## Reporting a vulnerability

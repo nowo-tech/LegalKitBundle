@@ -29,7 +29,7 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
 - **Placeholder gate**: `nowo:legal-kit:check-placeholders` exits 1 while a published page still contains a seed
   marker or an unresolved `%token%` — run it in your deploy pipeline; the same hits in an Ops banner partial
 - **Tokens** resolved at render time only (`%brand%`, `%last_updated%`, `%cookie_inventory%`, your own resolvers) —
-  the editor keeps them
+  the editor keeps them; `%brand%` follows an optional `nowo-tech/brand-contracts` brand provider (spec 220)
 - **One strict sanitiser**: DOM allowlist (no `style`, no scripts / embeds / SVG, safe URL schemes, `rel="noopener"`),
   optional CKEditor strict first pass and OutboundUrlGuard (no private-network links), on every write **and** render
 - **Ops-seed portability**: export / normalise / apply `legal_documents[]` in the host transaction, `adapt-seed` to

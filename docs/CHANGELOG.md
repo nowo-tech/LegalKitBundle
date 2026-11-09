@@ -7,37 +7,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.5.0] - 2026-11-06](#150---2026-11-06)
   - [Added](#added)
   - [Changed](#changed)
   - [Security](#security)
-- [[1.4.1] - 2026-11-05](#141---2026-11-05)
-  - [Security](#security-1)
-- [[1.4.0] - 2026-11-04](#140---2026-11-04)
+- [[1.5.0] - 2026-11-06](#150---2026-11-06)
   - [Added](#added-1)
   - [Changed](#changed-1)
-- [[1.3.2] - 2026-11-04](#132---2026-11-04)
+  - [Security](#security-1)
+- [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
+- [[1.4.0] - 2026-11-04](#140---2026-11-04)
+  - [Added](#added-2)
+  - [Changed](#changed-2)
+- [[1.3.2] - 2026-11-04](#132---2026-11-04)
+  - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
   - [Fixed](#fixed)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
-  - [Security](#security-3)
-- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-4)
-  - [Changed](#changed-2)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
-  - [Changed](#changed-3)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-2)
-  - [Changed](#changed-4)
-  - [Fixed](#fixed-1)
+- [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-5)
+  - [Changed](#changed-3)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
+  - [Changed](#changed-4)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-3)
+  - [Changed](#changed-5)
+  - [Fixed](#fixed-1)
+  - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-2)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-3)
+  - [Added](#added-4)
 
 ## [Unreleased]
+
+Target: 1.6.0 (spec 220 S5). See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- `%brand%` from the brand contract: when the app has a `nowo-tech/brand-contracts` `BrandProviderInterface` service
+  (for example InstanceSettings 1.5 with `brand.enabled: true`), the token is the brand name. `brand_name` stays the
+  fallback without a provider, when the provider fails and with `brand: off`.
+- `nowo_legal_kit.brand` (`auto` default, or `off`; also `{mode: …}`).
+- `nowo-tech/brand-contracts` in `suggest` (optional; `conflict` below 1.0 and from 2.0).
+
+### Changed
+
+- With a brand provider, the public page is validated by an `ETag` (`"<brand version>-<body hash>"`) instead of
+  `Last-Modified`, so a renamed brand is never answered with a 304 of the old text. Without a provider the headers do
+  not change.
+
+### Security
+
+- The brand name is plain text: escaped in the body by the token renderer and auto-escaped in titles. A failing provider
+  is logged (warning, or error for a PHP `Error`) and never reaches the page. No brand image is read, inlined or linked.
+  Audit: re-verification pending.
 
 ## [1.5.0] - 2026-11-06
 
