@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.6.0](#to-160)
 - [To 1.5.0](#to-150)
 - [To 1.4.1](#to-141)
 - [To 1.4.0](#to-140)
@@ -22,6 +23,14 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.6.0
+
+From **1.5.0**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 Target 1.6.0 (spec 220 S5). From **1.5.0**: `composer update nowo-tech/legal-kit-bundle`.
 
