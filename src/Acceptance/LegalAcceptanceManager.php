@@ -29,13 +29,17 @@ use function max;
 use function sort;
 
 /**
- * Pending pages, acceptance records and the personal-data hooks (export / erasure) of a subject.
+ * Pending pages, acceptance records and the personal-data hooks (export / erasure) of a subject. Type-hint
+ * {@see LegalAcceptanceManagerInterface} (aliased to this class) rather than the class.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class LegalAcceptanceManager
+final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInterface
 {
+    /** Savepoint of one insert inside the caller's transaction. */
+    private const string SAVEPOINT = 'nowo_legal_kit_acceptance';
+
     private ClockInterface $clock;
 
     /**
@@ -158,34 +162,37 @@ final readonly class LegalAcceptanceManager
      */
     public function record(string $subjectId, array $pages): int
     {
-        $metadata   = $this->entityManager->getClassMetadata(LegalAcceptance::class);
-        $connection = $this->entityManager->getConnection();
-        $now        = $this->clock->now();
-        $inserted   = [];
-        // One autocommitted insert per page (no shared transaction: on PostgreSQL a unique violation would abort it).
-        foreach ($pages as $page) {
-            try {
-                $connection->insert($metadata->getTableName(), [
-                    'subject_id'   => $subjectId,
-                    'slug'         => $page->page->slug,
-                    'version'      => $page->currentVersion,
-                    'locale'       => $page->contentLocale,
-                    'kind'         => $page->kind,
-                    'content_hash' => $page->contentHash,
-                    'accepted_at'  => $now,
-                ], ['accepted_at' => Types::DATETIME_IMMUTABLE, 'version' => Types::INTEGER]);
-                $inserted[] = $page;
-            } catch (UniqueConstraintViolationException) {
-                // Double submit or a second tab: the same version is already recorded.
+        $batch = $this->insert($subjectId, $pages);
+        $this->afterCommit($batch);
+
+        return $batch->count();
+    }
+
+    /**
+     * Records inside the caller's transaction and dispatches nothing: pass the batch to {@see afterCommit()} after the
+     * commit (savepoint per row, so a duplicate does not abort the caller's transaction).
+     *
+     * @param list<PendingLegalPage> $pages
+     *
+     * @return LegalAcceptanceBatch Inserted rows and their pending events
+     */
+    public function recordInTransaction(string $subjectId, array $pages): LegalAcceptanceBatch
+    {
+        return $this->insert($subjectId, $pages);
+    }
+
+    /**
+     * Dispatches the {@see LegalAcceptedEvent}s of the batches (after the host commit).
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function afterCommit(LegalAcceptanceBatch ...$batches): void
+    {
+        foreach ($batches as $batch) {
+            foreach ($batch->events as $event) {
+                $this->dispatcher?->dispatch($event);
             }
         }
-
-        foreach ($inserted as $page) {
-            $this->dispatcher?->dispatch(new LegalAcceptedEvent($subjectId, $page->page->slug, $page->currentVersion, $page->contentLocale, $page->kind, $now, $page->contentHash));
-        }
-        $this->logger->info('Legal pages accepted.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'acceptance_recorded', 'count' => count($inserted)]);
-
-        return count($inserted);
     }
 
     /**
@@ -218,6 +225,50 @@ final readonly class LegalAcceptanceManager
     public function eraseFor(string $subjectId): int
     {
         return $this->acceptances->deleteForSubject($subjectId);
+    }
+
+    /**
+     * Inserts one row per page. Outside a transaction each insert is autocommitted (no shared transaction: on
+     * PostgreSQL a unique violation would abort it); inside the caller's transaction each insert runs in a savepoint
+     * (when the platform has them), so a duplicate rolls back only that row.
+     *
+     * @param list<PendingLegalPage> $pages
+     */
+    private function insert(string $subjectId, array $pages): LegalAcceptanceBatch
+    {
+        $metadata   = $this->entityManager->getClassMetadata(LegalAcceptance::class);
+        $connection = $this->entityManager->getConnection();
+        $savepoint  = $connection->isTransactionActive() && $connection->getDatabasePlatform()->supportsSavepoints();
+        $now        = $this->clock->now();
+        $events     = [];
+        foreach ($pages as $page) {
+            if ($savepoint) {
+                $connection->createSavepoint(self::SAVEPOINT);
+            }
+            try {
+                $connection->insert($metadata->getTableName(), [
+                    'subject_id'   => $subjectId,
+                    'slug'         => $page->page->slug,
+                    'version'      => $page->currentVersion,
+                    'locale'       => $page->contentLocale,
+                    'kind'         => $page->kind,
+                    'content_hash' => $page->contentHash,
+                    'accepted_at'  => $now,
+                ], ['accepted_at' => Types::DATETIME_IMMUTABLE, 'version' => Types::INTEGER]);
+                if ($savepoint) {
+                    $connection->releaseSavepoint(self::SAVEPOINT);
+                }
+                $events[] = new LegalAcceptedEvent($subjectId, $page->page->slug, $page->currentVersion, $page->contentLocale, $page->kind, $now, $page->contentHash);
+            } catch (UniqueConstraintViolationException) {
+                // Double submit or a second tab: the same version is already recorded.
+                if ($savepoint) {
+                    $connection->rollbackSavepoint(self::SAVEPOINT);
+                }
+            }
+        }
+        $this->logger->info('Legal pages accepted.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'acceptance_recorded', 'count' => count($events)]);
+
+        return new LegalAcceptanceBatch($subjectId, $events);
     }
 
     /**

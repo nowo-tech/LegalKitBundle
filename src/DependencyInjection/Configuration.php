@@ -53,6 +53,13 @@ final class Configuration implements ConfigurationInterface
 
     public const string BRAND_OFF = 'off';
 
+    /** `doctrine.blame` values: AuditKit ManyToOne to the host user (default), a string actor id, or no blame columns. */
+    public const string BLAME_RELATION = 'relation';
+
+    public const string BLAME_ACTOR_ID = 'actor_id';
+
+    public const string BLAME_NONE = 'none';
+
     /** The four canonical pages (REQ-CC-003), in footer order. */
     public const array DEFAULT_PAGES = ['notice', 'privacy', 'terms', 'cookies'];
 
@@ -339,6 +346,11 @@ final class Configuration implements ConfigurationInterface
                                 ->ifTrue(static fn (mixed $value): bool => !is_string($value) || preg_match('/^[a-z0-9_]*$/', $value) !== 1)
                                 ->thenInvalid('nowo_legal_kit.doctrine.table_prefix accepts lowercase letters, digits and "_" only, got %s.')
                             ->end()
+                        ->end()
+                        ->enumNode('blame')
+                            ->info('Blame columns of legal_document / legal_page_version: "relation" = AuditKit ManyToOne to the host user (created_by_id / updated_by_id, needs resolve_target_entities); "actor_id" = nullable string columns created_by / updated_by filled from LegalActorIdResolverInterface (no foreign key, no marker interface); "none" = no blame columns.')
+                            ->values([self::BLAME_RELATION, self::BLAME_ACTOR_ID, self::BLAME_NONE])
+                            ->defaultValue(self::BLAME_RELATION)
                         ->end()
                     ->end()
                 ->end()

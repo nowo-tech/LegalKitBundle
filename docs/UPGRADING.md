@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
 - [To 1.6.0](#to-160)
 - [To 1.5.0](#to-150)
@@ -24,6 +25,21 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.8.0
+
+From **1.7.x**: nothing to change. Defaults keep the 1.7 schema and behaviour (`doctrine.blame: relation`,
+`record()` dispatches `LegalAcceptedEvent` right after its autocommitted inserts).
+
+Optional, for DDD / hexagonal hosts ([USAGE](USAGE.md#using-it-from-a-ddd--hexagonal-application)):
+
+- Type-hint `LegalAcceptanceManagerInterface` instead of `LegalAcceptanceManager`.
+- Recording acceptances inside your own transaction: replace `record()` by `recordInTransaction()` and call
+  `afterCommit($batch)` after your commit, so listeners never see an acceptance that was rolled back.
+- `apply(..., flush: false)` callers: call `LegalDocumentPortability::afterCommit($rows)` after your commit to get
+  `LegalDocumentsImportedEvent` (and the AuditKit action-log row).
+- A user that is no Doctrine entity: `doctrine.blame: actor_id` (or `none`) and a schema migration
+  ([CONFIGURATION](CONFIGURATION.md#doctrine-blame)).
 
 ## To 1.7.0
 

@@ -35,6 +35,14 @@
   - [Forms](#forms)
   - [Twig functions](#twig-functions)
 - [Extension points](#extension-points)
+- [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
+  - [Keep your domain free of the bundle](#keep-your-domain-free-of-the-bundle)
+  - [Ports you implement (infrastructure adapters)](#ports-you-implement-infrastructure-adapters)
+  - [Ports you call](#ports-you-call)
+  - [Signals you consume](#signals-you-consume)
+  - [Transactions and after-commit events](#transactions-and-after-commit-events)
+  - [Example: anti-corruption adapter](#example-anti-corruption-adapter)
+  - [Known limitations](#known-limitations)
 - [Translations](#translations)
 - [Naming conventions](#naming-conventions)
 
@@ -210,6 +218,8 @@ $payload['legal_documents'] = $this->legalDocuments->export();
 $rows = $this->legalDocuments->normalize($payload['legal_documents'] ?? []);
 $this->legalDocuments->apply($rows, $actor);
 $this->entityManager->flush();
+// after your commit: dispatch LegalDocumentsImportedEvent (AuditKit action log, your listeners)
+$this->legalDocuments->afterCommit($rows);
 ```
 
 `normalize()` throws `InvalidArgumentException` naming the index of the first invalid entry (unknown slug / locale,
@@ -369,12 +379,13 @@ meanwhile, nothing is recorded and the page asks to review again.
 
 ### Personal data
 
-`LegalAcceptanceManager` (public service) is what your export and erasure providers call:
+`LegalAcceptanceManagerInterface` (public alias of `LegalAcceptanceManager`) is what your export and erasure providers call:
 
 | Method | |
 | --- | --- |
 | `pendingFor(string $subjectId, ?string $locale): list<PendingLegalPage>` | pending pages with the offered text |
 | `record(string $subjectId, list<PendingLegalPage>): int` | insert-only; an existing row of the same version counts as recorded |
+| `recordInTransaction(string $subjectId, list<PendingLegalPage>): LegalAcceptanceBatch` | same, inside your transaction, no event until `afterCommit($batch)` ([details](#transactions-and-after-commit-events)) |
 | `exportFor(string $subjectId): list<{page, version, locale, kind, accepted_at, content_hash}>` | export |
 | `eraseFor(string $subjectId): int` | erasure; keeps no copy |
 
@@ -407,9 +418,9 @@ own personal-data erasure (or keep `action_log: false` and audit `LegalAcceptedE
 | `LegalVersionPublishedEvent` | after a new version committed (the editor save and `upgrade-seed` dispatch it after their transaction): `slug`, `version`, `requiresAcceptance`, `source`, `seedRevision` |
 | `LegalDocumentRebasedEvent` | after "Keep my text" |
 | `LegalSeedUpgradedEvent` | after `upgrade-seed` committed: `revision`, `from`, `counts` |
-| `LegalAcceptedEvent` | per recorded acceptance: `subjectId`, `slug`, `version`, `locale`, `kind`, `acceptedAt`, `contentHash` |
+| `LegalAcceptedEvent` | per recorded acceptance (after the insert committed; with `recordInTransaction()` from `afterCommit()`): `subjectId`, `slug`, `version`, `locale`, `kind`, `acceptedAt`, `contentHash` |
 | `LegalDocumentRestoredEvent` | after a restore was flushed |
-| `LegalDocumentsImportedEvent` | after `apply(..., flush: true)` / `nowo:legal-kit:import` |
+| `LegalDocumentsImportedEvent` | after `apply(..., flush: true)` / `nowo:legal-kit:import`, or from `afterCommit($rows)` after an `apply(..., flush: false)` |
 
 With the AuditKit action log enabled (`nowo_audit_kit.action_log.entity_class`), saves, restores and imports are
 recorded (`legal_document.saved|restored|imported`, and with versioning `version_published`, `rebased`,
@@ -500,9 +511,143 @@ The category column of the cookie table shows `cookies.category.<key>` (domain `
 | `LegalVersionPublisherCheckerInterface` | `versioning.publisher_checker` |
 | `LegalAcceptanceSubjectResolverInterface` | `acceptance.subject_resolver` (required with acceptance) |
 | `LegalAcceptanceExemptionInterface` | autoconfigured, tag `nowo_legal_kit.acceptance_exemption` |
-| `LegalAcceptanceManager` | pending pages, records, `exportFor` / `eraseFor` |
+| `LegalAcceptanceManagerInterface` | pending pages, records, `exportFor` / `eraseFor` (alias of `LegalAcceptanceManager`) |
 | Events | see [Events](#events) |
-| `LegalDocumentPortability` | export / normalize / apply |
+| `LegalDocumentPortability` | export / normalize / apply / afterCommit |
+| `LegalActorIdResolverInterface` | alias it (blame `actor_id` mode) |
+
+## Using it from a DDD / hexagonal application
+
+LegalKit is a **self-contained bounded context** (legal pages, page versions, acceptances) with its own tables
+(`legal_document`, `legal_page_version`, `legal_acceptance`) and its own UI (public pages, admin, re-acceptance page,
+request gate). Treat it as a supporting subdomain next to yours: your domain never needs to reference a LegalKit class.
+
+### Keep your domain free of the bundle
+
+- **Acceptances are keyed by a string subject id**, not by a relation to your user. Implement
+  `LegalAcceptanceSubjectResolverInterface` in your infrastructure layer and return a stable, non-personal id
+  (e.g. the public id of your user aggregate).
+- **Blame columns** on `legal_document` and `legal_page_version` follow `nowo_legal_kit.doctrine.blame`:
+  - `relation` (default, unchanged): `created_by_id` / `updated_by_id` are an AuditKit `ManyToOne` to
+    `AuditUserInterface`, resolved to `nowo_audit_kit.user_class`. Point `user_class` at your infrastructure Doctrine
+    user class (persistence model) and implement `AuditUserInterface` there, never on your domain `User`.
+  - `actor_id`: nullable string columns `created_by` / `updated_by` (VARCHAR 191), no foreign key, no marker
+    interface, no `resolve_target_entities`. The value comes from `LegalActorIdResolverInterface` (default: the
+    signed-in user's `getId()`, else its user identifier; the security user does not have to be a Doctrine entity).
+    Alias the interface to your own resolver to store your aggregate id.
+  - `none`: no blame columns at all.
+
+  See [CONFIGURATION](CONFIGURATION.md#doctrine-blame) for the schema change when you switch an existing table.
+- Do not inject `LegalDocumentRepository`, `LegalAcceptanceRepository` or the entities into your application layer;
+  use the ports, DTOs and events below.
+
+### Ports you implement (infrastructure adapters)
+
+| Port | Use |
+| --- | --- |
+| `LegalAcceptanceSubjectResolverInterface` | Symfony user → subject id (`acceptance.subject_resolver`) |
+| `LegalActorIdResolverInterface` | actor id of the blame columns (`doctrine.blame: actor_id`; alias) |
+| `LegalAcceptanceExemptionInterface` | requests never sent to the re-acceptance page |
+| `LegalSeedProviderInterface`, `LegalTokenResolverInterface` | texts and `%token%` values from your own sources |
+| `LegalPageCatalogInterface`, `LegalHtmlSanitizerInterface` | replace the catalogue or the sanitiser (alias) |
+| `LegalKitAccessCheckerInterface`, `LegalVersionPublisherCheckerInterface` | admin / publish authorisation from your own policy |
+
+### Ports you call
+
+| Port | Use |
+| --- | --- |
+| `LegalAcceptanceManagerInterface` | `pendingFor`, `record`, `recordInTransaction` + `afterCommit`, `exportFor`, `eraseFor` (aliased to `LegalAcceptanceManager`; decorate the interface, the bundle's gate and accept page use it too) |
+| `LegalDocumentResolver::resolve()` | the published text as a `ResolvedLegalDocument` DTO |
+| `LegalDocumentPortability` | `normalize` / `apply` / `afterCommit` for imports |
+
+### Signals you consume
+
+All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subjectId`, `slug`, `version`, `locale`,
+`kind`, `acceptedAt`, `contentHash`), `LegalVersionPublishedEvent`, `LegalDocumentSavedEvent`,
+`LegalDocumentRestoredEvent`, `LegalDocumentRebasedEvent`, `LegalDocumentsImportedEvent`, `LegalSeedUpgradedEvent`,
+`LegalPageRenderEvent` (with a `ResolvedLegalDocument`). Translate them into your own domain events in a listener.
+
+### Transactions and after-commit events
+
+- `record()` (the accept page) inserts with autocommit and dispatches `LegalAcceptedEvent` right after: the event
+  follows the commit. Inside **your** transaction (sign-up: "create account + accept terms") call
+  `recordInTransaction()` instead: it inserts in your transaction (one savepoint per row, so a duplicate does not
+  abort it) and dispatches nothing; after your commit pass the returned `LegalAcceptanceBatch` to `afterCommit()`.
+  On rollback, drop the batch: no row, no event.
+- `LegalDocumentPortability::apply($rows, flush: false)` keeps your transaction open and dispatches nothing; after your
+  commit call `afterCommit($rows)` to dispatch `LegalDocumentsImportedEvent` (`apply(..., flush: true)` does it itself).
+- `LegalPageVersions::publish()` inside a transaction: call `LegalPageVersions::afterCommit($version)` after the commit.
+
+### Example: anti-corruption adapter
+
+```php
+namespace App\Infrastructure\Legal;
+
+use App\Domain\Account\AccountId;
+use App\Domain\Account\TermsAccepted;          // your domain event
+use App\Domain\Shared\DomainEventBus;           // your port
+use Doctrine\DBAL\Connection;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
+use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+final class LegalSubjectResolver implements LegalAcceptanceSubjectResolverInterface
+{
+    public function resolve(UserInterface $user): ?string
+    {
+        return $user instanceof SecurityUser ? $user->accountPublicId() : null; // never an e-mail
+    }
+}
+
+final readonly class LegalAcceptanceBridge
+{
+    public function __construct(
+        private LegalAcceptanceManagerInterface $legal,
+        private Connection $connection,
+        private DomainEventBus $bus,
+    ) {}
+
+    /** Port used by the application layer: does this account still have to accept something? */
+    public function hasPending(AccountId $id, string $locale): bool
+    {
+        return $this->legal->pendingFor($id->toString(), $locale) !== [];
+    }
+
+    /** Sign-up: the account and its acceptances commit together; the events follow the commit. */
+    public function registerAndAccept(AccountId $id, string $locale, callable $createAccount): void
+    {
+        $batch = $this->connection->transactional(function () use ($id, $locale, $createAccount) {
+            $createAccount();
+
+            return $this->legal->recordInTransaction($id->toString(), $this->legal->pendingFor($id->toString(), $locale));
+        });
+        $this->legal->afterCommit($batch);
+    }
+
+    /** GDPR erasure provider of the host. */
+    public function erase(AccountId $id): int
+    {
+        return $this->legal->eraseFor($id->toString());
+    }
+
+    #[AsEventListener]
+    public function onAccepted(LegalAcceptedEvent $event): void
+    {
+        $this->bus->publish(new TermsAccepted($event->subjectId, $event->slug, $event->version, $event->acceptedAt));
+    }
+}
+```
+
+### Known limitations
+
+- `LegalDocumentResolver` and `LegalDocumentPortability` are final classes without an interface; wrap them in your
+  own port if you need to replace them.
+- `eraseFor()` and `nowo:legal-kit:seed` dispatch no event.
+- `LegalPageVersions::latest()` / `publish()` return the `LegalPageVersion` entity; keep them inside your adapter.
+- Hosts that declare `doctrine.orm.entity_managers` must register the bundle mappings themselves; the admin editor
+  uses the default entity manager.
 
 ## Translations
 

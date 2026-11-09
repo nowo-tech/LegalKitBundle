@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Controller;
 use InvalidArgumentException;
 use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\PendingLegalPage;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
 use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
@@ -38,7 +39,7 @@ final readonly class LegalAcceptanceController
 {
     /**
      * @param CurrentLegalSubject $subject Subject of the security token
-     * @param LegalAcceptanceManager $manager Pending pages and records
+     * @param LegalAcceptanceManagerInterface $manager Pending pages and records
      * @param LegalPageVersions $versions Requirements fingerprint
      * @param RelativeTargetValidator $targets Target rules
      * @param FormFactoryInterface $forms Form factory
@@ -54,7 +55,7 @@ final readonly class LegalAcceptanceController
      */
     public function __construct(
         private CurrentLegalSubject $subject,
-        private LegalAcceptanceManager $manager,
+        private LegalAcceptanceManagerInterface $manager,
         private LegalPageVersions $versions,
         private RelativeTargetValidator $targets,
         private FormFactoryInterface $forms,

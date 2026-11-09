@@ -14,6 +14,7 @@ use Nowo\Brand\Contract\BrandProviderInterface;
 use Nowo\Ckeditor5EditorBundle\NowoCkeditor5EditorBundle;
 use Nowo\CookieConsentBundle\NowoCookieConsentBundle;
 use Nowo\FormKitBundle\NowoFormKitBundle;
+use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
@@ -61,9 +62,10 @@ final class TestKernel extends Kernel
     /**
      * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, host brand provider
      * (`brand_provider`, aliased as the brand-contracts `BrandProviderInterface`), no route import, only the
-     * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import).
+     * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import), a
+     * host actor id resolver (`actor_resolver`, aliased as LegalActorIdResolverInterface).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver'];
 
     private readonly string $cacheKey;
 
@@ -197,6 +199,10 @@ final class TestKernel extends Kernel
         if (in_array('brand_provider', $this->extraBundles, true)) {
             $container->register(TestBrandProvider::class, TestBrandProvider::class)->setPublic(true);
             $container->setAlias(BrandProviderInterface::class, TestBrandProvider::class);
+        }
+        if (in_array('actor_resolver', $this->extraBundles, true)) {
+            $container->register(TestActorIdResolver::class, TestActorIdResolver::class)->setAutowired(true);
+            $container->setAlias(LegalActorIdResolverInterface::class, TestActorIdResolver::class);
         }
         if (in_array('consent_stub', $this->extraBundles, true)) {
             $container->register(ConsentStubTwigExtension::class, ConsentStubTwigExtension::class)->addTag('twig.extension');
