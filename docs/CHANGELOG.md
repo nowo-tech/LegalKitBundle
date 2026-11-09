@@ -62,7 +62,9 @@ Target: 1.8.0 (DDD / hexagonal adapter fixes, audit 2026-11-09). See [UPGRADING]
 - `nowo_legal_kit.doctrine.blame: relation|actor_id|none` (default `relation`, unchanged): `actor_id` maps string
   columns `created_by` / `updated_by` filled from the new `LegalActorIdResolverInterface` port (default
   `SecurityLegalActorIdResolver`, works with security users that are no Doctrine entity); `none` drops the blame
-  columns. Neither needs `AuditUserInterface` nor `resolve_target_entities`.
+  columns. Neither needs `AuditUserInterface` nor `resolve_target_entities`. `doctrine.accepted_user_classes`
+  (default `[]` = any actor, one identity domain) limits the recorded actors to the listed classes (audit JX-L1);
+  ids ≤ 0 and blank ids are never recorded.
 - Docs: USAGE section "Using it from a DDD / hexagonal application"; CONFIGURATION "Doctrine blame".
 
 ### Fixed

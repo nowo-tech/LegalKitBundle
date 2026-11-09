@@ -96,7 +96,7 @@ nowo_legal_kit:
     seo: { sitemap: auto, head: auto }
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
-    doctrine: { table_prefix: '', blame: relation }   # blame: relation | actor_id | none
+    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [] }   # blame: relation | actor_id | none
 ```
 
 ## Locales
@@ -261,6 +261,19 @@ keep it empty.
 
 In `actor_id` mode the ids are stamped on flush; without a signed-in user (CLI) the value already on the row is kept,
 for example the id of the `$actor` given to `LegalDocumentPortability::apply()`. The admin index shows the actor id.
+
+The default resolver writes `getId()` (else the user identifier) of whoever is signed in, and ids of every user class
+share one column: with `accepted_user_classes: []` (default) it suits **one identity domain only**. A host with several
+user classes or providers (Admin#5 next to Customer#5) lists the class whose ids it records — actors of other classes
+are then recorded as unknown (null) — or aliases `LegalActorIdResolverInterface` to a resolver that prefixes the
+domain (`admin:5`). An id of 0, a negative id or a blank id is never recorded (null, no fallback to the identifier).
+
+```yaml
+nowo_legal_kit:
+    doctrine:
+        blame: actor_id
+        accepted_user_classes: [App\Security\BackOfficeUser]
+```
 
 ```yaml
 nowo_legal_kit:

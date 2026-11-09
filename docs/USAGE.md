@@ -527,14 +527,17 @@ request gate). Treat it as a supporting subdomain next to yours: your domain nev
 - **Acceptances are keyed by a string subject id**, not by a relation to your user. Implement
   `LegalAcceptanceSubjectResolverInterface` in your infrastructure layer and return a stable, non-personal id
   (e.g. the public id of your user aggregate).
-- **Blame columns** on `legal_document` and `legal_page_version` follow `nowo_legal_kit.doctrine.blame`:
+- **Blame columns** on `legal_document` and `legal_page_version` follow `nowo_legal_kit.doctrine.blame` (operator
+  provenance only; acceptance evidence is keyed by the subject id in every mode):
   - `relation` (default, unchanged): `created_by_id` / `updated_by_id` are an AuditKit `ManyToOne` to
     `AuditUserInterface`, resolved to `nowo_audit_kit.user_class`. Point `user_class` at your infrastructure Doctrine
     user class (persistence model) and implement `AuditUserInterface` there, never on your domain `User`.
   - `actor_id`: nullable string columns `created_by` / `updated_by` (VARCHAR 191), no foreign key, no marker
     interface, no `resolve_target_entities`. The value comes from `LegalActorIdResolverInterface` (default: the
     signed-in user's `getId()`, else its user identifier; the security user does not have to be a Doctrine entity).
-    Alias the interface to your own resolver to store your aggregate id.
+    Alias the interface to your own resolver to store your aggregate id. With several identity domains, list the
+    recorded class in `doctrine.accepted_user_classes` (others are recorded as unknown) or prefix the domain in your
+    resolver; ids ≤ 0 and blank ids are never recorded.
   - `none`: no blame columns at all.
 
   See [CONFIGURATION](CONFIGURATION.md#doctrine-blame) for the schema change when you switch an existing table.
@@ -570,7 +573,9 @@ All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subject
 ### Transactions and after-commit events
 
 - `record()` (the accept page) inserts with autocommit and dispatches `LegalAcceptedEvent` right after: the event
-  follows the commit. Inside **your** transaction (sign-up: "create account + accept terms") call
+  follows the commit. A decorator of `LegalAcceptanceManagerInterface` must have **durably written** the rows when its
+  `record()` returns (no buffering, no deferred commit): the accept page marks the session satisfied right after it, so
+  a row that is never written would leave the user through the gate without an acceptance on record. Inside **your** transaction (sign-up: "create account + accept terms") call
   `recordInTransaction()` instead: it inserts in your transaction (one savepoint per row, so a duplicate does not
   abort it) and dispatches nothing; after your commit pass the returned `LegalAcceptanceBatch` to `afterCommit()`.
   On rollback, drop the batch: no row, no event.

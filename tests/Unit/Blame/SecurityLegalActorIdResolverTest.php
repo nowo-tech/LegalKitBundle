@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Unit\Blame;
 
 use Nowo\LegalKitBundle\Blame\SecurityLegalActorIdResolver;
+use Nowo\LegalKitBundle\Tests\Support\Blame\TestAdminUser;
+use Nowo\LegalKitBundle\Tests\Support\Blame\TestCustomerUser;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Stringable;
@@ -74,5 +76,22 @@ final class SecurityLegalActorIdResolverTest extends TestCase
         self::assertNull($resolver->actorIdFor(new stdClass()));
         self::assertSame('bob', $resolver->actorIdFor(new InMemoryUser('bob', null)));
         self::assertNull($resolver->actorIdFor(new InMemoryUser(str_repeat('x', 192), null)), 'Longer than the column');
+    }
+
+    public function testZeroNegativeAndBlankIdsAreRefused(): void
+    {
+        $resolver = new SecurityLegalActorIdResolver();
+        foreach ([0, -5, '0', '-2', ' '] as $id) {
+            self::assertNull($resolver->actorIdFor(new TestCustomerUser($id)), 'id ' . $id . ' never falls back to the identifier');
+        }
+    }
+
+    public function testAcceptedUserClassesFailClosedForOtherIdentityDomains(): void
+    {
+        $resolver = new SecurityLegalActorIdResolver(null, [TestCustomerUser::class]);
+
+        self::assertSame('5', $resolver->actorIdFor(new TestCustomerUser(5)));
+        self::assertNull($resolver->actorIdFor(new TestAdminUser(5)), 'Admin#5 is not recorded as Customer#5');
+        self::assertSame('5', (new SecurityLegalActorIdResolver())->actorIdFor(new TestAdminUser(5)), 'Empty list: any actor (one identity domain)');
     }
 }

@@ -269,7 +269,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $this->configureVersioning($container, $config, $configs);
         $this->configureCommands($container, (bool) ($config['console']['legacy_aliases'] ?? true));
 
-        /** @var array{table_prefix: string, blame: string} $doctrine */
+        /** @var array{table_prefix: string, blame: string, accepted_user_classes: list<string>} $doctrine */
         $doctrine = $config['doctrine'];
         if ($doctrine['table_prefix'] !== '') {
             $container->register(TablePrefixListener::class, TablePrefixListener::class)
@@ -277,7 +277,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 // Conditional registration (non-empty prefix only): tagged here, not through an attribute.
                 ->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
         }
-        $this->configureBlame($container, $doctrine['blame']);
+        $this->configureBlame($container, $doctrine['blame'], $doctrine['accepted_user_classes']);
 
         /** @var array{sitemap: bool|string, head: bool|string} $seo */
         $seo          = $config['seo'];
@@ -301,8 +301,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
      * `none` rewrite the mapping, and `actor_id` stamps string actor ids through {@see LegalActorIdResolverInterface}.
      *
      * @param string $mode `doctrine.blame`
+     * @param list<string> $acceptedUserClasses `doctrine.accepted_user_classes`
      */
-    private function configureBlame(ContainerBuilder $container, string $mode): void
+    private function configureBlame(ContainerBuilder $container, string $mode, array $acceptedUserClasses): void
     {
         $container->setParameter(Configuration::ALIAS . '.doctrine.blame', $mode);
         if ($mode === Configuration::BLAME_RELATION) {
@@ -315,7 +316,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             return;
         }
         $container->register(SecurityLegalActorIdResolver::class, SecurityLegalActorIdResolver::class)
-            ->setArguments([new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE)]);
+            ->setArguments([new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE), $acceptedUserClasses]);
         // Alias: a host service definition / alias for the interface wins over this one.
         $container->setAlias(LegalActorIdResolverInterface::class, SecurityLegalActorIdResolver::class);
         $container->register(ActorIdBlameListener::class, ActorIdBlameListener::class)
