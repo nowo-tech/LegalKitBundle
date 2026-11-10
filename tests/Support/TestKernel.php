@@ -15,7 +15,9 @@ use Nowo\Ckeditor5EditorBundle\NowoCkeditor5EditorBundle;
 use Nowo\CookieConsentBundle\NowoCookieConsentBundle;
 use Nowo\FormKitBundle\NowoFormKitBundle;
 use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Seed\LegalSeedProviderInterface;
 use Nowo\LegalKitBundle\Tests\Support\Entity\User;
@@ -63,9 +65,10 @@ final class TestKernel extends Kernel
      * Options of `$extraBundles` that are not bundles: Twig consent stub, host seed provider, host brand provider
      * (`brand_provider`, aliased as the brand-contracts `BrandProviderInterface`), no route import, only the
      * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import), a
-     * host actor id resolver (`actor_resolver`, aliased as LegalActorIdResolverInterface).
+     * host actor id resolver (`actor_resolver`, aliased as LegalActorIdResolverInterface), host decorators of the
+     * document resolver and portability ports (`host_documents`).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents'];
 
     private readonly string $cacheKey;
 
@@ -203,6 +206,12 @@ final class TestKernel extends Kernel
         if (in_array('actor_resolver', $this->extraBundles, true)) {
             $container->register(TestActorIdResolver::class, TestActorIdResolver::class)->setAutowired(true);
             $container->setAlias(LegalActorIdResolverInterface::class, TestActorIdResolver::class);
+        }
+        if (in_array('host_documents', $this->extraBundles, true)) {
+            $container->register(TestHostDocumentResolver::class, TestHostDocumentResolver::class)->setAutowired(true);
+            $container->setAlias(LegalDocumentResolverInterface::class, TestHostDocumentResolver::class);
+            $container->register(TestHostPortability::class, TestHostPortability::class)->setAutowired(true)->setPublic(true);
+            $container->setAlias(LegalDocumentPortabilityInterface::class, TestHostPortability::class)->setPublic(true);
         }
         if (in_array('consent_stub', $this->extraBundles, true)) {
             $container->register(ConsentStubTwigExtension::class, ConsentStubTwigExtension::class)->addTag('twig.extension');

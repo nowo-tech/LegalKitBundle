@@ -10,7 +10,7 @@ use Nowo\Brand\Contract\Brand;
 use Nowo\LegalKitBundle\Brand\LegalBrand;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
-use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
@@ -50,7 +50,7 @@ final readonly class LegalPageController
     /**
      * @param LegalPageCatalogInterface $catalog Enabled pages
      * @param LegalLocales $locales Enabled locales
-     * @param LegalDocumentResolver $resolver Published text
+     * @param LegalDocumentResolverInterface $resolver Published text
      * @param Environment $twig Twig
      * @param UrlGeneratorInterface $urls URL generator
      * @param EventDispatcherInterface $dispatcher Dispatches LegalPageRenderEvent
@@ -66,7 +66,7 @@ final readonly class LegalPageController
     public function __construct(
         private LegalPageCatalogInterface $catalog,
         private LegalLocales $locales,
-        private LegalDocumentResolver $resolver,
+        private LegalDocumentResolverInterface $resolver,
         private Environment $twig,
         private UrlGeneratorInterface $urls,
         private EventDispatcherInterface $dispatcher,

@@ -7,23 +7,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Added](#added-1)
   - [Fixed](#fixed)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
-  - [Added](#added-1)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-2)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
+  - [Added](#added-3)
   - [Changed](#changed)
   - [Security](#security)
 - [[1.5.0] - 2026-11-06](#150---2026-11-06)
-  - [Added](#added-3)
+  - [Added](#added-4)
   - [Changed](#changed-1)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-4)
+  - [Added](#added-5)
   - [Changed](#changed-2)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
@@ -37,16 +38,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-4)
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-5)
+  - [Added](#added-6)
   - [Changed](#changed-5)
   - [Fixed](#fixed-2)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-3)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-6)
+  - [Added](#added-7)
 
 ## [Unreleased]
+
+Target: 1.9.0 (DDD / hexagonal P2 round). See [UPGRADING](UPGRADING.md#to-190).
+
+### Added
+
+- `LegalDocumentResolverInterface` (alias of `LegalDocumentResolver`) and `LegalDocumentPortabilityInterface`
+  (public alias of `LegalDocumentPortability`): the published-text and import / export ports. Both classes stay
+  `final` and implement them; the public page, admin, seed compare, acceptance manager, placeholder scanner and the
+  doctor, verify-hash, export and import commands now type-hint the interfaces, so a host alias or decorator applies
+  to them too. Neither port checks access (unchanged).
 
 ## [1.8.0] - 2026-11-09
 

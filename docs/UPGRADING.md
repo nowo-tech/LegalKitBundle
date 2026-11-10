@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
 - [To 1.8.0](#to-180-1)
 - [To 1.7.0](#to-170)
@@ -26,6 +27,16 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.9.0
+
+From **1.8.x**: nothing to change. The services, their ids and behaviour are unchanged.
+
+Optional, for DDD / hexagonal hosts ([USAGE](USAGE.md#using-it-from-a-ddd--hexagonal-application)): type-hint
+`LegalDocumentResolverInterface` instead of `LegalDocumentResolver` and `LegalDocumentPortabilityInterface` instead of
+`LegalDocumentPortability`. To replace or decorate one, alias the interface to your service: the bundle's own
+controllers and commands then use it as well (they type-hint the interfaces since 1.9). Code that type-hints the
+classes keeps getting the bundle's classes.
 
 ## To 1.8.0
 

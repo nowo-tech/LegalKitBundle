@@ -10,7 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\Entity\LegalAcceptance;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
-use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
@@ -47,7 +47,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      * @param LegalLocales $locales Enabled locales
      * @param LegalPageVersions $versions Page versions
      * @param LegalAcceptanceRepository $acceptances Records
-     * @param LegalDocumentResolver $resolver Published texts
+     * @param LegalDocumentResolverInterface $resolver Published texts
      * @param EntityManagerInterface $entityManager Entity manager (DBAL inserts)
      * @param ?EventDispatcherInterface $dispatcher Event dispatcher
      * @param ?ClockInterface $clock Clock (null = native)
@@ -58,7 +58,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
         private LegalLocales $locales,
         private LegalPageVersions $versions,
         private LegalAcceptanceRepository $acceptances,
-        private LegalDocumentResolver $resolver,
+        private LegalDocumentResolverInterface $resolver,
         private EntityManagerInterface $entityManager,
         private ?EventDispatcherInterface $dispatcher = null,
         ?ClockInterface $clock = null,

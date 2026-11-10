@@ -513,7 +513,8 @@ The category column of the cookie table shows `cookies.category.<key>` (domain `
 | `LegalAcceptanceExemptionInterface` | autoconfigured, tag `nowo_legal_kit.acceptance_exemption` |
 | `LegalAcceptanceManagerInterface` | pending pages, records, `exportFor` / `eraseFor` (alias of `LegalAcceptanceManager`) |
 | Events | see [Events](#events) |
-| `LegalDocumentPortability` | export / normalize / apply / afterCommit |
+| `LegalDocumentResolverInterface` | published texts (alias of `LegalDocumentResolver`; since 1.9) |
+| `LegalDocumentPortabilityInterface` | export / normalize / apply / afterCommit (public alias of `LegalDocumentPortability`; since 1.9) |
 | `LegalActorIdResolverInterface` | alias it (blame `actor_id` mode) |
 
 ## Using it from a DDD / hexagonal application
@@ -560,8 +561,13 @@ request gate). Treat it as a supporting subdomain next to yours: your domain nev
 | Port | Use |
 | --- | --- |
 | `LegalAcceptanceManagerInterface` | `pendingFor`, `record`, `recordInTransaction` + `afterCommit`, `exportFor`, `eraseFor` (aliased to `LegalAcceptanceManager`; decorate the interface, the bundle's gate and accept page use it too) |
-| `LegalDocumentResolver::resolve()` | the published text as a `ResolvedLegalDocument` DTO |
-| `LegalDocumentPortability` | `normalize` / `apply` / `afterCommit` for imports |
+| `LegalDocumentResolverInterface` | `resolve()`: the published text as a `ResolvedLegalDocument` DTO (aliased to `LegalDocumentResolver`; the public page, admin, gate and commands use it too) |
+| `LegalDocumentPortabilityInterface` | `export` / `normalize` / `apply` / `afterCommit` for imports (public alias of `LegalDocumentPortability`; the export / import commands use it too) |
+
+Neither port checks access: the resolver only reads texts, and `apply()` writes whatever it is given (sanitised).
+Decide who may import in your own use case, as the bundle's admin and commands do. A replacement resolver also
+decides the text offered for acceptance and its recorded content hash: decorate the bundle's resolver (sanitised
+output included) rather than serving unsanitised text.
 
 ### Signals you consume
 
@@ -647,8 +653,6 @@ final readonly class LegalAcceptanceBridge
 
 ### Known limitations
 
-- `LegalDocumentResolver` and `LegalDocumentPortability` are final classes without an interface; wrap them in your
-  own port if you need to replace them.
 - `eraseFor()` and `nowo:legal-kit:seed` dispatch no event.
 - `LegalPageVersions::latest()` / `publish()` return the `LegalPageVersion` entity; keep them inside your adapter.
 - Hosts that declare `doctrine.orm.entity_managers` must register the bundle mappings themselves; the admin editor

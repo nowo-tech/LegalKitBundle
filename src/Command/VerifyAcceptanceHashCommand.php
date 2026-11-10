@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Command;
 
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
-use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -47,9 +47,9 @@ final class VerifyAcceptanceHashCommand extends Command
     public const int BRAND_NAME_MAX = 200;
 
     /**
-     * @param LegalDocumentResolver $resolver Current text
+     * @param LegalDocumentResolverInterface $resolver Current text
      */
-    public function __construct(private readonly LegalDocumentResolver $resolver)
+    public function __construct(private readonly LegalDocumentResolverInterface $resolver)
     {
         parent::__construct(self::NAME);
     }

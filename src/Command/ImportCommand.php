@@ -6,7 +6,7 @@ namespace Nowo\LegalKitBundle\Command;
 
 use InvalidArgumentException;
 use JsonException;
-use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -40,11 +40,11 @@ final class ImportCommand extends Command
     public const string NAME = 'nowo:legal-kit:import';
 
     /**
-     * @param LegalDocumentPortability $portability Export / import
+     * @param LegalDocumentPortabilityInterface $portability Export / import
      * @param LoggerInterface $logger Start / outcome of writes (REQ-OBS-001; never the document content)
      */
     public function __construct(
-        private readonly LegalDocumentPortability $portability,
+        private readonly LegalDocumentPortabilityInterface $portability,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
         parent::__construct(self::NAME);

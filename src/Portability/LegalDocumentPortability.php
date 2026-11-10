@@ -34,12 +34,14 @@ use function trim;
  * - {@see apply()}: upserts sanitised rows in one unit of work; flushes only with `$flush` so the host ops-seed keeps
  *   a single transaction.
  *
- * @phpstan-type LegalDocumentRow array{slug: string, locale: string, title: string, body: string}
+ * Implements {@see LegalDocumentPortabilityInterface} (aliased to this class): type-hint the interface.
+ *
+ * @phpstan-import-type LegalDocumentRow from LegalDocumentPortabilityInterface
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class LegalDocumentPortability
+final readonly class LegalDocumentPortability implements LegalDocumentPortabilityInterface
 {
     /**
      * @param LegalDocumentRepository $documents Stored rows

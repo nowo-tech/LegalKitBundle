@@ -13,12 +13,14 @@ use Nowo\LegalKitBundle\Command\SeedCommand;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\Form\LegalDocumentType;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
 use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
@@ -82,6 +84,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set(LegalTokenRenderer::class)->args([tagged_iterator(LegalTokenResolverInterface::TAG)]);
 
     $services->set(LegalDocumentResolver::class)->arg('$versions', null);
+    $services->alias(LegalDocumentResolverInterface::class, LegalDocumentResolver::class);
 
     $services->set(LegalPlaceholderScanner::class)
         ->arg('$builtinMarkers', param('nowo_legal_kit.placeholders.builtin_markers'))
@@ -91,6 +94,7 @@ return static function (ContainerConfigurator $container): void {
         ->public()
         ->arg('$dispatcher', service('event_dispatcher')->nullOnInvalid())
         ->arg('$seedTracker', null);
+    $services->alias(LegalDocumentPortabilityInterface::class, LegalDocumentPortability::class)->public();
 
     $services->set(LegalRouteLoader::class)
         ->args([
