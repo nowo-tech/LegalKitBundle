@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.9.0] - 2026-11-10](#190---2026-11-10)
   - [Added](#added)
 - [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added-1)
@@ -48,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-7)
 
 ## [Unreleased]
+
+## [1.9.0] - 2026-11-10
 
 Target: 1.9.0 (DDD / hexagonal P2 round). See [UPGRADING](UPGRADING.md#to-190).
 
