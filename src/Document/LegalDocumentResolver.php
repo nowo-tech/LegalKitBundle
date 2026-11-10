@@ -28,10 +28,12 @@ use const ENT_QUOTES;
  * Tokens are resolved first, then the body is sanitised on every render (defence in depth for rows written by SQL /
  * restore, and token values — host resolvers included — can never inject markup or URLs past the allowlist).
  *
+ * Implements {@see LegalDocumentResolverInterface} (aliased to this class): type-hint the interface.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class LegalDocumentResolver
+final readonly class LegalDocumentResolver implements LegalDocumentResolverInterface
 {
     /**
      * @param LegalDocumentRepository $documents Stored rows

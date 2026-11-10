@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Command;
 
-use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,10 +35,10 @@ final class ExportCommand extends Command
     public const string NAME = 'nowo:legal-kit:export';
 
     /**
-     * @param LegalDocumentPortability $portability Export / import
+     * @param LegalDocumentPortabilityInterface $portability Export / import
      */
     public function __construct(
-        private readonly LegalDocumentPortability $portability,
+        private readonly LegalDocumentPortabilityInterface $portability,
     ) {
         parent::__construct(self::NAME);
     }

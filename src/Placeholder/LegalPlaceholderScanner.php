@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Placeholder;
 
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
-use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Token\LegalTokenContext;
@@ -39,7 +39,7 @@ final class LegalPlaceholderScanner implements ResetInterface
      * @param LegalPageCatalogInterface $catalog Enabled pages
      * @param LegalLocales $locales Enabled locales
      * @param LegalDocumentRepository $documents Stored rows
-     * @param LegalDocumentResolver $resolver Effective text
+     * @param LegalDocumentResolverInterface $resolver Effective text
      * @param LegalTokenRenderer $tokens Known token names
      * @param bool $builtinMarkers Include {@see BuiltinMarkers::MARKERS}
      * @param list<string> $extraMarkers `placeholders.extra_markers`
@@ -48,7 +48,7 @@ final class LegalPlaceholderScanner implements ResetInterface
         private readonly LegalPageCatalogInterface $catalog,
         private readonly LegalLocales $locales,
         private readonly LegalDocumentRepository $documents,
-        private readonly LegalDocumentResolver $resolver,
+        private readonly LegalDocumentResolverInterface $resolver,
         private readonly LegalTokenRenderer $tokens,
         bool $builtinMarkers = true,
         array $extraMarkers = [],

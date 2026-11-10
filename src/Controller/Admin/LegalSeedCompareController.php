@@ -6,7 +6,7 @@ namespace Nowo\LegalKitBundle\Controller\Admin;
 
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
-use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalDocumentRebasedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
@@ -63,7 +63,7 @@ final readonly class LegalSeedCompareController
      * @param LegalPageCatalogInterface $catalog Enabled pages
      * @param LegalLocales $locales Enabled locales
      * @param LegalDocumentRepository $documents Stored rows
-     * @param LegalDocumentResolver $resolver Public-page rendering
+     * @param LegalDocumentResolverInterface $resolver Public-page rendering
      * @param LegalSeedTracker $tracker Seed base helper
      * @param SeedSnapshotStore $snapshots Frozen seeds
      * @param FormFactoryInterface $forms Form factory (CSRF)
@@ -79,7 +79,7 @@ final readonly class LegalSeedCompareController
         private LegalPageCatalogInterface $catalog,
         private LegalLocales $locales,
         private LegalDocumentRepository $documents,
-        private LegalDocumentResolver $resolver,
+        private LegalDocumentResolverInterface $resolver,
         private LegalSeedTracker $tracker,
         private SeedSnapshotStore $snapshots,
         private FormFactoryInterface $forms,

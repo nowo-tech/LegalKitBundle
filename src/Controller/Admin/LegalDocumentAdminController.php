@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
 use Nowo\LegalKitBundle\Catalog\LegalPage;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
+use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalDocumentRestoredEvent;
 use Nowo\LegalKitBundle\Event\LegalDocumentSavedEvent;
@@ -90,7 +91,7 @@ final readonly class LegalDocumentAdminController
      * @param LegalPageCatalogInterface $catalog Enabled pages
      * @param LegalLocales $locales Enabled locales (default first)
      * @param LegalDocumentRepository $documents Stored rows
-     * @param LegalDocumentResolver $resolver Seed for the editor
+     * @param LegalDocumentResolverInterface $resolver Seed for the editor
      * @param LegalHtmlSanitizerInterface $sanitizer Sanitiser run before saving
      * @param LegalPlaceholderScanner $scanner Placeholder hits
      * @param FormFactoryInterface $forms Form factory
@@ -113,7 +114,7 @@ final readonly class LegalDocumentAdminController
         private LegalPageCatalogInterface $catalog,
         private LegalLocales $locales,
         private LegalDocumentRepository $documents,
-        private LegalDocumentResolver $resolver,
+        private LegalDocumentResolverInterface $resolver,
         private LegalHtmlSanitizerInterface $sanitizer,
         private LegalPlaceholderScanner $scanner,
         private FormFactoryInterface $forms,
