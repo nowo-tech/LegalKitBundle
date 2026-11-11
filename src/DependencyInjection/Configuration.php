@@ -364,6 +364,7 @@ final class Configuration implements ConfigurationInterface
                         ->booleanNode('private_entity_manager')
                             ->info('1.12 (rule 6): without doctrine.entity_manager, the bundle writes through a private entity manager on the connection, mapping and events of the manager that maps its entities, so a bundle flush never commits your pending changes. false = the 1.11 behaviour (the bundle flushes the manager that maps its entities, usually your default one); deprecated, removed in 2.0.')
                             ->defaultTrue()
+                            ->setDeprecated('nowo-tech/legal-kit-bundle', '1.12', 'The "%node%" option at "%path%" is deprecated: remove it (2.0 always writes through the private entity manager; false restored the 1.11 behaviour).')
                         ->end()
                         ->scalarNode('connection')
                             ->info('1.12 (rule 8): DBAL connection of the private entity manager (null = the connection of the manager that maps the bundle entities). Needs doctrine.blame actor_id or none; not combinable with doctrine.entity_manager (that manager has its own connection) nor with private_entity_manager: false.')

@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Doctrine;
 
+use Closure;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Decorator\EntityManagerDecorator;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Proxy\DefaultProxyClassNameResolver;
+use Doctrine\ORM\Query\Filter\Parameter;
+use Doctrine\ORM\Query\Filter\SQLFilter;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Symfony\Contracts\Service\ResetInterface;
 
+use function array_keys;
+use function is_string;
 use function sprintf;
 
 /**
@@ -30,9 +35,12 @@ use function sprintf;
  * bundle's rows (the after-commit dispatcher holds the events until the outermost commit).
  *
  * The object is a stable decorator (services and repositories keep it): the wrapped manager is resolved on every call
- * and created again when it was closed, when the source connection changed, after a rollback on its connection (the
- * identity map would describe rows that no longer exist; told by {@see AfterCommitMiddleware}) or after
- * {@see reset()}. The worker boundaries clear it ({@see LegalKitEntityManagerSubscriber}), and `kernel.reset` drops it.
+ * and created again when it was closed (its own failed flush), when the source connection changed or after
+ * {@see reset()}. After a rollback on its connection (told by {@see AfterCommitMiddleware}) the identity map may
+ * describe rows that no longer exist: the next call clears it, unless managed rows have changes waiting to be written
+ * (an edit made before a host savepoint rollback), which are kept until written or until the next boundary. The SQL
+ * filters of the source manager (enabled filters and their parameters) are mirrored on every call. The worker
+ * boundaries clear it ({@see LegalKitEntityManagerSubscriber}), and `kernel.reset` drops it.
  *
  * @internal
  *
@@ -78,23 +86,88 @@ final class LegalKitEntityManager extends EntityManagerDecorator implements Rese
         $source     = $this->source();
         $connection = $this->connection($source);
         $current    = $this->current;
-        if ($current instanceof EntityManagerInterface && $current->isOpen() && $current->getConnection() === $connection
-            // A rollback made the identity map stale; a manager in the middle of a write unit (persisted rows not
-            // flushed yet) is kept until that unit flushes or the next boundary.
-            && (!$this->stale || $current->getUnitOfWork()->hasPendingInsertions())) {
-            return $current;
-        }
-        if ($current instanceof EntityManagerInterface && $current->isOpen()) {
+        if (!$current instanceof EntityManagerInterface || !$current->isOpen() || $current->getConnection() !== $connection) {
+            // DoctrineBundle's ContainerAwareEventManager extends EventManager; any other implementation gets a fresh one.
+            $eventManager = $source->getEventManager();
+
+            // @igor-ignore - Bundle-owned unit of work: cleared at every boundary, replaced when closed or when the connection changed.
+            $current = $this->current = new EntityManager($connection, $source->getConfiguration(), $eventManager instanceof EventManager ? $eventManager : null);
+            // @igor-ignore - Bundle-owned flag of the private manager, reset with the manager.
+            $this->stale = false;
+        } elseif ($this->stale && !$this->hasScheduledWork($current)) {
+            // A rollback on the connection made the identity map stale and nothing waits to be written: forget it.
+            // Managed rows with changes (an edit made before a host savepoint rollback) are kept until written.
             $current->clear();
+            // @igor-ignore - Bundle-owned flag of the private manager, reset once the identity map is cleared.
+            $this->stale = false;
         }
-        // @igor-ignore - Bundle-owned flag of the private manager, reset when the manager is replaced.
-        $this->stale = false;
+        $this->syncFilters($source, $current);
 
-        // DoctrineBundle's ContainerAwareEventManager extends EventManager; any other implementation gets a fresh one.
-        $eventManager = $source->getEventManager();
+        return $current;
+    }
 
-        // @igor-ignore - Bundle-owned unit of work: cleared at every boundary, replaced when closed or when the connection changed.
-        return $this->current = new EntityManager($connection, $source->getConfiguration(), $eventManager instanceof EventManager ? $eventManager : null);
+    /**
+     * Whether the unit of work has scheduled inserts, updates or deletes (change sets computed).
+     */
+    private function hasScheduledWork(EntityManagerInterface $manager): bool
+    {
+        $unitOfWork = $manager->getUnitOfWork();
+        $unitOfWork->computeChangeSets();
+
+        return $unitOfWork->getScheduledEntityInsertions() !== []
+            || $unitOfWork->getScheduledEntityUpdates() !== []
+            || $unitOfWork->getScheduledEntityDeletions() !== []
+            || $unitOfWork->getScheduledCollectionUpdates() !== []
+            || $unitOfWork->getScheduledCollectionDeletions() !== [];
+    }
+
+    /**
+     * Mirrors the SQL filters of the application's manager (a tenant or soft-delete filter applies to the bundle's
+     * reads too). A filter whose parameters differ is disabled and enabled again before its parameters are copied, so
+     * a parameter the source no longer has (a previous tenant) never survives; a filter the source disabled is disabled.
+     */
+    private function syncFilters(EntityManagerInterface $source, EntityManagerInterface $target): void
+    {
+        $enabled = $source->getFilters()->getEnabledFilters();
+        $filters = $target->getFilters();
+        foreach (array_keys($filters->getEnabledFilters()) as $name) {
+            if (!isset($enabled[$name])) {
+                $filters->disable($name);
+            }
+        }
+        foreach ($enabled as $name => $filter) {
+            if ($filters->isEnabled($name) && (string) $filters->getFilter($name) === (string) $filter) {
+                continue;
+            }
+            if ($filters->isEnabled($name)) {
+                $filters->disable($name);
+            }
+            $copy = $filters->enable($name);
+            foreach ($this->filterParameters($filter) as $parameter => $value) {
+                $type = is_string($value->type) ? $value->type : null;
+                if ($value->isList) {
+                    /** @var array<mixed> $list */
+                    $list = $value->value;
+                    $copy->setParameterList($parameter, $list, $type ?? Types::STRING);
+                } else {
+                    $copy->setParameter($parameter, $value->value, $type);
+                }
+            }
+        }
+    }
+
+    /**
+     * The raw parameters of a filter (SQLFilter keeps them private and only exposes quoted values).
+     *
+     * @return array<string, Parameter>
+     */
+    private function filterParameters(SQLFilter $filter): array
+    {
+        $read = static fn (SQLFilter $filter): array => $filter->parameters; // @phpstan-ignore property.private (bound to SQLFilter below)
+        /** @var array<string, Parameter> $parameters */
+        $parameters = Closure::bind($read, null, SQLFilter::class)($filter);
+
+        return $parameters;
     }
 
     /**
@@ -111,7 +184,8 @@ final class LegalKitEntityManager extends EntityManagerDecorator implements Rese
     public function adopt(object $entity): object
     {
         $manager = $this->live();
-        $class   = DefaultProxyClassNameResolver::getClass($entity);
+        /** @var class-string $class */
+        $class = LegalKitManagerRegistry::realClass($entity::class);
         if ($manager->contains($entity) || $manager->getMetadataFactory()->isTransient($class)) {
             return $entity;
         }
@@ -176,13 +250,14 @@ final class LegalKitEntityManager extends EntityManagerDecorator implements Rese
     }
 
     /**
-     * A rolled-back transaction may have held rows of the private manager: it is replaced at the next call (never
-     * cleared here: the rollback may run inside the private manager's own failing flush).
+     * A rolled-back transaction may have held rows of the private manager: its identity map is cleared at the next call
+     * when nothing waits to be written (never here: the rollback may run inside the private manager's own failing
+     * flush).
      */
     public function transactionEnded(object $connection, bool $committed): void
     {
         if (!$committed && $this->current instanceof EntityManagerInterface) {
-            // @igor-ignore - Bundle-owned flag of the private manager, cleared when the manager is replaced.
+            // @igor-ignore - Bundle-owned flag of the private manager, cleared with its identity map.
             $this->stale = true;
         }
     }

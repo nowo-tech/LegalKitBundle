@@ -293,7 +293,14 @@ manager that maps the entities). The after-commit middleware follows it. Create 
 yourself (the mapping stays on your manager, so its migrations do not see the other connection). Needs
 `doctrine.blame: actor_id` or `none` (a foreign key cannot reach your users table on another connection); the build
 fails with `relation`, with `doctrine.entity_manager`, with `private_entity_manager: false`, or when the connection does
-not exist.
+not exist. Acceptances are written on that connection too, so they are **no longer atomic** with a transaction you open
+on your default connection (a sign-up that creates the account and records the acceptance): keep the default
+connection when you need that.
+
+The private manager mirrors the SQL filters enabled on your manager and their parameters on every call (a filter whose
+parameters changed is re-enabled before they are copied, so no stale parameter survives; a filter you disabled is
+disabled), and shares your manager's event manager (your listeners see its flushes). Setting
+`private_entity_manager` triggers a deprecation (1.12).
 
 ## Doctrine blame
 

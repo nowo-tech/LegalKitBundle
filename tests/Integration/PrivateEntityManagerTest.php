@@ -24,6 +24,7 @@ use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Tests\Support\Entity\User;
 use Nowo\LegalKitBundle\Tests\Support\TestKernel;
+use Nowo\LegalKitBundle\Tests\Support\TestLocaleFilter;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
 use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionRepository;
@@ -352,6 +353,81 @@ final class PrivateEntityManagerTest extends VersioningTestCase
         $private->recover();
         self::assertFalse($private->isCreated(), 'a stale manager is dropped at the boundary');
         self::assertNotSame($before, $private->live());
+    }
+
+    public function testAnEditMadeBeforeAHostSavepointRollbackIsNotLost(): void
+    {
+        $kernel     = $this->versioningKernel();
+        $import     = $this->service($kernel, LegalDocumentImportInterface::class);
+        $repository = $this->service($kernel, LegalDocumentRepository::class);
+        $connection = $this->entityManager($kernel)->getConnection();
+        $import->import([['slug' => 'notice', 'locale' => 'en', 'title' => 'Notice', 'body' => '<p>A</p>']], null, true);
+
+        // MQ-L-L1: load, edit, a host savepoint rolls back (nothing of the bundle in it), then save().
+        $document = $repository->findOneBySlugAndLocale('notice', 'en');
+        self::assertInstanceOf(LegalDocument::class, $document);
+        $document->setTitle('Edited');
+        $connection->beginTransaction();
+        $connection->beginTransaction();
+        $connection->rollBack();
+        $connection->commit();
+        $repository->save($document);
+        self::assertSame('Edited', $connection->fetchOne("SELECT title FROM legal_document WHERE slug = 'notice'"));
+
+        // With nothing waiting to be written, a rollback only clears the identity map (same manager).
+        $live = $this->private($kernel)->live();
+        $connection->beginTransaction();
+        $connection->rollBack();
+        self::assertSame($live, $this->private($kernel)->live());
+        self::assertFalse($live->contains($document));
+    }
+
+    public function testTheHostSqlFiltersAreMirroredWithoutStaleParameters(): void
+    {
+        $kernel = $this->versioningKernel([], [], ['doctrine' => ['orm' => ['filters' => ['legal_locale' => ['class' => TestLocaleFilter::class, 'enabled' => false]]]]]);
+        $this->service($kernel, LegalDocumentImportInterface::class)->import([
+            ['slug' => 'notice', 'locale' => 'en', 'title' => 'Notice', 'body' => '<p>A</p>'],
+            ['slug' => 'notice', 'locale' => 'es', 'title' => 'Aviso', 'body' => '<p>B</p>'],
+        ], null, true);
+        $host    = $this->entityManager($kernel);
+        $private = $this->private($kernel);
+        $titles  = function () use ($kernel): array {
+            $this->clearBundleManager($kernel);
+            $titles = [];
+            foreach ($this->service($kernel, LegalDocumentRepository::class)->findAllSorted() as $document) {
+                $titles[] = $document->getTitle();
+            }
+
+            return $titles;
+        };
+        self::assertSame(['Notice', 'Aviso'], $titles());
+
+        $host->getFilters()->enable('legal_locale')->setParameter('locale', 'es');
+        self::assertSame(['Aviso'], $titles(), 'the host filter applies to the bundle reads');
+        self::assertSame((string) $host->getFilters()->getFilter('legal_locale'), (string) $private->getFilters()->getFilter('legal_locale'));
+
+        $host->getFilters()->getFilter('legal_locale')->setParameter('locale', 'en');
+        self::assertSame(['Notice'], $titles(), 'a changed parameter is copied');
+
+        // The source filter is rebuilt without the parameter (a new unit of work): the old one must not survive.
+        $host->getFilters()->disable('legal_locale');
+        $host->getFilters()->enable('legal_locale');
+        self::assertSame(['Notice', 'Aviso'], $titles());
+        self::assertFalse($private->getFilters()->getFilter('legal_locale')->hasParameter('locale'), 'no stale parameter');
+
+        $host->getFilters()->getFilter('legal_locale')->setParameterList('locale', ['es']);
+        self::assertTrue($private->getFilters()->getFilter('legal_locale')->hasParameter('locale'));
+        $host->getFilters()->disable('legal_locale');
+        self::assertSame(['Notice', 'Aviso'], $titles());
+        self::assertFalse($private->getFilters()->isEnabled('legal_locale'), 'a filter the host disabled is disabled');
+    }
+
+    public function testProxyClassNamesAreBundleEntities(): void
+    {
+        self::assertTrue(LegalKitManagerRegistry::isBundleEntity('Proxies\\__CG__\\Nowo\\LegalKitBundle\\Entity\\LegalDocument'));
+        self::assertFalse(LegalKitManagerRegistry::isBundleEntity('Proxies\\__CG__\\App\\Entity\\User'));
+        self::assertSame(LegalDocument::class, LegalKitManagerRegistry::realClass('Proxies\\__CG__\\' . LegalDocument::class));
+        self::assertSame(LegalDocument::class, LegalKitManagerRegistry::realClass(LegalDocument::class));
     }
 
     private function connectionKernel(): TestKernel

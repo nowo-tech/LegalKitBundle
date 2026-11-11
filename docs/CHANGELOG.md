@@ -84,7 +84,11 @@ Next minor: 1.12.0. Architecture bar REQ-ARCH-001 (rules 3, 6 and 8), BC-safe. S
   your manager given as the deprecated import `$actor` becomes a reference of the private manager. A
   `LegalDocument` loaded through the bundle's repository (also what `$yourEntityManager->getRepository(LegalDocument::class)`
   returns) belongs to the private manager: save it through the repository, not with your manager's `flush()`.
-  `doctrine.entity_manager` (1.10) is unchanged.
+  `doctrine.entity_manager` (1.10) is unchanged. The private manager mirrors the SQL filters enabled on the source
+  manager and their parameters (a filter whose parameters differ is disabled and enabled again before copying; a
+  filter the source disabled is disabled). After a rollback on its connection its identity map is cleared at the next
+  call, unless managed rows have changes waiting to be written (kept until written). `getCreatedBy()` /
+  `getUpdatedBy()` return references of the private manager.
 - **Worker mode (REQ-RUNTIME-002) for the private manager.** `Doctrine\LegalKitEntityManagerSubscriber` drops a
   closed or stale manager and clears it at the main `kernel.request`, `console.command` and
   `WorkerMessageReceivedEvent`, and clears it at `kernel.terminate`, `console.terminate`, `WorkerMessageHandledEvent`
@@ -109,7 +113,9 @@ Next minor: 1.12.0. Architecture bar REQ-ARCH-001 (rules 3, 6 and 8), BC-safe. S
 
 - `LegalAcceptanceSubjectResolverInterface` → `LegalSubjectIdResolverInterface` (removed in 2.0).
 - `LegalAcceptanceExemptionInterface` → `LegalAcceptanceRequestExemptionInterface` (removed in 2.0).
-- `doctrine.private_entity_manager: false` (removed in 2.0).
+- `doctrine.private_entity_manager` (the option is deprecated: `setDeprecated()`; removed in 2.0).
+- Runtime deprecations (container build, `symfony/deprecation-contracts` now required): a subject resolver or an
+  exemption voter wired with only the deprecated interface.
 - 2.0 narrows `LegalDocumentPortabilityInterface::apply()`'s `$actor` to `?LegalActorId` (a user object has been
   deprecated since 1.10); `import()` is the typed form now.
 

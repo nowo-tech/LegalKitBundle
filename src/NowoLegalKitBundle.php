@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\AfterCommitMiddlewarePass;
+use Nowo\LegalKitBundle\DependencyInjection\Compiler\DeprecatedPortsPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\EntityManagerMappingPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
@@ -39,6 +40,8 @@ final class NowoLegalKitBundle extends Bundle
         $container->addCompilerPass(new TwigPathsPass());
         $container->addCompilerPass(new SecurityPass());
         $container->addCompilerPass(new IntegrationPass());
+        // 1.12 (rule 3): deprecation of the host ports typed with framework classes.
+        $container->addCompilerPass(new DeprecatedPortsPass());
         // 1.10 (rule 7): the after-commit middleware follows the bundle's connection only (before MiddlewaresPass).
         $container->addCompilerPass(new AfterCommitMiddlewarePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
         // 1.10 (rule 6): with doctrine.entity_manager, the entities are mapped on that manager (not prepended to the
