@@ -33,6 +33,7 @@ use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
 use Nowo\LegalKitBundle\Doctrine\VersioningMappingListener;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -310,7 +311,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
         /** @var array{table_prefix: string, blame: string, accepted_user_classes: list<string>, entity_manager: string|null} $doctrine */
         $doctrine = $config['doctrine'];
-        $this->configureEntityManager($container, $doctrine['entity_manager']);
+        $this->configureEntityManager($container, $doctrine['entity_manager'], $doctrine['blame']);
         if ($doctrine['table_prefix'] !== '') {
             $container->register(TablePrefixListener::class, TablePrefixListener::class)
                 ->setArguments([$doctrine['table_prefix']])
@@ -343,9 +344,18 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
      * AfterCommitMiddlewarePass), and `doctrine.entity_manager`: every bundle service that takes an entity manager gets
      * that one (the repositories resolve it by entity class: the mapping lives on that manager only).
      */
-    private function configureEntityManager(ContainerBuilder $container, ?string $entityManager): void
+    private function configureEntityManager(ContainerBuilder $container, ?string $entityManager, string $blame): void
     {
+        if ($entityManager !== null && $blame === Configuration::BLAME_RELATION) {
+            throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.entity_manager "%s" needs nowo_legal_kit.doctrine.blame: actor_id or none: the default "relation" blame points at your user entity, which the bundle\'s own entity manager does not map.', $entityManager));
+        }
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManager);
+        if ($entityManager !== null) {
+            // LG-LK-M1: recover (reset when closed) and clear the bundle's own manager at every unit-of-work boundary.
+            $container->register(OwnEntityManagerSubscriber::class, OwnEntityManagerSubscriber::class)
+                ->setArguments([new Reference('doctrine'), $entityManager])
+                ->addTag('kernel.event_subscriber');
+        }
         $container->register(AfterCommitEventDispatcher::class, AfterCommitEventDispatcher::class)
             ->setArguments([
                 new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE),

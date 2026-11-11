@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
 use ArrayObject;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
@@ -29,6 +30,8 @@ use Nowo\LegalKitBundle\Versioning\LegalPageVersionView;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\HttpKernel;
 
 /**
  * 1.10 architecture bar: the host's pending changes and transactions (rules 6 / 7), the DTO ports (rules 1 / 3), the
@@ -162,6 +165,49 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame(1, (int) $legal->getConnection()->fetchOne('SELECT COUNT(*) FROM legal_document'));
         self::assertSame(2, (int) $legal->getConnection()->fetchOne('SELECT COUNT(*) FROM legal_acceptance'));
         self::assertNotContains('legal_document', $host->getConnection()->createSchemaManager()->listTableNames());
+    }
+
+    /**
+     * LG-LK-M1: a failed write closes the bundle's own manager; in a kept-alive kernel without the services resetter
+     * the next request through http_kernel recovers it, and the host manager is left alone.
+     */
+    public function testTheOwnManagerIsRecoveredAtTheNextRequestInAWorker(): void
+    {
+        $kernel = $this->dedicatedKernel(autoMapping: false);
+        $legal  = $this->manager($kernel, 'legal');
+        $host   = $this->manager($kernel, 'default');
+        (new SchemaTool($legal))->createSchema($legal->getMetadataFactory()->getAllMetadata());
+        $versions = $this->service($kernel, LegalPageVersionsInterface::class);
+        $taken    = $versions->publishVersion('terms', true, LegalPageVersion::SOURCE_EDITOR)->version;
+        try {
+            $versions->publishVersion('terms', true, LegalPageVersion::SOURCE_EDITOR, [], null, $taken);
+            self::fail('Expected the duplicate version.');
+        } catch (UniqueConstraintViolationException) {
+            self::assertFalse($legal->isOpen(), 'the failed flush closed the bundle manager');
+        }
+        $user = new User('pending@example.com');
+        $host->persist($user);
+
+        // The http_kernel service directly: Kernel::handle() would run the services resetter between requests.
+        $httpKernel = $this->testContainer($kernel)->get('http_kernel');
+        self::assertInstanceOf(HttpKernel::class, $httpKernel);
+        foreach ([1, 2] as $ignored) {
+            $request  = Request::create('/no-such-page');
+            $response = $httpKernel->handle($request);
+            $httpKernel->terminate($request, $response);
+        }
+
+        self::assertTrue($this->manager($kernel, 'legal')->isOpen(), 'recovered at the request boundary');
+        self::assertSame($taken + 1, $versions->publishVersion('terms', true, LegalPageVersion::SOURCE_EDITOR)->version, 'the services keep working');
+        self::assertSame($host, $this->manager($kernel, 'default'), 'the host manager is never reset');
+        self::assertTrue($host->contains($user), 'nor cleared');
+    }
+
+    public function testADedicatedManagerWithRelationBlameFailsTheBuild(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('needs nowo_legal_kit.doctrine.blame: actor_id or none');
+        $this->versioningKernel(['doctrine' => ['entity_manager' => 'legal']]);
     }
 
     public function testDedicatedManagerWithoutDefaultEntityManagerKey(): void

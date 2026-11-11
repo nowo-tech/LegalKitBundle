@@ -57,7 +57,11 @@ Target 1.10.0. Architecture bar (standard Symfony and DDD hosts, rules 1, 3, 4, 
 - **`doctrine.entity_manager`** (default `null`, unchanged behaviour): maps the bundle entities on that manager only
   (`DoctrineOrmMappingsPass` + `EntityManagerMappingPass`, also removing them from a default manager with
   `auto_mapping: true`), wires every bundle service that takes an entity manager to it and fails the build when the
-  manager is missing or does not map the entities. The default manager is then never flushed by the bundle.
+  manager is missing or does not map the entities. The default manager is then never flushed by the bundle. The build
+  also fails when the option is combined with the default `doctrine.blame: relation` (use `actor_id` or `none`).
+  `OwnEntityManagerSubscriber` resets that manager when a failed write closed it (at the next request, console command
+  or Messenger message) and clears it at the end of each, so a kept-alive worker without the services resetter
+  recovers; the host's managers are never reset nor cleared.
 - `Versioning\LegalPageVersionsInterface` (public alias of `LegalPageVersions`) with the `LegalPageVersionView` DTO:
   `latestVersion()`, `publishVersion(..., bool $flush = true)` (`false` = persist only, the host flushes and calls
   `afterPublish()`), `afterPublish()`.
@@ -74,8 +78,8 @@ Target 1.10.0. Architecture bar (standard Symfony and DDD hosts, rules 1, 3, 4, 
   none; before, each row was autocommitted), and inside a host transaction its `LegalAcceptedEvent`s now wait for the
   outermost commit (dropped on rollback) instead of being dispatched before it. The bundle wires the acceptance
   manager's `$dispatcher` to the after-commit dispatcher.
-- Requires `doctrine/dbal ^4.0` explicitly (already the case through `doctrine/orm` in practice; the middleware uses
-  the DBAL 4 driver API).
+- Requires `doctrine/dbal ^4.0` (the after-commit middleware uses the DBAL 4 driver API). `doctrine/orm` 3 still
+  allows DBAL 3, so hosts on DBAL 3 stay on 1.9.x: Composer will not offer 1.10.
 
 ### Deprecated
 

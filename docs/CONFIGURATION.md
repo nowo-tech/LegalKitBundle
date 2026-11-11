@@ -258,7 +258,9 @@ behaviour of earlier versions (the autowired default manager; mapping prepended 
 bundle service (versions, acceptances, admin editor, portability, seed and upgrade commands) to it, attaches the
 after-commit DBAL middleware to its connection, and fails the build when the manager does not exist or does not map
 the entities. It must be set in the host configuration (the mapping is decided before parameters resolve). Combine it
-with `doctrine.blame: actor_id` or `none`. See [USAGE](USAGE.md#entity-managers-standard-and-ddd-hosts-110).
+with `doctrine.blame: actor_id` or `none` (the build fails with `relation`). The bundle owns that manager: when a
+failed write closed it, it is reset at the next request, console command or Messenger message, and cleared at the end
+of each (worker safe without the services resetter). See [USAGE](USAGE.md#entity-managers-standard-and-ddd-hosts-110).
 
 ## Doctrine blame
 

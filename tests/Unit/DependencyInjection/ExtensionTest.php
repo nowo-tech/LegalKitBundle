@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
@@ -112,7 +113,7 @@ final class ExtensionTest extends TestCase
 
         $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('nowo_legal_kit.doctrine.entity_manager must be a literal manager name set in the host configuration');
-        (new NowoLegalKitExtension())->load([['doctrine' => ['entity_manager' => 'legal']]], $container);
+        (new NowoLegalKitExtension())->load([['doctrine' => ['entity_manager' => 'legal', 'blame' => 'none']]], $container);
     }
 
     public function testTheDedicatedManagerIsWiredIntoTheBundleServices(): void
@@ -129,6 +130,17 @@ final class ExtensionTest extends TestCase
         self::assertSame(LegalPageVersions::class, (string) $container->getAlias(LegalPageVersionsInterface::class));
         self::assertTrue($container->getDefinition(AfterCommitEventDispatcher::class)->hasTag('kernel.reset'));
         self::assertTrue($container->getDefinition(AfterCommitMiddleware::class)->hasTag('doctrine.middleware'));
+        self::assertSame(['legal'], [$container->getDefinition(OwnEntityManagerSubscriber::class)->getArgument(1)]);
+        self::assertTrue($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'));
+    }
+
+    public function testNoOwnManagerSubscriberWithoutTheOption(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.bundles', []);
+        (new NowoLegalKitExtension())->load([[]], $container);
+
+        self::assertFalse($container->hasDefinition(OwnEntityManagerSubscriber::class));
     }
 
     public function testCookieConsentPrependCanBeDisabled(): void

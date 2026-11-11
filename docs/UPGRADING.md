@@ -46,12 +46,14 @@ No configuration change for a standard application.
 2. **`eraseFor()`** now dispatches `LegalAcceptancesErasedEvent`; `nowo:legal-kit:seed` dispatches
    `LegalDocumentsImportedEvent`. Listeners of the import event see seed runs too.
 3. **Optional `doctrine.entity_manager`.** Set it to give the bundle its own entity manager (literal name, configured
-   under `doctrine.orm.entity_managers`, with `doctrine.blame: actor_id` or `none`). If you mapped the bundle entities
+   under `doctrine.orm.entity_managers`, with `doctrine.blame: actor_id` or `none`: the build fails with the default
+   `relation`). The bundle recovers that manager after a failed write at the next request, command or message. If you mapped the bundle entities
    by hand on a second manager, you may drop that mapping and set the option instead.
 4. **Deprecations** (removed in 2.0): `LegalPageVersions::latest()` / `publish()` / `afterCommit()` → inject
    `LegalPageVersionsInterface` and use `latestVersion()` / `publishVersion()` / `afterPublish()`; a user object as the
    import `$actor` → `new LegalActorId($id)`; `LegalDocumentResolverInterface::effective()` as a public API.
-5. **`doctrine/dbal ^4.0`** is now an explicit requirement.
+5. **`doctrine/dbal ^4.0`** is now required. Hosts on DBAL 3 stay on 1.9.x (Composer will not offer 1.10); upgrade
+   DBAL to 4 first.
 
 ## To 1.9.0
 

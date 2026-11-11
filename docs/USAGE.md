@@ -611,7 +611,9 @@ The bundle's writes go to the entity manager that maps its entities:
 - *DDD application* (XML-mapped domain, several managers): set `doctrine.entity_manager`. The entities are mapped on
   that manager only (removed from the others, `auto_mapping: true` included), every bundle service uses it, the build
   fails when it does not exist, and your default manager is never flushed by the bundle. Keep `default_entity_manager`
-  pointing at yours. Use `doctrine.blame: actor_id` (or `none`): a relation to your user entity cannot cross managers.
+  pointing at yours. Use `doctrine.blame: actor_id` (or `none`): a relation to your user entity cannot cross managers
+  (the build fails otherwise). A failed write that closed the bundle's manager is recovered at the next request,
+  command or message; your managers are never reset by the bundle.
 
   ```yaml
   doctrine:
