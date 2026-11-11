@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.11.0] - 2026-11-11](#1110---2026-11-11)
   - [Added](#added)
   - [Changed](#changed)
 - [[1.10.0] - 2026-11-11](#1100---2026-11-11)
@@ -56,6 +57,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-11
+
 ### Added
 
 - GDPR personal-data erasure and export of the acceptance records through UserKit: with
@@ -84,7 +87,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [1.10.0] - 2026-11-11
 
 Real `entity_manager` option, a versions port and ID-carrying events dispatched only after commit. See [UPGRADING](https://github.com/nowo-tech/LegalKitBundle/blob/v1.10.0/docs/UPGRADING.md#to-1100).
-
 
 ### Added
 
