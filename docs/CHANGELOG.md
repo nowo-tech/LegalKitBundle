@@ -7,30 +7,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
   - [Added](#added)
   - [Changed](#changed)
+- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
+  - [Added](#added-1)
+  - [Changed](#changed-1)
   - [Deprecated](#deprecated)
 - [[1.9.0] - 2026-11-10](#190---2026-11-10)
-  - [Added](#added-1)
-- [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added-2)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Added](#added-3)
   - [Fixed](#fixed)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
-  - [Added](#added-3)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-4)
-  - [Changed](#changed-1)
-  - [Security](#security)
-- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-5)
   - [Changed](#changed-2)
+  - [Security](#security)
+- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+  - [Added](#added-6)
+  - [Changed](#changed-3)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-6)
-  - [Changed](#changed-3)
+  - [Added](#added-7)
+  - [Changed](#changed-4)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
@@ -39,20 +41,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-5)
-  - [Changed](#changed-4)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-5)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-7)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-6)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-8)
+  - [Changed](#changed-7)
   - [Fixed](#fixed-2)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-3)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-8)
+  - [Added](#added-9)
 
 ## [Unreleased]
+
+### Added
+
+- GDPR personal-data erasure and export of the acceptance records through UserKit: with
+  `nowo-tech/user-kit-bundle` installed and `acceptance.enabled`, the eraser and the export section `legal_acceptances`
+  register with `personal_data.enabled: true` (opt-in; `nowo_user_kit.personal_data.eraser` priority 150, before host
+  identity erasers; `nowo_user_kit.personal_data.export_provider` priority 50). New `personal_data` node: `enabled`
+  (default `false`) and
+  `subject_resolver` (service implementing the new SPI `PersonalData\LegalPersonalDataSubjectResolverInterface`; the
+  default returns the id of `acceptance.subject_resolver`).
+- `LegalAcceptanceManager::isStorableSubjectId()`.
+
+### Changed
+
+- **Behaviour change:** none for existing hosts; the UserKit bridge is opt-in (`personal_data.enabled` defaults to
+  `false`) because acceptance records may have to be kept as proof under GDPR Art. 17(3). Turning it on makes UserKit's
+  account erasure delete the user's acceptance records; remove your own `legal_acceptances` export provider then
+  (UserKit refuses duplicate export section keys).
+
+- `LegalAcceptanceManagerInterface::exportFor()` / `eraseFor()` and the acceptance lookups match the subject id
+  exactly (audit LQ "identifier columns"): a case / accent / trailing-space look-alike on a MySQL / MariaDB `_ci`
+  collation is no longer exported, erased or counted as accepted. `eraseFor()` deletes by primary key in batches of
+  500, runs in its own transaction when none is open (event after its commit; inside yours it still waits for your
+  outermost commit) and returns `0` without a query for an id that can never be stored. `exportFor()` hydrates arrays
+  (nothing kept in the identity map).
 
 ## [1.10.0] - 2026-11-11
 

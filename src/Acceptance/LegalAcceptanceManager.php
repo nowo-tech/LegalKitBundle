@@ -27,7 +27,9 @@ use function count;
 use function hash;
 use function implode;
 use function max;
+use function preg_match;
 use function sort;
+use function str_contains;
 
 /**
  * Pending pages, acceptance records and the personal-data hooks (export / erasure) of a subject. Type-hint
@@ -207,21 +209,26 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
     }
 
     /**
-     * Personal-data export of a subject (host export providers).
+     * Personal-data export of a subject (host export providers). Exact match on the subject id (1.11): a look-alike
+     * (`UserA` for `usera`) is never exported. An id that can never be stored ({@see isStorableSubjectId()}) exports
+     * nothing.
      *
      * @return list<array{page: string, version: int, locale: string, kind: string, accepted_at: string, content_hash: string}>
      */
     public function exportFor(string $subjectId): array
     {
+        if (!self::isStorableSubjectId($subjectId)) {
+            return [];
+        }
         $rows = [];
-        foreach ($this->acceptances->forSubject($subjectId) as $acceptance) {
+        foreach ($this->acceptances->rowsForSubject($subjectId) as $acceptance) {
             $rows[] = [
-                'page'         => $acceptance->getSlug(),
-                'version'      => $acceptance->getVersion(),
-                'locale'       => $acceptance->getLocale(),
-                'kind'         => $acceptance->getKind(),
-                'accepted_at'  => $acceptance->getAcceptedAt()->format(DateTimeInterface::ATOM),
-                'content_hash' => $acceptance->getContentHash(),
+                'page'         => $acceptance['slug'],
+                'version'      => $acceptance['version'],
+                'locale'       => $acceptance['locale'],
+                'kind'         => $acceptance['kind'],
+                'accepted_at'  => $acceptance['acceptedAt']->format(DateTimeInterface::ATOM),
+                'content_hash' => $acceptance['contentHash'],
             ];
         }
 
@@ -229,17 +236,41 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
     }
 
     /**
-     * Erasure of a subject (host erasers): deletes every record, keeps no copy.
+     * Erasure of a subject (host erasers): deletes every record, keeps no copy. Exact match on the subject id (1.11),
+     * deleted by primary key in batches; idempotent (a second call returns 0). Outside a transaction the deletion runs
+     * in one of its own (1.11) and the event follows its commit; inside the caller's transaction it joins it and the
+     * event waits for the outermost commit (dropped on rollback). An id that can never be stored
+     * ({@see isStorableSubjectId()}) is a no-op: 0, no event.
      *
      * @return int Rows deleted
      */
     public function eraseFor(string $subjectId): int
     {
-        $count = $this->acceptances->deleteForSubject($subjectId);
+        if (!self::isStorableSubjectId($subjectId)) {
+            return 0;
+        }
+        $connection = $this->entityManager->getConnection();
+        if ($connection->isTransactionActive()) {
+            $count = $this->acceptances->deleteForSubject($subjectId);
+        } else {
+            /** @var int $count */
+            $count = $connection->transactional(fn (): int => $this->acceptances->deleteForSubject($subjectId));
+        }
         // 1.10 (rule 4): after the commit of the deletion (held until the host's outermost commit inside a transaction).
         $this->dispatcher?->dispatch(new LegalAcceptancesErasedEvent($subjectId, $count));
 
         return $count;
+    }
+
+    /**
+     * Whether a subject id fits the `subject_id` column (1.11): 1 to 128 characters of valid UTF-8, no NUL byte. Not
+     * trimmed, not case folded: ids are compared exactly.
+     *
+     * @return bool The answer
+     */
+    public static function isStorableSubjectId(string $subjectId): bool
+    {
+        return !str_contains($subjectId, "\0") && preg_match('/^.{1,128}$/su', $subjectId) === 1;
     }
 
     /**

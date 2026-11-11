@@ -29,6 +29,16 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+Nothing to change by default. The new UserKit bridge (`legal_acceptances` personal-data eraser and export section) is
+opt-in: `nowo_legal_kit.personal_data.enabled: true` (with `nowo-tech/user-kit-bundle` installed and
+`acceptance.enabled: true`) makes UserKit's erasure delete the user's acceptance records and its export include them.
+Leave it off if you must keep acceptance records as proof (GDPR Art. 17(3)). When you turn it on, remove your own
+`legal_acceptances` export provider in the same upgrade: UserKit's exporter throws a `LogicException` on two sections
+with the same key, so the whole export would fail (two erasers with the same key both run; the second finds nothing).
+`exportFor()` / `eraseFor()` now match
+the subject id exactly: on MySQL / MariaDB a look-alike id (other case, accents, trailing spaces) is no longer
+included.
+
 ## To 1.10.0
 
 Target **1.10.0**, from **1.9.0**:

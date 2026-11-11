@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
 use Nowo\LegalKitBundle\Command\DoctorCommand;
 use Nowo\LegalKitBundle\Command\SeedCommand;
@@ -16,6 +17,10 @@ use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
 use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
+use Nowo\LegalKitBundle\PersonalData\AcceptanceSubjectPersonalDataResolver;
+use Nowo\LegalKitBundle\PersonalData\LegalAcceptancesPersonalDataEraser;
+use Nowo\LegalKitBundle\PersonalData\LegalAcceptancesPersonalDataExportProvider;
+use Nowo\LegalKitBundle\PersonalData\LegalPersonalDataSubjectResolverInterface;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
@@ -290,6 +295,37 @@ final class ExtensionTest extends TestCase
 
         self::assertSame([['command' => 'nowo:legal-kit:check-placeholders']], $container->getDefinition(CheckPlaceholdersCommand::class)->getTag('console.command'));
         self::assertFalse($container->getDefinition(CheckPlaceholdersCommand::class)->isAutoconfigured());
+    }
+
+    public function testUserKitPersonalDataAdaptersWithAcceptance(): void
+    {
+        $container = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => true]]);
+
+        self::assertTrue($container->getParameter('nowo_legal_kit.personal_data.enabled'));
+        self::assertSame([['priority' => 150]], $container->getDefinition(LegalAcceptancesPersonalDataEraser::class)->getTag(NowoLegalKitExtension::USER_KIT_ERASER_TAG));
+        self::assertSame([['priority' => 50]], $container->getDefinition(LegalAcceptancesPersonalDataExportProvider::class)->getTag(NowoLegalKitExtension::USER_KIT_EXPORT_PROVIDER_TAG));
+        self::assertSame(AcceptanceSubjectPersonalDataResolver::class, (string) $container->getAlias(LegalPersonalDataSubjectResolverInterface::class));
+        self::assertTrue($container->getAlias(LegalPersonalDataSubjectResolverInterface::class)->isPublic());
+        self::assertSame('app.subjects', (string) $container->getDefinition(AcceptanceSubjectPersonalDataResolver::class)->getArgument(0));
+        self::assertSame(LegalAcceptanceManagerInterface::class, (string) $container->getDefinition(LegalAcceptancesPersonalDataEraser::class)->getArgument(0));
+        self::assertSame(LegalPersonalDataSubjectResolverInterface::class, (string) $container->getDefinition(LegalAcceptancesPersonalDataExportProvider::class)->getArgument(1));
+
+        $custom = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => true, 'subject_resolver' => 'app.personal_data_subjects']]);
+        self::assertSame('app.personal_data_subjects', (string) $custom->getAlias(LegalPersonalDataSubjectResolverInterface::class));
+    }
+
+    public function testNoPersonalDataAdaptersWhenDisabledOrWithoutAcceptance(): void
+    {
+        $disabled = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => false]]);
+        self::assertFalse($disabled->getParameter('nowo_legal_kit.personal_data.enabled'));
+        // LY-L1 (owner, 2026-11-11): opt-in, acceptance records may be kept as proof (Art. 17(3)).
+        $byDefault = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects']]);
+        self::assertFalse($byDefault->getParameter('nowo_legal_kit.personal_data.enabled'));
+        foreach ([$disabled, $byDefault, $this->loaded([]), $this->loaded(['versioning' => ['enabled' => true]])] as $container) {
+            self::assertFalse($container->hasDefinition(LegalAcceptancesPersonalDataEraser::class));
+            self::assertFalse($container->hasDefinition(LegalAcceptancesPersonalDataExportProvider::class));
+            self::assertFalse($container->hasAlias(LegalPersonalDataSubjectResolverInterface::class));
+        }
     }
 
     public function testPrivacyRouteFallbackWithCookieConsent117(): void
