@@ -416,8 +416,9 @@ Since 1.11 `exportFor()` / `eraseFor()` are the bundle's personal-data ports (no
 - **Not covered.** AuditKit `legal_document.accepted` rows (`acceptance.action_log: true`) and any copy your
   `LegalAcceptedEvent` listeners stored: erase those through AuditKit or a listener of `LegalAcceptancesErasedEvent`.
 
-**UserKit bridge.** With `nowo-tech/user-kit-bundle` installed, `acceptance.enabled: true` and
-`personal_data.enabled: true` (the default), the bundle registers, with no configuration:
+**UserKit bridge (opt-in).** Acceptance records are often kept as proof that the terms were accepted (GDPR
+Art. 17(3)(b)/(e)), so the bridge is off by default. With `nowo-tech/user-kit-bundle` installed,
+`acceptance.enabled: true` and `personal_data.enabled: true`, the bundle registers:
 
 | Service | Tag (priority) | Key |
 | --- | --- | --- |
@@ -432,7 +433,11 @@ for the user (none for a user it leaves out). Set `personal_data.subject_resolve
 cannot be derived from the user any more or the user had several ids over time; `$originalIdentifier` is UserKit's
 `ErasureRequest::identifier()` captured before any eraser ran (null on export and before UserKit 1.12). UserKit runs
 every eraser in one transaction: on the same connection the deletion joins it and the event follows its commit.
-Set `personal_data.enabled: false` when your application already erases these records. All services are stateless
+With the bundle on a separate connection (its own `doctrine.entity_manager` on another connection), the deletion
+commits on its own: if a later eraser fails and UserKit rolls back, the acceptance records stay erased while the rest
+does not; re-running the erasure is safe (idempotent). UserKit refuses two export sections with the same key: when
+you enable the bridge, remove your own `legal_acceptances` export provider (a duplicate eraser key only runs twice;
+the second finds nothing). All services are stateless
 (FrankenPHP worker mode without kernel reset).
 
 ## Console commands

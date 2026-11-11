@@ -15,7 +15,7 @@ use function is_string;
 /**
  * UserKit personal-data eraser `legal_acceptances` (1.11): deletes every acceptance record of the user's subject ids
  * ({@see LegalPersonalDataSubjectResolverInterface}) through {@see LegalAcceptanceManagerInterface::eraseFor()}.
- * Registered with UserKit installed, `acceptance.enabled` and `personal_data.enabled` (default true), at priority
+ * Registered with UserKit installed, `acceptance.enabled` and `personal_data.enabled: true` (opt-in, default false), at priority
  * {@see PRIORITY}: before the host identity eraser (REQ-DATA-002), so the subject id is still derivable.
  *
  * UserKit runs every eraser in one transaction: on the same connection the deletion joins it and

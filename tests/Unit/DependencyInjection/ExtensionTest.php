@@ -299,7 +299,7 @@ final class ExtensionTest extends TestCase
 
     public function testUserKitPersonalDataAdaptersWithAcceptance(): void
     {
-        $container = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects']]);
+        $container = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => true]]);
 
         self::assertTrue($container->getParameter('nowo_legal_kit.personal_data.enabled'));
         self::assertSame([['priority' => 150]], $container->getDefinition(LegalAcceptancesPersonalDataEraser::class)->getTag(NowoLegalKitExtension::USER_KIT_ERASER_TAG));
@@ -310,7 +310,7 @@ final class ExtensionTest extends TestCase
         self::assertSame(LegalAcceptanceManagerInterface::class, (string) $container->getDefinition(LegalAcceptancesPersonalDataEraser::class)->getArgument(0));
         self::assertSame(LegalPersonalDataSubjectResolverInterface::class, (string) $container->getDefinition(LegalAcceptancesPersonalDataExportProvider::class)->getArgument(1));
 
-        $custom = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['subject_resolver' => 'app.personal_data_subjects']]);
+        $custom = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => true, 'subject_resolver' => 'app.personal_data_subjects']]);
         self::assertSame('app.personal_data_subjects', (string) $custom->getAlias(LegalPersonalDataSubjectResolverInterface::class));
     }
 
@@ -318,7 +318,10 @@ final class ExtensionTest extends TestCase
     {
         $disabled = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => false]]);
         self::assertFalse($disabled->getParameter('nowo_legal_kit.personal_data.enabled'));
-        foreach ([$disabled, $this->loaded([]), $this->loaded(['versioning' => ['enabled' => true]])] as $container) {
+        // LY-L1 (owner, 2026-11-11): opt-in, acceptance records may be kept as proof (Art. 17(3)).
+        $byDefault = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects']]);
+        self::assertFalse($byDefault->getParameter('nowo_legal_kit.personal_data.enabled'));
+        foreach ([$disabled, $byDefault, $this->loaded([]), $this->loaded(['versioning' => ['enabled' => true]])] as $container) {
             self::assertFalse($container->hasDefinition(LegalAcceptancesPersonalDataEraser::class));
             self::assertFalse($container->hasDefinition(LegalAcceptancesPersonalDataExportProvider::class));
             self::assertFalse($container->hasAlias(LegalPersonalDataSubjectResolverInterface::class));

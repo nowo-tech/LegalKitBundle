@@ -15,7 +15,7 @@ use function count;
  * of the user's subject ids ({@see LegalPersonalDataSubjectResolverInterface}), as
  * `{count: int, entries: list<{page, version, locale, kind, accepted_at, content_hash}>}` (the shape of
  * {@see LegalAcceptanceManagerInterface::exportFor()}; `content_hash` is the SHA-256 of the public text shown, not a
- * secret). Registered with UserKit installed, `acceptance.enabled` and `personal_data.enabled` (default true).
+ * secret). Registered with UserKit installed, `acceptance.enabled` and `personal_data.enabled: true` (opt-in, default false).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech

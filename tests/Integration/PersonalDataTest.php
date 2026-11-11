@@ -21,6 +21,7 @@ use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
 use Nowo\UserKitBundle\PersonalData\ErasureRequest;
 use Nowo\UserKitBundle\PersonalData\PersonalDataEraser;
 use Nowo\UserKitBundle\PersonalData\PersonalDataExporter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Security\Core\User\InMemoryUser;
@@ -40,9 +41,12 @@ use const JSON_THROW_ON_ERROR;
  */
 final class PersonalDataTest extends VersioningTestCase
 {
+    /** The bridge is opt-in (LY-L1, owner 2026-11-11). */
+    private const array OPT_IN = ['personal_data' => ['enabled' => true]];
+
     public function testUserKitErasesAndExportsTheAcceptancesOfTheUser(): void
     {
-        $kernel  = $this->acceptanceKernel([], ['app_routes', 'user_kit']);
+        $kernel  = $this->acceptanceKernel(self::OPT_IN, ['app_routes', 'user_kit']);
         $manager = $this->service($kernel, LegalAcceptanceManagerInterface::class);
         $events  = $this->erasedEvents($kernel);
         $manager->record('u-ann', $manager->pendingFor('u-ann', 'en'));
@@ -85,7 +89,7 @@ final class PersonalDataTest extends VersioningTestCase
     public function testAHostSubjectResolverWithSeveralIds(): void
     {
         $kernel = $this->acceptanceKernel(
-            ['personal_data' => ['subject_resolver' => 'test.legal_kit.personal_data_subjects']],
+            ['personal_data' => ['enabled' => true, 'subject_resolver' => 'test.legal_kit.personal_data_subjects']],
             ['app_routes', 'user_kit', 'subject_spi'],
         );
         $manager = $this->service($kernel, LegalAcceptanceManagerInterface::class);
@@ -165,9 +169,13 @@ final class PersonalDataTest extends VersioningTestCase
         self::assertSame(['1', 'x'], PersonalDataSubjects::distinct(['1', 'x', '1']));
     }
 
-    public function testDisabledLeavesUserKitAlone(): void
+    /**
+     * @param array<string, mixed> $config
+     */
+    #[DataProvider('notOptedIn')]
+    public function testDisabledLeavesUserKitAlone(array $config): void
     {
-        $kernel  = $this->acceptanceKernel(['personal_data' => ['enabled' => false]], ['app_routes', 'user_kit']);
+        $kernel  = $this->acceptanceKernel($config, ['app_routes', 'user_kit']);
         $manager = $this->service($kernel, LegalAcceptanceManagerInterface::class);
         $manager->record('u-ann', $manager->pendingFor('u-ann', 'en'));
 
@@ -175,6 +183,15 @@ final class PersonalDataTest extends VersioningTestCase
         self::assertSame([], $this->service($kernel, PersonalDataEraser::class)->erase(new User('ann')));
         self::assertCount(2, $manager->exportFor('u-ann'));
         self::assertFalse($this->testContainer($kernel)->has(LegalPersonalDataSubjectResolverInterface::class));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function notOptedIn(): iterable
+    {
+        yield 'default (opt-in)' => [[]];
+        yield 'explicitly disabled' => [['personal_data' => ['enabled' => false]]];
     }
 
     public function testEraseOpensItsOwnTransactionAndDispatchesAfterItsCommit(): void
@@ -218,7 +235,7 @@ final class PersonalDataTest extends VersioningTestCase
      */
     public function testWorkerModeManyRunsInOneKernel(): void
     {
-        $kernel   = $this->acceptanceKernel([], ['app_routes', 'user_kit']);
+        $kernel   = $this->acceptanceKernel(self::OPT_IN, ['app_routes', 'user_kit']);
         $manager  = $this->service($kernel, LegalAcceptanceManagerInterface::class);
         $exporter = $this->service($kernel, PersonalDataExporter::class);
         $eraser   = $this->service($kernel, PersonalDataEraser::class);

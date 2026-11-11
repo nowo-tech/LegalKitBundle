@@ -551,12 +551,12 @@ final class Configuration implements ConfigurationInterface
     {
         $node = (new TreeBuilder('personal_data'))->getRootNode();
         $node
-            ->info('GDPR erasure and export of the acceptance records (needs acceptance.enabled; the UserKit eraser / export section register only with nowo-tech/user-kit-bundle installed).')
+            ->info('GDPR erasure and export of the acceptance records through UserKit, opt-in (needs acceptance.enabled and nowo-tech/user-kit-bundle installed).')
             ->addDefaultsIfNotSet()
             ->children()
                 ->booleanNode('enabled')
-                    ->info('Register the UserKit eraser and export section "legal_acceptances" (false: your application erases / exports these records itself).')
-                    ->defaultTrue()
+                    ->info('Opt in: register the UserKit eraser and export section "legal_acceptances". Off by default: acceptance records may have to be kept as proof (GDPR Art. 17(3)).')
+                    ->defaultFalse()
                 ->end()
                 ->scalarNode('subject_resolver')
                     ->info('Service id implementing LegalPersonalDataSubjectResolverInterface; null = the id of acceptance.subject_resolver for the user.')

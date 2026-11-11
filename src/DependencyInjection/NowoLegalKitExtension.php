@@ -644,7 +644,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
     /**
      * 1.11: the subject SPI of the personal-data adapters and, with UserKit installed, the `legal_acceptances` eraser
-     * and export section (`personal_data.enabled`, default true; acceptance on).
+     * and export section (`personal_data.enabled: true`, opt-in since LY-L1; acceptance on).
      *
      * @param array{enabled: bool, subject_resolver: string|null} $personalData `personal_data`
      * @param string $acceptanceResolver Service id of `acceptance.subject_resolver`

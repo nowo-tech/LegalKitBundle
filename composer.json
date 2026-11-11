@@ -105,7 +105,7 @@
         "nowo-tech/outbound-url-guard-bundle": "^1.2 — drop private-network / metadata link and image targets from stored legal HTML",
         "nowo-tech/seo-kit-bundle": "^1.14 — sitemap provider listing every legal page in every locale",
         "nowo-tech/routing-kit-bundle": "^1.10 — locale-prefixed routing of the host (the bundle registers its own default-locale twins and redirects)",
-        "nowo-tech/user-kit-bundle": "^1.14 — GDPR: the legal_acceptances personal-data eraser and export section register automatically (nowo_legal_kit.personal_data)"
+        "nowo-tech/user-kit-bundle": "^1.14 — GDPR: the legal_acceptances personal-data eraser and export section (opt-in: nowo_legal_kit.personal_data.enabled)"
     },
     "autoload": {
         "psr-4": {

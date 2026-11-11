@@ -63,7 +63,7 @@ nowo_legal_kit:
         cache_pool: cache.app             # requirements map; null = no cache
         action_log: false                 # AuditKit legal_document.accepted per acceptance
     personal_data:                        # 1.11, GDPR erasure / export of the acceptance records
-        enabled: true                     # with UserKit installed and acceptance.enabled: register the legal_acceptances eraser / export section
+        enabled: false                    # opt-in: with UserKit installed and acceptance.enabled, register the legal_acceptances eraser / export section
         subject_resolver: null            # LegalPersonalDataSubjectResolverInterface service id; null = the id of acceptance.subject_resolver
     editor:
         type: auto                        # auto | ckeditor5 | textarea
@@ -158,7 +158,7 @@ or contain wildcards, `?`, `#` or `..`.
 
 | Key | Default | |
 | --- | --- | --- |
-| `enabled` | `true` | With `nowo-tech/user-kit-bundle` installed, register the UserKit eraser and export section `legal_acceptances` (tags `nowo_user_kit.personal_data.eraser`, priority 150, and `nowo_user_kit.personal_data.export_provider`, priority 50). `false`: nothing is registered (your application erases / exports the records itself through `LegalAcceptanceManagerInterface`). Without UserKit nothing is registered either. |
+| `enabled` | `false` | Opt-in (acceptance records may have to be kept as proof that the terms were accepted, GDPR Art. 17(3)). `true`: with `nowo-tech/user-kit-bundle` installed, register the UserKit eraser and export section `legal_acceptances` (tags `nowo_user_kit.personal_data.eraser`, priority 150, and `nowo_user_kit.personal_data.export_provider`, priority 50). `false`: nothing is registered (your application keeps the records, or erases / exports them itself through `LegalAcceptanceManagerInterface`). Without UserKit nothing is registered either. UserKit refuses two export sections with the same key: remove your own `legal_acceptances` export provider when you set `true`. |
 | `subject_resolver` | `null` | Service id implementing `PersonalData\LegalPersonalDataSubjectResolverInterface` (the acceptance subject ids of a user). `null`: the id `acceptance.subject_resolver` gives for the user. |
 
 ## Editor

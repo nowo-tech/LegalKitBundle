@@ -60,13 +60,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - GDPR personal-data erasure and export of the acceptance records through UserKit: with
   `nowo-tech/user-kit-bundle` installed and `acceptance.enabled`, the eraser and the export section `legal_acceptances`
-  register automatically (`nowo_user_kit.personal_data.eraser` priority 150, before host identity erasers;
-  `nowo_user_kit.personal_data.export_provider` priority 50). New `personal_data` node: `enabled` (default `true`) and
+  register with `personal_data.enabled: true` (opt-in; `nowo_user_kit.personal_data.eraser` priority 150, before host
+  identity erasers; `nowo_user_kit.personal_data.export_provider` priority 50). New `personal_data` node: `enabled`
+  (default `false`) and
   `subject_resolver` (service implementing the new SPI `PersonalData\LegalPersonalDataSubjectResolverInterface`; the
   default returns the id of `acceptance.subject_resolver`).
 - `LegalAcceptanceManager::isStorableSubjectId()`.
 
 ### Changed
+
+- **Behaviour change:** none for existing hosts; the UserKit bridge is opt-in (`personal_data.enabled` defaults to
+  `false`) because acceptance records may have to be kept as proof under GDPR Art. 17(3). Turning it on makes UserKit's
+  account erasure delete the user's acceptance records; remove your own `legal_acceptances` export provider then
+  (UserKit refuses duplicate export section keys).
 
 - `LegalAcceptanceManagerInterface::exportFor()` / `eraseFor()` and the acceptance lookups match the subject id
   exactly (audit LQ "identifier columns"): a case / accent / trailing-space look-alike on a MySQL / MariaDB `_ci`
