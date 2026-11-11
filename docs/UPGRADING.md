@@ -41,7 +41,9 @@ composer update nowo-tech/legal-kit-bundle
 No configuration change for a standard application.
 
 1. **`record()` inside your transaction.** The `LegalAcceptedEvent`s now arrive after your outermost commit (none
-   after a rollback) instead of before it. Outside a transaction `record()` writes all pages in one transaction (all or
+   after a rollback) instead of before it: at the next point where the connection has no open transaction (the end of
+   the request at the latest); call `LegalPendingEventsInterface::dispatchPending()` after your commit to get them at
+   once. Outside a transaction `record()` writes all pages in one transaction (all or
    none). A listener that needed to run inside your transaction must move its work after the commit.
 2. **`eraseFor()`** now dispatches `LegalAcceptancesErasedEvent`; `nowo:legal-kit:seed` dispatches
    `LegalDocumentsImportedEvent`. Listeners of the import event see seed runs too.

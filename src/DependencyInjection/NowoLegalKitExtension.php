@@ -33,6 +33,7 @@ use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Nowo\LegalKitBundle\Doctrine\LegalPendingEventsInterface;
 use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
 use Nowo\LegalKitBundle\Doctrine\VersioningMappingListener;
@@ -360,8 +361,13 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ->setArguments([
                 new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE),
                 new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE),
+                null, // the bundle connection (lazy), set by AfterCommitMiddlewarePass
             ])
-            ->addTag('kernel.reset', ['method' => 'reset']);
+            ->addTag('kernel.reset', ['method' => 'reset'])
+            // Safe points of the committed events: the end of the request / command / message, and postFlush.
+            ->addTag('kernel.event_subscriber')
+            ->addTag('doctrine.event_listener', ['event' => 'postFlush']);
+        $container->setAlias(LegalPendingEventsInterface::class, AfterCommitEventDispatcher::class)->setPublic(true);
         $container->register(AfterCommitMiddleware::class, AfterCommitMiddleware::class)
             ->setArguments([new Reference(AfterCommitEventDispatcher::class)])
             ->addTag('doctrine.middleware');

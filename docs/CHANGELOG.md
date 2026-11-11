@@ -73,7 +73,10 @@ Target 1.10.0. Architecture bar (standard Symfony and DDD hosts, rules 1, 3, 4, 
 - `Blame\LegalActorId`: pass `new LegalActorId('…')` as the `$actor` of `LegalDocumentPortabilityInterface::apply()`
   to write the actor-id columns without a user object.
 - `Doctrine\AfterCommitEventDispatcher` + `AfterCommitMiddleware` (DBAL middleware on the bundle's connection only):
-  events dispatched after the outermost commit, dropped on rollback (`kernel.reset` clears pending events).
+  events held until the outermost commit, dropped on rollback, and dispatched at the next point where DBAL reports no
+  open transaction (never from inside the driver commit, so a listener's own write is not nested into the ending
+  transaction): the next bundle event, `postFlush`, the end of the request / command / message, or
+  `Doctrine\LegalPendingEventsInterface::dispatchPending()` (public alias). `kernel.reset` clears pending events.
 
 ### Changed
 

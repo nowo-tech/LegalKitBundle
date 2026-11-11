@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\DependencyInjection\Compiler;
 
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
+use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Reference;
 
 use function is_string;
@@ -51,5 +54,12 @@ final class AfterCommitMiddlewarePass implements CompilerPassInterface
         $container->getDefinition(AfterCommitMiddleware::class)
             ->clearTag('doctrine.middleware')
             ->addTag('doctrine.middleware', ['connection' => $connection]);
+        // The dispatcher checks that DBAL reports no open transaction before dispatching committed events (a closure:
+        // the connection's middleware depends on the dispatcher).
+        if ($container->hasDefinition(AfterCommitEventDispatcher::class)) {
+            $container->getDefinition(AfterCommitEventDispatcher::class)->setArgument(2, new ServiceClosureArgument(
+                new Reference(sprintf('doctrine.dbal.%s_connection', $connection), ContainerInterface::IGNORE_ON_INVALID_REFERENCE),
+            ));
+        }
     }
 }

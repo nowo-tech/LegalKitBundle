@@ -581,7 +581,10 @@ All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subject
 - `record()` (the accept page) writes the batch in one transaction of its own (all pages or none, since 1.10) and
   dispatches `LegalAcceptedEvent` after its commit. Called inside **your** transaction, the rows join it and the events
   wait for your **outermost commit** (dropped on rollback; a DBAL middleware on the bundle's connection follows the
-  real transaction and its savepoints). A decorator of `LegalAcceptanceManagerInterface` must have **durably written**
+  real transaction and its savepoints). They are never dispatched from inside the commit: they go out at the next
+  point where DBAL reports no open transaction — the next bundle event, a Doctrine `postFlush`, the end of the request,
+  console command or Messenger message, or an explicit `LegalPendingEventsInterface::dispatchPending()` right after
+  your commit — so a listener that writes to the database runs in a transaction of its own. A decorator of `LegalAcceptanceManagerInterface` must have **durably written**
   the rows when its `record()` returns (no buffering, no deferred commit): the accept page marks the session satisfied
   right after it. To keep the dispatch in your hands (sign-up: "create account + accept terms"), call
   `recordInTransaction()`: it inserts in your transaction (one savepoint per row, so a duplicate does not abort it) and

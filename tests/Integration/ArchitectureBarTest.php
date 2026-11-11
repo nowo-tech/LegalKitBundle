@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
 use ArrayObject;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -14,6 +15,7 @@ use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Blame\LegalActorId;
 use Nowo\LegalKitBundle\Command\SeedCommand;
 use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
+use Nowo\LegalKitBundle\Doctrine\LegalPendingEventsInterface;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalAcceptancesErasedEvent;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
@@ -53,6 +55,8 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame(2, $manager->record('u-ann', $manager->pendingFor('u-ann', 'en')));
         self::assertSame([], $events->getArrayCopy(), 'nothing before the host commit');
         $connection->commit();
+        self::assertSame([], $events->getArrayCopy(), 'never from inside the commit');
+        self::assertSame(2, $this->service($kernel, LegalPendingEventsInterface::class)->dispatchPending(), 'the next safe point');
         self::assertSame([LegalAcceptedEvent::class . ':u-ann', LegalAcceptedEvent::class . ':u-ann'], $events->getArrayCopy());
 
         // Rolled back: no row, no event.
@@ -76,6 +80,45 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame(LegalAcceptancesErasedEvent::class . ':u-bob', $events[4]);
         self::assertSame(0, $manager->eraseFor('u-nobody'));
         self::assertCount(6, $events);
+    }
+
+    /**
+     * W1-B: the committed events are dispatched outside the commit; a listener that writes commits its own row, and
+     * the end of the request dispatches what the host committed.
+     */
+    public function testCommittedEventsReachAListenerThatWritesAtTheEndOfTheRequest(): void
+    {
+        $kernel     = $this->acceptanceKernel();
+        $manager    = $this->service($kernel, LegalAcceptanceManagerInterface::class);
+        $connection = $this->entityManager($kernel)->getConnection();
+        $active     = new ArrayObject();
+        $this->service($kernel, EventDispatcherInterface::class)->addListener(LegalAcceptedEvent::class, static function (LegalAcceptedEvent $event) use ($connection, $active): void {
+            $active->append($connection->isTransactionActive());
+            $connection->transactional(static fn (Connection $c): int|string => $c->insert('`user`', ['email' => $event->subjectId . '-' . $event->slug . '@example.com', 'roles' => '[]']));
+        });
+
+        $connection->beginTransaction();
+        $manager->record('u-ann', $manager->pendingFor('u-ann', 'en'));
+        $connection->commit();
+        self::assertSame([], $active->getArrayCopy());
+
+        $httpKernel = $this->testContainer($kernel)->get('http_kernel');
+        self::assertInstanceOf(HttpKernel::class, $httpKernel);
+        $request = Request::create('/no-such-page');
+        $httpKernel->terminate($request, $httpKernel->handle($request));
+
+        self::assertSame([false, false], $active->getArrayCopy(), 'the listeners ran outside any transaction');
+        self::assertFalse($connection->isTransactionActive());
+        self::assertSame(2, (int) $connection->fetchOne('SELECT COUNT(*) FROM `user`'), 'their own rows are committed');
+
+        // Savepoint rolled back inside a committed transaction: those events are dropped.
+        $connection->beginTransaction();
+        $connection->beginTransaction();
+        $manager->record('u-bob', $manager->pendingFor('u-bob', 'en'));
+        $connection->rollBack();
+        $connection->commit();
+        self::assertSame(0, $this->service($kernel, LegalPendingEventsInterface::class)->dispatchPending());
+        self::assertCount(2, $active);
     }
 
     public function testVersionsPortWithDtosAndTheHostControlledUnitOfWork(): void
@@ -291,9 +334,11 @@ final class ArchitectureBarTest extends VersioningTestCase
             $connection->beginTransaction();
             $manager->record('loop-' . $i, $manager->pendingFor('loop-' . $i, 'en'));
             $i % 2 === 0 ? $connection->commit() : $connection->rollBack();
+            $this->service($kernel, LegalPendingEventsInterface::class)->dispatchPending();
         }
         self::assertLessThan(4 * 1024 * 1024, memory_get_usage() - $before);
         self::assertCount(2 + 2 + 300, $events);
+        self::assertSame(0, $this->service($kernel, LegalPendingEventsInterface::class)->countPending(), 'nothing left pending');
     }
 
     private function dedicatedKernel(bool $autoMapping, bool $defaultKey = true): TestKernel

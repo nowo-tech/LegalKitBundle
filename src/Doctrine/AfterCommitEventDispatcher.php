@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Doctrine;
 
+use Closure;
+use Doctrine\DBAL\Connection;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\ConsoleEvents;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
 use Throwable;
 use WeakMap;
@@ -21,21 +26,27 @@ use function strcasecmp;
  *
  * Without an open database transaction on the bundle's connection the event is dispatched at once (the bundle's own
  * write has already committed). Inside a transaction (one the host opened around {@see LegalAcceptanceManagerInterface::record()}
- * or `eraseFor()`) the event is held by the innermost level and dispatched after the **outermost commit**; a rollback
- * (of the transaction or of the savepoint that held it) drops it. The transactions are reported by
+ * or `eraseFor()`) the event is held by the innermost level; a rollback (of the transaction or of the savepoint that
+ * held it) drops it, and the **outermost commit** marks it committed. The transactions are reported by
  * {@see AfterCommitMiddleware} for the bundle's Doctrine connection only (the one of `doctrine.entity_manager`).
+ *
+ * Committed events are **not** dispatched from inside the driver commit: DBAL still reports the transaction as active
+ * there, so a listener's own write would nest into a transaction that is ending. They are dispatched at the next point
+ * where the bundle's connection reports no open transaction (1.10, W1-B): the next event dispatched through this
+ * dispatcher, a Doctrine `postFlush`, {@see dispatchPending()}, and the end of the request, console command or
+ * Messenger message.
  *
  * The state is keyed weakly by the driver connection: a connection closed or dropped in the middle of a transaction
  * (`Connection::close()` never rolls back) takes its pending events with it instead of holding every later dispatch.
  *
  * A listener that throws during a deferred dispatch cannot fail the commit that already happened: the error is logged
- * and the remaining events are still dispatched. Worker-safe: nothing outlives the transaction that held it, and the
- * pending events are also dropped on kernel.reset.
+ * and the remaining events are still dispatched. Worker-safe: nothing outlives the transaction that held it except the
+ * committed events, which the end of the request / command / message dispatches; everything is dropped on kernel.reset.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final class AfterCommitEventDispatcher implements EventDispatcherInterface, TransactionObserverInterface, ResetInterface
+final class AfterCommitEventDispatcher implements EventDispatcherInterface, LegalPendingEventsInterface, TransactionObserverInterface, EventSubscriberInterface, ResetInterface
 {
     /**
      * Open transactions by driver connection, in the order they began: the real transaction, then one level per
@@ -46,14 +57,88 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Tran
     private WeakMap $transactions;
 
     /**
+     * Events of committed writes not dispatched yet (taken at the next safe point).
+     *
+     * @var list<object>
+     */
+    // @igor-ignore - Committed events dispatched at the next safe point (end of request at the latest); kernel.reset.
+    private array $committed = [];
+
+    /**
      * @param EventDispatcherInterface|null $dispatcher the application dispatcher (null = events are dropped)
      * @param LoggerInterface|null $logger receives the errors of deferred listeners
+     * @param (Closure(): ?Connection)|null $connection the bundle's DBAL connection (lazy: the middleware of that
+     *                                                  connection depends on this service)
      */
     public function __construct(
         private readonly ?EventDispatcherInterface $dispatcher = null,
         private readonly ?LoggerInterface $logger = null,
+        private readonly ?Closure $connection = null,
     ) {
         $this->transactions = new WeakMap();
+    }
+
+    /**
+     * The end of the request, console command and Messenger message (symfony/messenger is optional: event names as
+     * strings) dispatch what is still pending.
+     */
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            KernelEvents::TERMINATE                                           => ['onBoundary', 1024],
+            ConsoleEvents::TERMINATE                                          => ['onBoundary', 1024],
+            'Symfony\\Component\\Messenger\\Event\\WorkerMessageHandledEvent' => ['onBoundary', 1024],
+            'Symfony\\Component\\Messenger\\Event\\WorkerMessageFailedEvent'  => ['onBoundary', 1024],
+        ];
+    }
+
+    /**
+     * Unit-of-work boundary (and Doctrine `postFlush`): dispatches the committed events.
+     */
+    public function onBoundary(): void
+    {
+        $this->dispatchPending();
+    }
+
+    /**
+     * Doctrine `postFlush` (after the flush's own commit returned).
+     */
+    public function postFlush(): void
+    {
+        $this->dispatchPending();
+    }
+
+    public function dispatchPending(): int
+    {
+        $count = 0;
+        while ($this->committed !== [] && $this->safe()) {
+            $events          = $this->committed;
+            $this->committed = [];
+            foreach ($events as $event) {
+                ++$count;
+                try {
+                    $this->dispatcher?->dispatch($event);
+                } catch (Throwable $e) {
+                    $this->logger?->error('Legal kit: a listener failed after the commit.', [
+                        'bundle'    => 'NowoLegalKitBundle',
+                        'event'     => $event::class,
+                        'exception' => $e::class,
+                    ]);
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    public function countPending(): int
+    {
+        $count = count($this->committed);
+        foreach ($this->transactions as $levels) {
+            $count += count($this->flatten($levels));
+        }
+
+        return $count;
     }
 
     /**
@@ -67,6 +152,14 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Tran
             $connection = $open;
         }
         if ($connection === null) {
+            if (!$this->safe()) {
+                // Inside the driver commit (DBAL still reports the transaction): with the other committed events.
+                $this->committed[] = $event;
+
+                return $event;
+            }
+            $this->dispatchPending();
+
             return $this->dispatcher?->dispatch($event) ?? $event;
         }
         $levels        = $this->transactions[$connection];
@@ -91,25 +184,15 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Tran
     }
 
     /**
-     * The real transaction ended: a commit dispatches every event it holds, a rollback drops them.
+     * The real transaction ended: a commit marks every event it holds committed (dispatched at the next safe point,
+     * never from inside the driver commit), a rollback drops them.
      */
     public function transactionEnded(object $connection, bool $committed): void
     {
         $levels = $this->transactions[$connection] ?? [];
         unset($this->transactions[$connection]);
-        if (!$committed) {
-            return;
-        }
-        foreach ($this->flatten($levels) as $event) {
-            try {
-                $this->dispatcher?->dispatch($event);
-            } catch (Throwable $e) {
-                $this->logger?->error('Legal kit: a listener failed after the commit.', [
-                    'bundle'    => 'NowoLegalKitBundle',
-                    'event'     => $event::class,
-                    'exception' => $e::class,
-                ]);
-            }
+        if ($committed) {
+            $this->committed = [...$this->committed, ...$this->flatten($levels)];
         }
     }
 
@@ -150,6 +233,21 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Tran
     public function reset(): void
     {
         $this->transactions = new WeakMap();
+        $this->committed    = [];
+    }
+
+    /**
+     * No transaction is open on the bundle's connection, neither per the middleware nor per DBAL (which still counts
+     * the transaction while its driver commit runs).
+     */
+    private function safe(): bool
+    {
+        foreach ($this->transactions as $ignored) {
+            return false;
+        }
+        $connection = $this->connection instanceof Closure ? ($this->connection)() : null;
+
+        return !$connection instanceof Connection || !$connection->isTransactionActive();
     }
 
     private function closeSavepoint(object $connection, string $name, bool $committed): void
