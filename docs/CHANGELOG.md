@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.12.0] - 2026-11-11](#1120---2026-11-11)
   - [Changed](#changed)
   - [Added](#added)
   - [Deprecated](#deprecated)
@@ -64,6 +65,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-10)
 
 ## [Unreleased]
+
+## [1.12.0] - 2026-11-11
 
 Next minor: 1.12.0. Architecture bar REQ-ARCH-001 (rules 3, 6 and 8), BC-safe. See
 [UPGRADING](UPGRADING.md#unreleased).

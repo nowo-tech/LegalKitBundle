@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.12.0](#to-1120)
 - [To 1.11.1](#to-1111)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
@@ -30,6 +31,14 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.12.0
+
+From **1.11.1**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 Next minor: 1.12.0. From **1.11.x**:
 
