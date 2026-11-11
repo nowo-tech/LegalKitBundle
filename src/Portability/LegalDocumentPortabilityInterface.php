@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Portability;
 
 use InvalidArgumentException;
+use Nowo\LegalKitBundle\Blame\LegalActorId;
 use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
 
 /**
@@ -43,7 +44,8 @@ interface LegalDocumentPortabilityInterface
      * {@see afterCommit()} with the same rows once it committed.
      *
      * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
-     * @param object|null $actor User set as created_by / updated_by before persisting
+     * @param object|null $actor Since 1.10 a {@see LegalActorId} (the actor by id, for
+     *                           `doctrine.blame: actor_id`); passing a user object is deprecated (removed in 2.0)
      * @param bool $flush Flush and dispatch the event
      *
      * @return int Number of rows written

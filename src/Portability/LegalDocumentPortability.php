@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Portability;
 
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
+use Nowo\LegalKitBundle\Blame\LegalActorId;
 use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
@@ -141,8 +142,10 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
      * Upserts normalised rows (sanitised bodies) and returns how many were written.
      *
      * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
-     * @param object|null $actor User set as created_by / updated_by before persisting; AuditKit's blame listener replaces it
-     *                           with the signed-in user (null in CLI) when blame is enabled for the user class
+     * @param object|null $actor A {@see LegalActorId} (1.10: written to the actor-id columns of `doctrine.blame:
+     *                           actor_id`), or (deprecated) a user set as created_by / updated_by before persisting;
+     *                           AuditKit's blame listener replaces it with the signed-in user (null in CLI) when blame is
+     *                           enabled for the user class
      * @param bool $flush Flush (and dispatch LegalDocumentsImportedEvent); false keeps the host transaction open: the
      *                    caller then calls {@see afterCommit()} with the same rows once its transaction committed
      *
@@ -155,7 +158,9 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
             $document = $this->documents->findOneBySlugAndLocale($row['slug'], $row['locale']);
             if (!$document instanceof LegalDocument) {
                 $document = new LegalDocument($row['slug'], $row['locale']);
-                if ($actor !== null) {
+                if ($actor instanceof LegalActorId) {
+                    $document->setCreatedByActorId($actor->id);
+                } elseif ($actor !== null) {
                     $document->setCreatedBy($actor);
                     $document->setCreatedByActorId($this->actorIds?->actorIdFor($actor));
                 }
@@ -163,7 +168,9 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
             $document->setTitle($row['title']);
             $document->setBody($this->sanitizer->sanitize($row['body']));
             $this->seedTracker?->stampImported($document);
-            if ($actor !== null) {
+            if ($actor instanceof LegalActorId) {
+                $document->setUpdatedByActorId($actor->id);
+            } elseif ($actor !== null) {
                 $document->setUpdatedBy($actor);
                 if ($this->actorIds instanceof LegalActorIdResolverInterface) {
                     $document->setUpdatedByActorId($this->actorIds->actorIdFor($actor));

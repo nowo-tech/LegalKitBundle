@@ -22,12 +22,14 @@ use const JSON_THROW_ON_ERROR;
 /**
  * Version numbers of the legal pages: `current(slug)` = max(1, highest version), `required(slug)` = max(1, highest
  * version requiring acceptance); version 1 is implicit. The requirements map is cached in the configured pool and
- * deleted on every publish (worker-safe: no in-memory state).
+ * deleted on every publish (worker-safe: no in-memory state). Type-hint {@see LegalPageVersionsInterface} (1.10): its
+ * methods use {@see LegalPageVersionView} DTOs; the entity-typed {@see latest()}, {@see publish()} and
+ * {@see afterCommit()} are deprecated and removed in 2.0.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class LegalPageVersions
+final readonly class LegalPageVersions implements LegalPageVersionsInterface
 {
     /** Cache key prefix of the requirements map (the table prefix is appended). */
     public const string CACHE_KEY = 'nowo_legal_kit.acceptance.requirements';
@@ -39,7 +41,7 @@ final readonly class LegalPageVersions
 
     /**
      * @param LegalPageVersionRepository $versions Version rows
-     * @param EntityManagerInterface $entityManager Entity manager (persist + flush on publish)
+     * @param EntityManagerInterface $entityManager The bundle's entity manager (`doctrine.entity_manager`; persist + flush on publish)
      * @param ?CacheInterface $cache Requirements cache (null = no cache)
      * @param ?EventDispatcherInterface $dispatcher Event dispatcher
      * @param ?ClockInterface $clock Clock (null = native)
@@ -118,11 +120,25 @@ final readonly class LegalPageVersions
     /**
      * The highest version row of a page (null = implicit version 1).
      *
+     * @deprecated since 1.10, use {@see latestVersion()} (DTO); removed in 2.0
+     *
      * @return ?LegalPageVersion The row
      */
     public function latest(string $slug): ?LegalPageVersion
     {
         return $this->versions->latest($slug);
+    }
+
+    /**
+     * The highest published version of a page as a view (null = implicit version 1).
+     *
+     * @return ?LegalPageVersionView The view
+     */
+    public function latestVersion(string $slug): ?LegalPageVersionView
+    {
+        $latest = $this->versions->latest($slug);
+
+        return $latest instanceof LegalPageVersion ? LegalPageVersionView::fromEntity($latest) : null;
     }
 
     /**
@@ -147,19 +163,45 @@ final readonly class LegalPageVersions
      * @param ?int $version Version number to publish (the editor passes base + 1, so a concurrent publish of the
      *                      same number fails on the unique key instead of stacking); null = current + 1
      *
+     * @deprecated since 1.10, use {@see publishVersion()} (DTO, `flush` option); removed in 2.0
+     *
      * @return LegalPageVersion The new version
      */
     public function publish(string $slug, bool $requiresAcceptance, string $source, array $changeSummary = [], ?string $seedRevision = null, ?int $version = null): LegalPageVersion
     {
-        $row = new LegalPageVersion($slug, $version ?? $this->currentUncached($slug) + 1, $requiresAcceptance, $source, $this->clock->now(), $seedRevision, $changeSummary);
-        $this->entityManager->persist($row);
-        $this->entityManager->flush();
-        $this->invalidate();
-        if (!$this->entityManager->getConnection()->isTransactionActive()) {
-            $this->afterCommit($row);
-        }
+        return $this->write($slug, $requiresAcceptance, $source, $changeSummary, $seedRevision, $version, true);
+    }
 
-        return $row;
+    /**
+     * Publishes a version and returns its view; with `$flush` false it only persists (the host flushes, commits and
+     * calls {@see afterPublish()}).
+     *
+     * @param array<string, string> $changeSummary Locale => plain-text summary
+     * @param ?int $version Version number to publish; null = current + 1
+     * @param bool $flush Persist and flush (true), or persist only (false)
+     *
+     * @return LegalPageVersionView The new version
+     */
+    public function publishVersion(string $slug, bool $requiresAcceptance, string $source, array $changeSummary = [], ?string $seedRevision = null, ?int $version = null, bool $flush = true): LegalPageVersionView
+    {
+        return LegalPageVersionView::fromEntity($this->write($slug, $requiresAcceptance, $source, $changeSummary, $seedRevision, $version, $flush));
+    }
+
+    /**
+     * After the publishing transaction committed: deletes the cached map again and dispatches one
+     * {@see LegalVersionPublishedEvent} per version.
+     *
+     * @deprecated since 1.10, use {@see afterPublish()} (DTO); removed in 2.0
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function afterCommit(LegalPageVersion ...$published): void
+    {
+        $views = [];
+        foreach ($published as $version) {
+            $views[] = LegalPageVersionView::fromEntity($version);
+        }
+        $this->afterPublish(...$views);
     }
 
     /**
@@ -168,11 +210,11 @@ final readonly class LegalPageVersions
      *
      * @return void Nothing (side effects only)
      */
-    public function afterCommit(LegalPageVersion ...$published): void
+    public function afterPublish(LegalPageVersionView ...$published): void
     {
         $this->invalidate();
         foreach ($published as $version) {
-            $this->dispatcher?->dispatch(new LegalVersionPublishedEvent($version->getSlug(), $version->getVersion(), $version->requiresAcceptance(), $version->getSource(), $version->getSeedRevision()));
+            $this->dispatcher?->dispatch(new LegalVersionPublishedEvent($version->slug, $version->version, $version->requiresAcceptance, $version->source, $version->seedRevision));
         }
     }
 
@@ -184,6 +226,25 @@ final readonly class LegalPageVersions
     public function invalidate(): void
     {
         $this->cache?->delete($this->cacheKey());
+    }
+
+    /**
+     * @param array<string, string> $changeSummary
+     */
+    private function write(string $slug, bool $requiresAcceptance, string $source, array $changeSummary, ?string $seedRevision, ?int $version, bool $flush): LegalPageVersion
+    {
+        $row = new LegalPageVersion($slug, $version ?? $this->currentUncached($slug) + 1, $requiresAcceptance, $source, $this->clock->now(), $seedRevision, $changeSummary);
+        $this->entityManager->persist($row);
+        if (!$flush) {
+            return $row;
+        }
+        $this->entityManager->flush();
+        $this->invalidate();
+        if (!$this->entityManager->getConnection()->isTransactionActive()) {
+            $this->afterPublish(LegalPageVersionView::fromEntity($row));
+        }
+
+        return $row;
     }
 
     private function cacheKey(): string

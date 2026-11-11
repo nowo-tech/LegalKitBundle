@@ -8,12 +8,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
+use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Sanitizer\LegalHtmlSanitizerInterface;
 use Nowo\LegalKitBundle\Seed\LegalSeed;
 use Nowo\LegalKitBundle\Seed\LegalSeedRegistry;
 use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,6 +49,7 @@ final class SeedCommand extends Command
      * @param bool $materialize `seed.materialize`
      * @param LoggerInterface $logger Outcome of the seed write (REQ-OBS-001; never the document content)
      * @param ?LegalSeedTracker $seedTracker Seed base of the inserted rows (versioning on)
+     * @param ?EventDispatcherInterface $dispatcher Receives {@see LegalDocumentsImportedEvent} after the flush (1.10)
      */
     public function __construct(
         private readonly LegalPageCatalogInterface $catalog,
@@ -58,6 +61,7 @@ final class SeedCommand extends Command
         private readonly bool $materialize = false,
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly ?LegalSeedTracker $seedTracker = null,
+        private readonly ?EventDispatcherInterface $dispatcher = null,
     ) {
         parent::__construct(self::NAME);
     }
@@ -81,6 +85,7 @@ final class SeedCommand extends Command
         $locales  = $this->locales->all();
         $stored   = $this->documents->findByLocales($locales);
         $inserted = 0;
+        $written  = [];
         foreach ($locales as $locale) {
             foreach ($this->catalog->slugs() as $slug) {
                 if (isset($stored[LegalDocumentRepository::key($slug, $locale)])) {
@@ -99,10 +104,13 @@ final class SeedCommand extends Command
                 $document->setBody($body);
                 $this->seedTracker?->rebase($document);
                 $this->entityManager->persist($document);
+                $written[] = ['slug' => $slug, 'locale' => $locale];
                 ++$inserted;
             }
         }
         $this->entityManager->flush();
+        // 1.10 (rule 4): the rows are committed; same event as an import.
+        $this->dispatcher?->dispatch(new LegalDocumentsImportedEvent($written));
         $this->logger->info('Legal seed materialized.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'seed', 'inserted' => $inserted, 'locales' => $locales]);
         $io->success(sprintf('%d legal document(s) inserted.', $inserted));
 

@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
 use Nowo\LegalKitBundle\Command\DoctorCommand;
+use Nowo\LegalKitBundle\Command\SeedCommand;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
+use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
+use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
+use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Security\AllowAllLegalKitAccessChecker;
 use Nowo\LegalKitBundle\Security\LegalKitAccessCheckerInterface;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
+use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
+use Nowo\LegalKitBundle\Versioning\LegalPageVersionsInterface;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -80,6 +87,48 @@ final class ExtensionTest extends TestCase
         $cookie = $container->getExtensionConfig('nowo_cookie_consent')[0];
         self::assertContains('legal_cookies_unlocalized', $cookie['disabled_routes']);
         self::assertArrayNotHasKey('render_routes', $cookie);
+    }
+
+    public function testADedicatedManagerIsMappedByTheBundleNotPrepended(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new NowoLegalKitExtension());
+        $container->registerExtension($this->fakeExtension('doctrine'));
+        $container->loadFromExtension('nowo_legal_kit', ['doctrine' => ['entity_manager' => 'legal'], 'versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true]]);
+
+        (new NowoLegalKitExtension())->prepend($container);
+
+        self::assertSame([], $container->getExtensionConfig('doctrine'), 'Nothing prepended to the default manager');
+        foreach ([NowoLegalKitExtension::DEDICATED_MAPPING_PARAMETER, NowoLegalKitExtension::DEDICATED_VERSIONING_MAPPING_PARAMETER, NowoLegalKitExtension::DEDICATED_ACCEPTANCE_MAPPING_PARAMETER] as $parameter) {
+            self::assertTrue($container->getParameter($parameter));
+        }
+    }
+
+    public function testAManagerTheMappingDidNotSeeFailsTheBuild(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.bundles', []);
+        $container->registerExtension($this->fakeExtension('doctrine'));
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('nowo_legal_kit.doctrine.entity_manager must be a literal manager name set in the host configuration');
+        (new NowoLegalKitExtension())->load([['doctrine' => ['entity_manager' => 'legal']]], $container);
+    }
+
+    public function testTheDedicatedManagerIsWiredIntoTheBundleServices(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.bundles', []);
+        (new NowoLegalKitExtension())->load([['doctrine' => ['entity_manager' => 'legal', 'blame' => 'none'], 'versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'x']]], $container);
+
+        self::assertSame('legal', $container->getParameter(NowoLegalKitExtension::ENTITY_MANAGER_PARAMETER));
+        foreach ([LegalPageVersions::class, LegalAcceptanceManager::class, SeedCommand::class, LegalDocumentPortability::class] as $service) {
+            self::assertSame('doctrine.orm.legal_entity_manager', (string) $container->getDefinition($service)->getArgument('$entityManager'), $service);
+        }
+        self::assertSame(AfterCommitEventDispatcher::class, (string) $container->getDefinition(LegalAcceptanceManager::class)->getArgument('$dispatcher'));
+        self::assertSame(LegalPageVersions::class, (string) $container->getAlias(LegalPageVersionsInterface::class));
+        self::assertTrue($container->getDefinition(AfterCommitEventDispatcher::class)->hasTag('kernel.reset'));
+        self::assertTrue($container->getDefinition(AfterCommitMiddleware::class)->hasTag('doctrine.middleware'));
     }
 
     public function testCookieConsentPrependCanBeDisabled(): void

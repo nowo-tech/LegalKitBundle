@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Acceptance;
 
+use Nowo\LegalKitBundle\Event\LegalAcceptancesErasedEvent;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 
 /**
@@ -25,8 +26,10 @@ interface LegalAcceptanceManagerInterface
 
     /**
      * Records one row per page (insert-only; an existing row of the same version counts as recorded) and dispatches
-     * {@see LegalAcceptedEvent} for each new one at once. Outside a transaction each insert is autocommitted, so the
-     * events follow the commit; inside a host transaction use {@see recordInTransaction()} instead.
+     * {@see LegalAcceptedEvent} for each new one once the rows are committed. Outside a transaction the batch runs in
+     * one transaction of its own (all pages or none, since 1.10) and the events follow its commit. Inside a host
+     * transaction the rows join it and, since 1.10, the events wait for its outermost commit (dropped on rollback);
+     * {@see recordInTransaction()} + {@see afterCommit()} keep the dispatch in your hands.
      *
      * @param list<PendingLegalPage> $pages
      *
@@ -59,7 +62,9 @@ interface LegalAcceptanceManagerInterface
     public function exportFor(string $subjectId): array;
 
     /**
-     * Erasure of a subject: deletes every record, keeps no copy.
+     * Erasure of a subject: deletes every record, keeps no copy. Since 1.10 dispatches
+     * {@see LegalAcceptancesErasedEvent} once the deletion is committed (after the
+     * outermost commit of a host transaction).
      *
      * @return int Rows deleted
      */

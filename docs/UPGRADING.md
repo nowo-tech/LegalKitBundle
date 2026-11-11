@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
 - [To 1.9.0](#to-190-1)
 - [To 1.8.0](#to-180)
@@ -28,6 +29,29 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+### To 1.10.0
+
+Target **1.10.0**, from **1.9.0**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+No configuration change for a standard application.
+
+1. **`record()` inside your transaction.** The `LegalAcceptedEvent`s now arrive after your outermost commit (none
+   after a rollback) instead of before it. Outside a transaction `record()` writes all pages in one transaction (all or
+   none). A listener that needed to run inside your transaction must move its work after the commit.
+2. **`eraseFor()`** now dispatches `LegalAcceptancesErasedEvent`; `nowo:legal-kit:seed` dispatches
+   `LegalDocumentsImportedEvent`. Listeners of the import event see seed runs too.
+3. **Optional `doctrine.entity_manager`.** Set it to give the bundle its own entity manager (literal name, configured
+   under `doctrine.orm.entity_managers`, with `doctrine.blame: actor_id` or `none`). If you mapped the bundle entities
+   by hand on a second manager, you may drop that mapping and set the option instead.
+4. **Deprecations** (removed in 2.0): `LegalPageVersions::latest()` / `publish()` / `afterCommit()` → inject
+   `LegalPageVersionsInterface` and use `latestVersion()` / `publishVersion()` / `afterPublish()`; a user object as the
+   import `$actor` → `new LegalActorId($id)`; `LegalDocumentResolverInterface::effective()` as a public API.
+5. **`doctrine/dbal ^4.0`** is now an explicit requirement.
 
 ## To 1.9.0
 

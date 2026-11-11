@@ -96,7 +96,7 @@ nowo_legal_kit:
     seo: { sitemap: auto, head: auto }
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
-    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [] }   # blame: relation | actor_id | none
+    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [], entity_manager: null }   # blame: relation | actor_id | none; entity_manager: 1.10
 ```
 
 ## Locales
@@ -248,6 +248,17 @@ security:
 `doctrine.table_prefix: app_` → table `app_legal_document`, indexes `app_uniq_legal_document_slug_locale`,
 `app_idx_legal_document_created_by`, `app_idx_legal_document_updated_by` (REQ-ORM-002). Adopters of an existing table
 keep it empty.
+
+## Doctrine entity manager
+
+`doctrine.entity_manager` (1.10, default `null`): the Doctrine entity manager of the bundle entities. `null` keeps the
+behaviour of earlier versions (the autowired default manager; mapping prepended unless the host declares
+`doctrine.orm.entity_managers`). A literal manager name maps `legal_document`, `legal_page_version` and
+`legal_acceptance` on that manager only (also removed from a default manager with `auto_mapping: true`), wires every
+bundle service (versions, acceptances, admin editor, portability, seed and upgrade commands) to it, attaches the
+after-commit DBAL middleware to its connection, and fails the build when the manager does not exist or does not map
+the entities. It must be set in the host configuration (the mapping is decided before parameters resolve). Combine it
+with `doctrine.blame: actor_id` or `none`. See [USAGE](USAGE.md#entity-managers-standard-and-ddd-hosts-110).
 
 ## Doctrine blame
 
