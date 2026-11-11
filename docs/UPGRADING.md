@@ -30,6 +30,14 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+Next patch: 1.11.1. No configuration change.
+
+- The placeholder scanner memo is now also forgotten at the start of each main request, at `kernel.terminate`, at
+  every Messenger message boundary and when a console command starts and terminates. Inside one unit of work nothing
+  changes: after editing a page in the same request or command, call `LegalPlaceholderScanner::reset()` as before.
+- Hosts that disable or bypass the services resetter must also clear their own entity managers at every boundary
+  (see `docs/FRANKENPHP-WORKER-AUDIT.md`, "Host rule").
+
 ## To 1.11.0
 
 From **1.10.0**:

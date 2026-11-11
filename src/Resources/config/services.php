@@ -15,6 +15,7 @@ use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
+use Nowo\LegalKitBundle\EventSubscriber\PlaceholderScannerResetSubscriber;
 use Nowo\LegalKitBundle\Form\LegalDocumentType;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
@@ -38,6 +39,7 @@ use Nowo\LegalKitBundle\Token\LegalTokenResolverInterface;
 use Nowo\LegalKitBundle\Twig\LegalKitExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\iterator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -89,6 +91,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(LegalPlaceholderScanner::class)
         ->arg('$builtinMarkers', param('nowo_legal_kit.placeholders.builtin_markers'))
         ->arg('$extraMarkers', param('nowo_legal_kit.placeholders.extra_markers'));
+    // Request / message / command boundaries of the scanner memo; only an already-built scanner is reset.
+    $services->set(PlaceholderScannerResetSubscriber::class)
+        ->args([iterator([service(LegalPlaceholderScanner::class)->ignoreOnUninitialized()])]);
 
     $services->set(LegalDocumentPortability::class)
         ->public()
