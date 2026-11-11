@@ -44,6 +44,10 @@ use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
 use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
+use Nowo\LegalKitBundle\PersonalData\AcceptanceSubjectPersonalDataResolver;
+use Nowo\LegalKitBundle\PersonalData\LegalAcceptancesPersonalDataEraser;
+use Nowo\LegalKitBundle\PersonalData\LegalAcceptancesPersonalDataExportProvider;
+use Nowo\LegalKitBundle\PersonalData\LegalPersonalDataSubjectResolverInterface;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
@@ -65,6 +69,7 @@ use Nowo\LegalKitBundle\Versioning\SeedSnapshotStore;
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 use Nowo\SeoKitBundle\Service\SeoRuntime;
 use Nowo\SeoKitBundle\Service\SitemapUrlProviderInterface;
+use Nowo\UserKitBundle\PersonalData\PersonalDataEraserInterface;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -146,6 +151,12 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         LegalSeedUpgrader::class,
         SeedCommand::class,
     ];
+
+    /** UserKit tag of the personal-data erasers (1.11). */
+    public const string USER_KIT_ERASER_TAG = 'nowo_user_kit.personal_data.eraser';
+
+    /** UserKit tag of the personal-data export providers (1.11). */
+    public const string USER_KIT_EXPORT_PROVIDER_TAG = 'nowo_user_kit.personal_data.export_provider';
 
     /** FormKit profile of the editor form. */
     public const string FORM_KIT_PROFILE = 'legal_kit';
@@ -626,6 +637,38 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 ->setArgument('$nonHtml', $acceptance['non_html'])
                 ->setArgument('$defaultLocaleStyle', $routing['default_locale_style']);
         }
+        /** @var array{enabled: bool, subject_resolver: string|null} $personalData */
+        $personalData = $config['personal_data'];
+        $this->configurePersonalData($container, $personalData, $resolver);
+    }
+
+    /**
+     * 1.11: the subject SPI of the personal-data adapters and, with UserKit installed, the `legal_acceptances` eraser
+     * and export section (`personal_data.enabled`, default true; acceptance on).
+     *
+     * @param array{enabled: bool, subject_resolver: string|null} $personalData `personal_data`
+     * @param string $acceptanceResolver Service id of `acceptance.subject_resolver`
+     */
+    private function configurePersonalData(ContainerBuilder $container, array $personalData, string $acceptanceResolver): void
+    {
+        $container->setParameter(Configuration::ALIAS . '.personal_data.enabled', $personalData['enabled']);
+        if (!$personalData['enabled']) {
+            return;
+        }
+        $container->register(AcceptanceSubjectPersonalDataResolver::class, AcceptanceSubjectPersonalDataResolver::class)
+            ->setArguments([new Reference($acceptanceResolver)]);
+        $custom = $personalData['subject_resolver'];
+        $container->setAlias(LegalPersonalDataSubjectResolverInterface::class, $custom !== null && $custom !== '' ? $custom : AcceptanceSubjectPersonalDataResolver::class)->setPublic(true);
+        if (!interface_exists(PersonalDataEraserInterface::class)) {
+            return; // @codeCoverageIgnore
+        }
+        $arguments = [new Reference(LegalAcceptanceManagerInterface::class), new Reference(LegalPersonalDataSubjectResolverInterface::class)];
+        $container->register(LegalAcceptancesPersonalDataEraser::class, LegalAcceptancesPersonalDataEraser::class)
+            ->setArguments($arguments)
+            ->addTag(self::USER_KIT_ERASER_TAG, ['priority' => LegalAcceptancesPersonalDataEraser::PRIORITY]);
+        $container->register(LegalAcceptancesPersonalDataExportProvider::class, LegalAcceptancesPersonalDataExportProvider::class)
+            ->setArguments($arguments)
+            ->addTag(self::USER_KIT_EXPORT_PROVIDER_TAG, ['priority' => LegalAcceptancesPersonalDataExportProvider::PRIORITY]);
     }
 
     /**

@@ -81,6 +81,7 @@
         "nowo-tech/outbound-url-guard-bundle": "^1.2",
         "nowo-tech/phpstan-frankenphp": "^1.1",
         "nowo-tech/seo-kit-bundle": "^1.14",
+        "nowo-tech/user-kit-bundle": "^1.14",
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
@@ -103,7 +104,8 @@
         "nowo-tech/ckeditor5-editor-bundle": "^1.9 — CKEditor 5 body widget (editor.type: ckeditor5) and its strict sanitiser as the first pass",
         "nowo-tech/outbound-url-guard-bundle": "^1.2 — drop private-network / metadata link and image targets from stored legal HTML",
         "nowo-tech/seo-kit-bundle": "^1.14 — sitemap provider listing every legal page in every locale",
-        "nowo-tech/routing-kit-bundle": "^1.10 — locale-prefixed routing of the host (the bundle registers its own default-locale twins and redirects)"
+        "nowo-tech/routing-kit-bundle": "^1.10 — locale-prefixed routing of the host (the bundle registers its own default-locale twins and redirects)",
+        "nowo-tech/user-kit-bundle": "^1.14 — GDPR: the legal_acceptances personal-data eraser and export section register automatically (nowo_legal_kit.personal_data)"
     },
     "autoload": {
         "psr-4": {

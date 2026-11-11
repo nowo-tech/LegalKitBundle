@@ -165,6 +165,7 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->append($this->versioningNode())
                 ->append($this->acceptanceNode())
+                ->append($this->personalDataNode())
                 ->arrayNode('editor')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -537,6 +538,29 @@ final class Configuration implements ConfigurationInterface
                 ->booleanNode('action_log')
                     ->info('Write an AuditKit action log row legal_document.accepted per acceptance (off: the host audits LegalAcceptedEvent itself).')
                     ->defaultFalse()
+                ->end()
+            ->end();
+
+        return $node;
+    }
+
+    /**
+     * GDPR erasure / export of the acceptance records through UserKit (1.11).
+     */
+    private function personalDataNode(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder('personal_data'))->getRootNode();
+        $node
+            ->info('GDPR erasure and export of the acceptance records (needs acceptance.enabled; the UserKit eraser / export section register only with nowo-tech/user-kit-bundle installed).')
+            ->addDefaultsIfNotSet()
+            ->children()
+                ->booleanNode('enabled')
+                    ->info('Register the UserKit eraser and export section "legal_acceptances" (false: your application erases / exports these records itself).')
+                    ->defaultTrue()
+                ->end()
+                ->scalarNode('subject_resolver')
+                    ->info('Service id implementing LegalPersonalDataSubjectResolverInterface; null = the id of acceptance.subject_resolver for the user.')
+                    ->defaultNull()
                 ->end()
             ->end();
 

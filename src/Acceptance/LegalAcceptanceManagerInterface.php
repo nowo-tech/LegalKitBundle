@@ -55,7 +55,8 @@ interface LegalAcceptanceManagerInterface
     public function afterCommit(LegalAcceptanceBatch ...$batches): void;
 
     /**
-     * Personal-data export of a subject.
+     * Personal-data export of a subject. Since 1.11 the subject id matches exactly (never a case / accent look-alike).
+     * With UserKit installed, the `legal_acceptances` export section calls it for you (see docs/USAGE.md).
      *
      * @return list<array{page: string, version: int, locale: string, kind: string, accepted_at: string, content_hash: string}>
      */
@@ -64,7 +65,8 @@ interface LegalAcceptanceManagerInterface
     /**
      * Erasure of a subject: deletes every record, keeps no copy. Since 1.10 dispatches
      * {@see LegalAcceptancesErasedEvent} once the deletion is committed (after the
-     * outermost commit of a host transaction).
+     * outermost commit of a host transaction). Since 1.11: exact subject id match, idempotent, its own transaction
+     * when none is open; with UserKit installed the `legal_acceptances` eraser calls it for you (see docs/USAGE.md).
      *
      * @return int Rows deleted
      */
