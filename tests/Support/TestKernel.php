@@ -6,6 +6,7 @@ namespace Nowo\LegalKitBundle\Tests\Support;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Configuration as DoctrineConfiguration;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use InvalidArgumentException;
@@ -25,6 +26,8 @@ use Nowo\LegalKitBundle\Tests\Support\Seed\TestSeedProvider;
 use Nowo\OutboundUrlGuardBundle\NowoOutboundUrlGuardBundle;
 use Nowo\SeoKitBundle\SeoKitBundle;
 use Nowo\UiKitBundle\NowoUiKitBundle;
+use Nowo\UserKitBundle\PersonalData\PersonalDataEraser;
+use Nowo\UserKitBundle\PersonalData\PersonalDataExporter;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -34,9 +37,11 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\BaseNode;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
@@ -44,9 +49,11 @@ use Symfony\Component\Security\Core\User\InMemoryUser;
 use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
 use function dirname;
+use function getenv;
 use function getmypid;
 use function hash;
 use function in_array;
+use function is_string;
 use function serialize;
 use function sys_get_temp_dir;
 
@@ -66,9 +73,16 @@ final class TestKernel extends Kernel
      * (`brand_provider`, aliased as the brand-contracts `BrandProviderInterface`), no route import, only the
      * host's default `routing.controllers` import (Symfony >= 7.3 skeleton routes.yaml, no bundle route import), a
      * host actor id resolver (`actor_resolver`, aliased as LegalActorIdResolverInterface), host decorators of the
-     * document resolver and portability ports (`host_documents`).
+     * document resolver and portability ports (`host_documents`), UserKit's personal-data eraser and exporter services
+     * fed by the tagged adapters (`user_kit`, without the UserKit bundle itself), a host subject SPI
+     * (`subject_spi`, service `test.legal_kit.personal_data_subjects`), and the MySQL / MariaDB / PostgreSQL server of
+     * LEGAL_KIT_TEST_DATABASE_URL (`server_database`, CI job "Subject ids on database servers"; SQLite in memory when
+     * the variable is not set).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents', 'user_kit', 'subject_spi', 'server_database'];
+
+    /** Environment variable of the database server (`server_database`). */
+    public const string DATABASE_URL_ENV = 'LEGAL_KIT_TEST_DATABASE_URL';
 
     private readonly string $cacheKey;
 
@@ -128,8 +142,23 @@ final class TestKernel extends Kernel
      */
     public static function createSchema(EntityManagerInterface $entityManager): void
     {
-        $tool = new SchemaTool($entityManager);
-        $tool->createSchema($entityManager->getMetadataFactory()->getAllMetadata());
+        $tool     = new SchemaTool($entityManager);
+        $metadata = $entityManager->getMetadataFactory()->getAllMetadata();
+        if (!$entityManager->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            // A database server keeps the tables of the previous test.
+            $tool->dropSchema($metadata);
+        }
+        $tool->createSchema($metadata);
+    }
+
+    /**
+     * The database server of {@see DATABASE_URL_ENV}, or null (SQLite in memory).
+     */
+    public static function serverDatabaseUrl(): ?string
+    {
+        $url = getenv(self::DATABASE_URL_ENV);
+
+        return is_string($url) && $url !== '' ? $url : null;
     }
 
     /**
@@ -165,7 +194,7 @@ final class TestKernel extends Kernel
         ]);
         $container->loadFromExtension('twig', ['strict_variables' => true]);
         $container->loadFromExtension('doctrine', [
-            'dbal' => ['url' => 'sqlite:///:memory:'],
+            'dbal' => ['url' => in_array('server_database', $this->extraBundles, true) ? (self::serverDatabaseUrl() ?? 'sqlite:///:memory:') : 'sqlite:///:memory:'],
             'orm'  => $this->ormConfig() + ['mappings' => ['LegalKitTests' => [
                 'type'      => 'attribute',
                 'is_bundle' => false,
@@ -212,6 +241,17 @@ final class TestKernel extends Kernel
             $container->setAlias(LegalDocumentResolverInterface::class, TestHostDocumentResolver::class);
             $container->register(TestHostPortability::class, TestHostPortability::class)->setAutowired(true)->setPublic(true);
             $container->setAlias(LegalDocumentPortabilityInterface::class, TestHostPortability::class)->setPublic(true);
+        }
+        if (in_array('user_kit', $this->extraBundles, true)) {
+            $container->register(PersonalDataEraser::class, PersonalDataEraser::class)
+                ->setArguments([new TaggedIteratorArgument('nowo_user_kit.personal_data.eraser'), [], new Reference('doctrine')])
+                ->setPublic(true);
+            $container->register(PersonalDataExporter::class, PersonalDataExporter::class)
+                ->setArguments([new TaggedIteratorArgument('nowo_user_kit.personal_data.export_provider'), new Reference('clock')])
+                ->setPublic(true);
+        }
+        if (in_array('subject_spi', $this->extraBundles, true)) {
+            $container->register('test.legal_kit.personal_data_subjects', TestPersonalDataSubjectResolver::class);
         }
         if (in_array('consent_stub', $this->extraBundles, true)) {
             $container->register(ConsentStubTwigExtension::class, ConsentStubTwigExtension::class)->addTag('twig.extension');

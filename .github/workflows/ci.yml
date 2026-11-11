@@ -123,6 +123,78 @@ jobs:
           SYMFONY_DEPRECATIONS_HELPER: max[direct]=0
         run: composer test-coverage
 
+  # 1.11 (audit LQ "identifier columns"): personal-data export / erasure match the subject id exactly on MySQL, MariaDB
+  # (`_ci` collations fold case / accents and pad trailing spaces) and PostgreSQL. Passwordless services only.
+  database:
+    name: Subject ids on database servers (${{ matrix.db }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - db: mysql-8.0
+            image: mysql:8.0
+            port: 3306
+            url: mysql://root@127.0.0.1:3306/legal_kit?serverVersion=8.0.40
+          - db: mariadb-11.4
+            image: mariadb:11.4
+            port: 3306
+            url: mysql://root@127.0.0.1:3306/legal_kit?serverVersion=11.4.0-MariaDB
+          - db: postgresql-17
+            image: postgres:17
+            port: 5432
+            url: pgsql://postgres@127.0.0.1:5432/legal_kit?serverVersion=17
+
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: legal_kit
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: legal_kit
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: legal_kit
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        options: >-
+          --health-cmd "${{ startsWith(matrix.db, 'postgresql') && 'pg_isready -U postgres' || startsWith(matrix.db, 'mariadb') && 'healthcheck.sh --connect --innodb_initialized' || 'mysqladmin ping -h 127.0.0.1' }}"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: json, dom, libxml, pdo_sqlite, pdo_mysql, pdo_pgsql, intl
+          coverage: none
+          tools: composer:v2
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-8.4-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.4-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run the database group
+        env:
+          LEGAL_KIT_TEST_DATABASE_URL: ${{ matrix.url }}
+        run: vendor/bin/phpunit --group database --no-coverage
+
   static-analysis:
     name: Static analysis (PHPStan, Rector, Igor)
     runs-on: ubuntu-latest

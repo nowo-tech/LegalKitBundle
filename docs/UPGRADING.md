@@ -29,6 +29,13 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+Nothing to change. With `nowo-tech/user-kit-bundle` installed and `acceptance.enabled: true`, the `legal_acceptances`
+personal-data eraser and export section now register automatically: UserKit's erasure deletes the user's acceptance
+records and its export includes them. Set `nowo_legal_kit.personal_data.enabled: false` if your application already
+erases / exports these records (otherwise both run; the second finds nothing). `exportFor()` / `eraseFor()` now match
+the subject id exactly: on MySQL / MariaDB a look-alike id (other case, accents, trailing spaces) is no longer
+included.
+
 ## To 1.10.0
 
 Target **1.10.0**, from **1.9.0**:

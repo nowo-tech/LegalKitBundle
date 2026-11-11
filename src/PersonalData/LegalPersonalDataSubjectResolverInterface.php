@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\PersonalData;
 
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
 
 /**
  * SPI (1.11, public API, SemVer): the acceptance subject ids of a user being erased or exported. The UserKit erasure /
- * export adapters call {@see \Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface::eraseFor()} /
+ * export adapters call {@see LegalAcceptanceManagerInterface::eraseFor()} /
  * `exportFor()` once per distinct id returned.
  *
  * The default ({@see AcceptanceSubjectPersonalDataResolver}) returns the id that

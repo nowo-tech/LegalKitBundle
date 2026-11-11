@@ -40,6 +40,7 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($config['acceptance']['enabled']);
         self::assertSame('pass', $config['acceptance']['non_html']);
         self::assertSame('cache.app', $config['acceptance']['cache_pool']);
+        self::assertSame(['enabled' => true, 'subject_resolver' => null], $config['personal_data']);
     }
 
     public function testPublicHeader(): void

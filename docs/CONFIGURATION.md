@@ -9,6 +9,7 @@
 - [Seed](#seed)
 - [Versioning](#versioning)
 - [Acceptance](#acceptance)
+- [Personal data (GDPR)](#personal-data-gdpr)
 - [Editor](#editor)
 - [Sanitizer](#sanitizer)
 - [Placeholders](#placeholders)
@@ -61,6 +62,9 @@ nowo_legal_kit:
         template: '@NowoLegalKitBundle/acceptance/interstitial.html.twig' # or acceptance/compact.html.twig (one card)
         cache_pool: cache.app             # requirements map; null = no cache
         action_log: false                 # AuditKit legal_document.accepted per acceptance
+    personal_data:                        # 1.11, GDPR erasure / export of the acceptance records
+        enabled: true                     # with UserKit installed and acceptance.enabled: register the legal_acceptances eraser / export section
+        subject_resolver: null            # LegalPersonalDataSubjectResolverInterface service id; null = the id of acceptance.subject_resolver
     editor:
         type: auto                        # auto | ckeditor5 | textarea
         ckeditor5_profile: legal
@@ -146,6 +150,16 @@ Opt-in, see [USAGE: Re-acceptance](USAGE.md#re-acceptance). Build-time errors: `
 `versioning.enabled` or without `subject_resolver`; `enforce` without `enabled`; a page whose `path` is `accept`
 (the re-acceptance page lives at `<routing.path_prefix>/accept`); `exempt_paths` entries that do not start with `/`
 or contain wildcards, `?`, `#` or `..`.
+
+## Personal data (GDPR)
+
+`personal_data` (1.11) only matters with `acceptance.enabled: true`. See
+[USAGE: GDPR erasure and export](USAGE.md#gdpr-erasure-and-export).
+
+| Key | Default | |
+| --- | --- | --- |
+| `enabled` | `true` | With `nowo-tech/user-kit-bundle` installed, register the UserKit eraser and export section `legal_acceptances` (tags `nowo_user_kit.personal_data.eraser`, priority 150, and `nowo_user_kit.personal_data.export_provider`, priority 50). `false`: nothing is registered (your application erases / exports the records itself through `LegalAcceptanceManagerInterface`). Without UserKit nothing is registered either. |
+| `subject_resolver` | `null` | Service id implementing `PersonalData\LegalPersonalDataSubjectResolverInterface` (the acceptance subject ids of a user). `null`: the id `acceptance.subject_resolver` gives for the user. |
 
 ## Editor
 

@@ -14,6 +14,7 @@ use function array_filter;
 use function array_values;
 use function is_numeric;
 use function is_string;
+use function max;
 
 /**
  * Acceptance records (acceptance).
@@ -41,7 +42,8 @@ class LegalAcceptanceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Slug => highest version the subject accepted (one indexed query).
+     * Slug => highest version the subject accepted (one indexed query). The maximum is taken in PHP over the exact
+     * matches (1.11): a SQL GROUP BY would fold look-alike subjects together under a `_ci` collation.
      *
      * @return array<string, int>
      */
@@ -49,11 +51,9 @@ class LegalAcceptanceRepository extends ServiceEntityRepository
     {
         /** @var list<array{subject: mixed, slug: mixed, version: mixed}> $rows */
         $rows = $this->createQueryBuilder('a')
-            ->select('a.subjectId AS subject', 'a.slug AS slug', 'MAX(a.version) AS version')
+            ->select('a.subjectId AS subject', 'a.slug AS slug', 'a.version AS version')
             ->where('a.subjectId = :subject')
             ->setParameter('subject', $subjectId)
-            ->groupBy('a.subjectId')
-            ->addGroupBy('a.slug')
             ->getQuery()
             ->getArrayResult();
 
@@ -61,7 +61,7 @@ class LegalAcceptanceRepository extends ServiceEntityRepository
         foreach ($rows as $row) {
             // 1.11: a look-alike subject (other case / accents / trailing space) never satisfies this one's pages.
             if ($row['subject'] === $subjectId && is_string($row['slug']) && is_numeric($row['version'])) {
-                $map[$row['slug']] = (int) $row['version'];
+                $map[$row['slug']] = max($map[$row['slug']] ?? 0, (int) $row['version']);
             }
         }
 

@@ -26,6 +26,7 @@
   - [Host contracts](#host-contracts)
   - [The request gate](#the-request-gate)
   - [Personal data](#personal-data)
+  - [GDPR erasure and export](#gdpr-erasure-and-export)
 - [Console commands](#console-commands)
 - [Events](#events)
 - [CookieConsent](#cookieconsent)
@@ -394,6 +395,45 @@ stores it (an audit row, for example) owns that copy's export and erasure. `acce
 AuditKit `legal_document.accepted` row instead: it records the signed-in actor and, with AuditKit's default
 `capture_ip: true`, the **client IP address**. `eraseFor()` does not remove those rows; erase them through AuditKit's
 own personal-data erasure (or keep `action_log: false` and audit `LegalAcceptedEvent` yourself).
+
+### GDPR erasure and export
+
+Since 1.11 `exportFor()` / `eraseFor()` are the bundle's personal-data ports (no second API: decorate or call them):
+
+- **Exact match.** The subject id is compared exactly: the SQL `=` only pre-filters (a MySQL / MariaDB `_ci`
+  collation also returns `UserA` for `usera`, `josé` for `jose`, and ignores trailing spaces) and every row is re-checked
+  with `===` in PHP before it is exported or deleted. Nothing is trimmed or case folded. An id that can never be stored
+  (empty, a NUL byte, more than 128 characters, invalid UTF-8) exports `[]` and erases `0` without a query.
+- **Complete and idempotent.** `eraseFor()` deletes every record of the subject by primary key, in batches of 500,
+  keeps no copy and returns the number of rows deleted; a second call returns `0`.
+- **Transactions and the event.** With no transaction open, `eraseFor()` runs in a transaction of its own and dispatches
+  `LegalAcceptancesErasedEvent` (`subjectId`, `count`) right after its commit. Inside your transaction it joins it and
+  the event waits for your outermost commit (dropped on rollback, see
+  [transactions and after-commit events](#transactions-and-after-commit-events)). It never flushes an entity manager.
+- **Export shape.** `list<{page, version, locale, kind, accepted_at (ATOM), content_hash}>`, oldest first:
+  `content_hash` is the SHA-256 of the public text the person was shown, not a secret. The subject id itself is not
+  repeated.
+- **Not covered.** AuditKit `legal_document.accepted` rows (`acceptance.action_log: true`) and any copy your
+  `LegalAcceptedEvent` listeners stored: erase those through AuditKit or a listener of `LegalAcceptancesErasedEvent`.
+
+**UserKit bridge.** With `nowo-tech/user-kit-bundle` installed, `acceptance.enabled: true` and
+`personal_data.enabled: true` (the default), the bundle registers, with no configuration:
+
+| Service | Tag (priority) | Key |
+| --- | --- | --- |
+| `PersonalData\LegalAcceptancesPersonalDataEraser` | `nowo_user_kit.personal_data.eraser` (150) | `legal_acceptances` |
+| `PersonalData\LegalAcceptancesPersonalDataExportProvider` | `nowo_user_kit.personal_data.export_provider` (50) | section `legal_acceptances`: `{count, entries}` |
+
+The eraser runs before host identity erasers (priority 100 or below, REQ-DATA-002), so the subject id can still be
+derived from the user. Both call the port once per distinct subject id that
+`PersonalData\LegalPersonalDataSubjectResolverInterface::subjectsFor(object $user, ?string $originalIdentifier)` returns
+(ids that can never be stored are dropped). The default resolver returns the id `acceptance.subject_resolver` gives
+for the user (none for a user it leaves out). Set `personal_data.subject_resolver` to your own service when that id
+cannot be derived from the user any more or the user had several ids over time; `$originalIdentifier` is UserKit's
+`ErasureRequest::identifier()` captured before any eraser ran (null on export and before UserKit 1.12). UserKit runs
+every eraser in one transaction: on the same connection the deletion joins it and the event follows its commit.
+Set `personal_data.enabled: false` when your application already erases these records. All services are stateless
+(FrankenPHP worker mode without kernel reset).
 
 ## Console commands
 
