@@ -352,9 +352,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManager);
         if ($entityManager !== null) {
             // LG-LK-M1: recover (reset when closed) and clear the bundle's own manager at every unit-of-work boundary.
+            // Tagged as a subscriber by EntityManagerMappingPass only once the manager is known to be the bundle's own.
             $container->register(OwnEntityManagerSubscriber::class, OwnEntityManagerSubscriber::class)
-                ->setArguments([new Reference('doctrine'), $entityManager])
-                ->addTag('kernel.event_subscriber');
+                ->setArguments([new Reference('doctrine'), $entityManager]);
         }
         $container->register(AfterCommitEventDispatcher::class, AfterCommitEventDispatcher::class)
             ->setArguments([

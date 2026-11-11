@@ -58,10 +58,13 @@ Target 1.10.0. Architecture bar (standard Symfony and DDD hosts, rules 1, 3, 4, 
   (`DoctrineOrmMappingsPass` + `EntityManagerMappingPass`, also removing them from a default manager with
   `auto_mapping: true`), wires every bundle service that takes an entity manager to it and fails the build when the
   manager is missing or does not map the entities. The default manager is then never flushed by the bundle. The build
-  also fails when the option is combined with the default `doctrine.blame: relation` (use `actor_id` or `none`).
+  also fails when the option is combined with the default `doctrine.blame: relation` (use `actor_id` or `none`), when
+  it names the default manager (`doctrine.default_entity_manager`), or when that manager maps other classes too: it
+  must be a manager that maps only the bundle entities.
   `OwnEntityManagerSubscriber` resets that manager when a failed write closed it (at the next request, console command
   or Messenger message) and clears it at the end of each, so a kept-alive worker without the services resetter
-  recovers; the host's managers are never reset nor cleared.
+  recovers; it is wired only once the build has checked the manager is the bundle's own, so the host's managers are
+  never reset nor cleared.
 - `Versioning\LegalPageVersionsInterface` (public alias of `LegalPageVersions`) with the `LegalPageVersionView` DTO:
   `latestVersion()`, `publishVersion(..., bool $flush = true)` (`false` = persist only, the host flushes and calls
   `afterPublish()`), `afterPublish()`.

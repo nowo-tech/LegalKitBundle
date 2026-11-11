@@ -131,7 +131,7 @@ final class ExtensionTest extends TestCase
         self::assertTrue($container->getDefinition(AfterCommitEventDispatcher::class)->hasTag('kernel.reset'));
         self::assertTrue($container->getDefinition(AfterCommitMiddleware::class)->hasTag('doctrine.middleware'));
         self::assertSame(['legal'], [$container->getDefinition(OwnEntityManagerSubscriber::class)->getArgument(1)]);
-        self::assertTrue($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'));
+        self::assertFalse($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'), 'tagged by the mapping pass once the manager is checked');
     }
 
     public function testNoOwnManagerSubscriberWithoutTheOption(): void

@@ -6,12 +6,14 @@ namespace Nowo\LegalKitBundle\DependencyInjection\Compiler;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
+use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 use function array_keys;
 use function implode;
+use function in_array;
 use function is_array;
 use function is_string;
 use function sprintf;
@@ -24,7 +26,9 @@ use function str_starts_with;
  * the bundle class). DoctrineBundle's `auto_mapping` (the Flex default on the default manager) would map them a second
  * time, and `getManagerForClass()` (the bundle repositories) would then return the default manager. This pass removes
  * the bundle namespaces from the mapping driver chain of every other manager and fails the build when the configured
- * manager does not exist or does not map {@see self::ENTITY_NAMESPACE}. Without `doctrine.entity_manager` it does
+ * manager does not exist or does not map {@see self::ENTITY_NAMESPACE}, when it is the default manager, or when it also
+ * maps other classes (the bundle owns that manager: {@see OwnEntityManagerSubscriber} resets and clears it, and gets
+ * its subscriber tag here, only once the manager is known to be the bundle's own). Without `doctrine.entity_manager` it does
  * nothing (the mapping is prepended as before 1.10).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
@@ -72,10 +76,15 @@ final class EntityManagerMappingPass implements CompilerPassInterface
         if (!isset($managers[$name])) {
             throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.entity_manager is "%s", but no such Doctrine entity manager is configured (known: "%s"). Add it under doctrine.orm.entity_managers or remove the option.', $name, implode('", "', array_keys($managers))));
         }
+        $default = $container->hasParameter('doctrine.default_entity_manager') ? $container->getParameter('doctrine.default_entity_manager') : null;
+        if ($name === $default) {
+            throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.entity_manager is "%s", your default Doctrine entity manager. The option names a manager the bundle owns (it resets and clears it between requests): add a separate manager that maps only the bundle entities under doctrine.orm.entity_managers, or remove the option to keep the bundle on your default manager.', $name));
+        }
         if ($this->checkOnly) {
             return;
         }
 
+        $foreign = [];
         foreach (array_keys($managers) as $manager) {
             $chainId = sprintf('doctrine.orm.%s_metadata_driver', $manager);
             if (!$container->hasDefinition($chainId)) {
@@ -92,6 +101,9 @@ final class EntityManagerMappingPass implements CompilerPassInterface
                     continue;
                 }
 
+                if ($manager === $name && !$isBundle && in_array($call[0], ['addDriver', 'setDefaultDriver'], true)) {
+                    $foreign[] = is_string($namespace) ? $namespace : 'a default driver (every class)';
+                }
                 $maps    = $maps || ($isBundle && str_starts_with((string) $namespace, self::ENTITY_NAMESPACE));
                 $calls[] = $call;
             }
@@ -101,6 +113,14 @@ final class EntityManagerMappingPass implements CompilerPassInterface
             if ($manager === $name && !$maps) {
                 throw new InvalidConfigurationException(sprintf('The Doctrine entity manager "%s" (nowo_legal_kit.doctrine.entity_manager) does not map %s.', $name, self::ENTITY_NAMESPACE));
             }
+        }
+        if ($foreign !== []) {
+            throw new InvalidConfigurationException(sprintf('The Doctrine entity manager "%s" (nowo_legal_kit.doctrine.entity_manager) also maps %s. The bundle owns that manager (it resets and clears it between requests): give it a manager that maps only the bundle entities (auto_mapping: false, no other mappings).', $name, implode(', ', $foreign)));
+        }
+
+        // Only now (a manager the bundle owns) is the recovery subscriber wired: it resets and clears that manager.
+        if ($container->hasDefinition(OwnEntityManagerSubscriber::class)) {
+            $container->getDefinition(OwnEntityManagerSubscriber::class)->addTag('kernel.event_subscriber');
         }
     }
 

@@ -33,6 +33,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernel;
 
+use function dirname;
+
 /**
  * 1.10 architecture bar: the host's pending changes and transactions (rules 6 / 7), the DTO ports (rules 1 / 3), the
  * erase / seed events (rule 4) and the dedicated `doctrine.entity_manager` (standard host and DDD host).
@@ -201,6 +203,46 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame($taken + 1, $versions->publishVersion('terms', true, LegalPageVersion::SOURCE_EDITOR)->version, 'the services keep working');
         self::assertSame($host, $this->manager($kernel, 'default'), 'the host manager is never reset');
         self::assertTrue($host->contains($user), 'nor cleared');
+        $host->flush();
+        $httpKernel->terminate($request, $httpKernel->handle($request));
+        self::assertTrue($host->contains($user), 'a flushed, managed host entity stays managed across a request');
+    }
+
+    /**
+     * LG-LK-D-M1: the host's default manager (Flex single-manager shorthand) is never taken as the bundle's own.
+     */
+    public function testTheDefaultManagerCannotBeTheBundleManager(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('nowo_legal_kit.doctrine.entity_manager is "default", your default Doctrine entity manager.');
+        $this->versioningKernel(['doctrine' => ['entity_manager' => 'default', 'blame' => 'actor_id']]);
+    }
+
+    /**
+     * LG-LK-D-M1: a manager that also maps host entities is shared, not the bundle's own: the build fails, so the
+     * subscriber never clears or resets it.
+     */
+    public function testASharedManagerThatMapsHostEntitiesIsRefused(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The Doctrine entity manager "legal" (nowo_legal_kit.doctrine.entity_manager) also maps Nowo\LegalKitBundle\Tests\Support\Entity.');
+        $this->versioningKernel(['doctrine' => ['entity_manager' => 'legal', 'blame' => 'actor_id']], [], [
+            'doctrine' => [
+                'dbal' => ['connections' => ['legal' => ['url' => 'sqlite:///:memory:']]],
+                'orm'  => [
+                    'default_entity_manager' => 'default',
+                    'entity_managers'        => [
+                        'default' => ['connection' => 'default'],
+                        'legal'   => ['connection' => 'legal', 'mappings' => ['HostOnLegal' => [
+                            'type'      => 'attribute',
+                            'is_bundle' => false,
+                            'dir'       => dirname(__DIR__) . '/Support/Entity',
+                            'prefix'    => 'Nowo\LegalKitBundle\Tests\Support\Entity',
+                        ]]],
+                    ],
+                ],
+            ],
+        ]);
     }
 
     public function testADedicatedManagerWithRelationBlameFailsTheBuild(): void

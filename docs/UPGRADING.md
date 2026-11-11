@@ -47,7 +47,9 @@ No configuration change for a standard application.
    `LegalDocumentsImportedEvent`. Listeners of the import event see seed runs too.
 3. **Optional `doctrine.entity_manager`.** Set it to give the bundle its own entity manager (literal name, configured
    under `doctrine.orm.entity_managers`, with `doctrine.blame: actor_id` or `none`: the build fails with the default
-   `relation`). The bundle recovers that manager after a failed write at the next request, command or message. If you mapped the bundle entities
+   `relation`). It must be a separate manager that maps only the bundle entities: the build refuses your default
+   manager and a manager that maps other classes too. The bundle recovers that manager after a failed write at the next
+   request, command or message, and clears it at the end of each. If you mapped the bundle entities
    by hand on a second manager, you may drop that mapping and set the option instead.
 4. **Deprecations** (removed in 2.0): `LegalPageVersions::latest()` / `publish()` / `afterCommit()` → inject
    `LegalPageVersionsInterface` and use `latestVersion()` / `publishVersion()` / `afterPublish()`; a user object as the

@@ -8,6 +8,7 @@ use Nowo\LegalKitBundle\DependencyInjection\Compiler\AfterCommitMiddlewarePass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\EntityManagerMappingPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -27,9 +28,12 @@ final class ArchitectureBarPassesTest extends TestCase
         $this->chain($container, 'legal', [EntityManagerMappingPass::ENTITY_NAMESPACE, EntityManagerMappingPass::ACCEPTANCE_NAMESPACE]);
         $container->getDefinition('doctrine.orm.default_metadata_driver')->addMethodCall('setDefaultDriver', [new Reference('x')]);
 
+        $container->register(OwnEntityManagerSubscriber::class);
         (new EntityManagerMappingPass(true))->process($container);
         self::assertCount(5, $this->calls($container, 'default'), 'check only');
+        self::assertFalse($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'));
         (new EntityManagerMappingPass())->process($container);
+        self::assertTrue($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'), 'a manager the bundle owns');
 
         self::assertSame(['addDriver:App\Entity', 'setDefaultDriver:'], $this->calls($container, 'default'));
         self::assertSame(['addDriver:' . EntityManagerMappingPass::ENTITY_NAMESPACE, 'addDriver:' . EntityManagerMappingPass::ACCEPTANCE_NAMESPACE], $this->calls($container, 'legal'));
@@ -47,6 +51,32 @@ final class ArchitectureBarPassesTest extends TestCase
         $bare->setParameter(NowoLegalKitExtension::DEDICATED_MAPPING_PARAMETER, true);
         (new EntityManagerMappingPass())->process($bare);
         self::assertFalse($bare->hasParameter('doctrine.entity_managers'));
+    }
+
+    public function testTheDefaultManagerIsRefused(): void
+    {
+        $container = $this->container('default', ['default']);
+        $this->chain($container, 'default', [EntityManagerMappingPass::ENTITY_NAMESPACE]);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('nowo_legal_kit.doctrine.entity_manager is "default", your default Doctrine entity manager.');
+        (new EntityManagerMappingPass(true))->process($container);
+    }
+
+    public function testAManagerThatAlsoMapsHostClassesIsRefused(): void
+    {
+        $container = $this->container('legal', ['default', 'legal']);
+        $this->chain($container, 'legal', [EntityManagerMappingPass::ENTITY_NAMESPACE, 'App\Entity']);
+        $container->getDefinition('doctrine.orm.legal_metadata_driver')->addMethodCall('setDefaultDriver', [new Reference('x')]);
+        $container->register(OwnEntityManagerSubscriber::class);
+
+        try {
+            (new EntityManagerMappingPass())->process($container);
+            self::fail('Expected the refusal.');
+        } catch (InvalidConfigurationException $e) {
+            self::assertSame('The Doctrine entity manager "legal" (nowo_legal_kit.doctrine.entity_manager) also maps App\Entity, a default driver (every class). The bundle owns that manager (it resets and clears it between requests): give it a manager that maps only the bundle entities (auto_mapping: false, no other mappings).', $e->getMessage());
+        }
+        self::assertFalse($container->getDefinition(OwnEntityManagerSubscriber::class)->hasTag('kernel.event_subscriber'));
     }
 
     public function testAManagerThatDoesNotMapTheEntitiesFails(): void
@@ -94,6 +124,7 @@ final class ArchitectureBarPassesTest extends TestCase
             $map[$manager] = 'doctrine.orm.' . $manager . '_entity_manager';
         }
         $container->setParameter('doctrine.entity_managers', $map);
+        $container->setParameter('doctrine.default_entity_manager', 'default');
 
         return $container;
     }
