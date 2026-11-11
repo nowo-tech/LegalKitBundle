@@ -19,7 +19,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -194,7 +194,7 @@ final class WorkerBoundariesTest extends KernelTestCase
     }
 
     /**
-     * @return array{0: TestKernel, 1: LegalPlaceholderScanner, 2: EventDispatcher}
+     * @return array{0: TestKernel, 1: LegalPlaceholderScanner, 2: EventDispatcherInterface}
      */
     private function boot(): array
     {
@@ -202,7 +202,7 @@ final class WorkerBoundariesTest extends KernelTestCase
         $scanner = $this->testContainer($kernel)->get(LegalPlaceholderScanner::class);
         self::assertInstanceOf(LegalPlaceholderScanner::class, $scanner);
         $dispatcher = $kernel->getContainer()->get('event_dispatcher');
-        self::assertInstanceOf(EventDispatcher::class, $dispatcher);
+        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
         $this->store($kernel, 'notice', 'en', 'Notice', '<p>Acme Ltd</p>');
         $this->leaks          = [];
         $this->memoryAtWarmup = 0;
