@@ -57,6 +57,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+Next patch: 1.11.1.
+
+### Fixed
+
+- **Placeholder scanner answered from hits computed before another worker's edit (REQ-RUNTIME-002).**
+  `LegalPlaceholderScanner` memoises the seed markers and unknown `%tokens%` it finds per locale; only `kernel.reset`
+  (and an admin save in the same worker) forgot them. Where the services resetter does not run between units of work
+  (a host that removes, replaces or bypasses `services_resetter` or drives `http_kernel` directly, a consumer started
+  with `messenger:consume --no-reset`, or a long-running process that runs several console commands), the Twig
+  extension, the admin and `check-placeholders` kept answering from the hits of an earlier request, message or command
+  after another worker edited a page. New `PlaceholderScannerResetSubscriber` forgets the memo at the start of every
+  main request, at `kernel.terminate`, at `WorkerMessageReceivedEvent`, `WorkerMessageHandledEvent`,
+  `WorkerMessageFailedEvent`, `console.command` and `console.terminate` (Messenger and console events subscribed by
+  name; both components stay optional). The scanner is injected as an iterator of `IGNORE_ON_UNINITIALIZED_REFERENCE`
+  references, so a boundary never builds it. `ResetInterface` / `kernel.reset` are kept. Affected: 1.0.0 to 1.11.0,
+  only on those paths; no personal data (site-wide page text only). The REQ-ARCH-001 part of the sweep is not in this
+  release.
+
+### Tests
+
+- `tests/Integration/WorkerBoundariesTest.php`: one booted kernel, services resetter never called; 500 HTTP requests
+  through `http_kernel` (with a sub-request), 500 messages through a real Messenger `Worker` without
+  `ResetServicesListener` (every 7th fails) and 500 console `Application` runs; before each unit another worker
+  alternates the "notice" page between a version with a seed marker and a clean one; asserts each unit sees the stored
+  version and memory grows less than 1 MiB after a 50-unit warm-up. Unit test of the subscriber (`reset()` called
+  directly, main requests only).
+- `symfony/messenger` added to `require-dev` (tests only).
+
+### Documentation
+
+- `docs/FRANKENPHP-WORKER-AUDIT.md` rewritten for 1.11.1: precise precondition, stateful services and how each is
+  cleared, boundary events, worker tests, host rule for entity managers.
+
 ## [1.11.0] - 2026-11-11
 
 ### Added
