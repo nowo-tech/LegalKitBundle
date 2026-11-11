@@ -7,7 +7,6 @@ This guide lists the changes integrators must apply when upgrading between versi
 - [Unreleased](#unreleased)
 - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
-- [To 1.9.0](#to-190-1)
 - [To 1.8.0](#to-180)
 - [To 1.8.0](#to-180-1)
 - [To 1.7.0](#to-170)
@@ -58,14 +57,6 @@ No configuration change for a standard application.
    import `$actor` → `new LegalActorId($id)`; `LegalDocumentResolverInterface::effective()` as a public API.
 5. **`doctrine/dbal ^4.0`** is now required. Hosts on DBAL 3 stay on 1.9.x (Composer will not offer 1.10); upgrade
    DBAL to 4 first.
-
-## To 1.9.0
-
-From **1.8.0**:
-
-```bash
-composer update nowo-tech/legal-kit-bundle
-```
 
 ## To 1.9.0
 
