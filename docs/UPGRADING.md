@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Cookies in the request context (opt-in)](#cookies-in-the-request-context-opt-in)
 - [To 1.12.0](#to-1120)
 - [To 1.11.1](#to-1111)
 - [To 1.11.0](#to-1110)
@@ -31,6 +32,40 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+Target **1.13.0**, from **1.12.0**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+Nothing to change: the new `acceptance.context_cookies` allowlist defaults to `[]`, and the `LegalRequestContext`
+given to exemption voters is then exactly the 1.12 one (no cookies).
+
+### Cookies in the request context (opt-in)
+
+A voter migrating from the deprecated `LegalAcceptanceExemptionInterface::isExempt(Request)` that read a cookie names
+it and reads it with `LegalRequestContext::cookie()`:
+
+```yaml
+nowo_legal_kit:
+    acceptance:
+        context_cookies: ['app_e2e_legal_gate']
+```
+
+```php
+final class LegalGateOptIn implements LegalAcceptanceRequestExemptionInterface
+{
+    public function isExemptRequest(LegalRequestContext $request): bool
+    {
+        return '1' !== $request->cookie('app_e2e_legal_gate');
+    }
+}
+```
+
+The session cookie is never copied, even when listed. Never list a remember-me or other authentication cookie: a
+voter must not depend on a credential. The values never appear in a dump, `var_export()`, `(array)` cast,
+`json_encode()` or `serialize()` of the context.
 
 ## To 1.12.0
 

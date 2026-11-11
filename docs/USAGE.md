@@ -376,6 +376,30 @@ scalar parameters, format, XHR flag and locale. The 1.0 forms `LegalAcceptanceSu
 and `LegalAcceptanceExemptionInterface::isExempt(Request)` still work and are deprecated (removed in 2.0); when one
 service implements both resolver forms, the new one is used.
 
+**Cookies (opt-in, 1.13).** `LegalRequestContext` carries no cookie unless you name it in
+`acceptance.context_cookies` (default: none; exact names, string values only). A named cookie is read with
+`$request->cookie('name')` (and `hasCookie()`), for example an opt-in cookie your end-to-end tests set:
+
+```yaml
+nowo_legal_kit:
+    acceptance:
+        context_cookies: ['app_e2e_legal_gate']
+```
+
+```php
+final class LegalGateOptIn implements LegalAcceptanceRequestExemptionInterface
+{
+    public function isExemptRequest(LegalRequestContext $request): bool
+    {
+        return '1' !== $request->cookie('app_e2e_legal_gate'); // exempt unless the e2e browser opted in
+    }
+}
+```
+
+The session cookie is never copied, even when listed; never list a remember-me or other authentication cookie. The
+values are kept outside the context's properties, so dumps, `var_export()`, `(array)`, `json_encode()` and
+`serialize()` never show them (a clone or unserialized copy has none).
+
 ### The request gate
 
 The gate (`kernel.request`, priority 4) redirects (302, `no-store`) to the page only when all of this holds: main

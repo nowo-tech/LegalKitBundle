@@ -73,6 +73,7 @@ final class ConfigurationTest extends TestCase
         self::assertSame('none', $config['pages']['privacy']['acceptance']);
         self::assertSame('accept', $config['pages']['extra']['acceptance']);
         self::assertSame('2026-11-04.1', $config['seed']['revision']);
+        self::assertSame([], $config['acceptance']['context_cookies'], 'Opt-in: no cookie in the request context by default.');
     }
 
     public function testPagesAndLocalesAsParameterString(): void

@@ -66,6 +66,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+Target **1.13.0** (minor; opt-in, no behaviour change for existing hosts).
+
+### Added
+
+- `acceptance.context_cookies` (default `[]`): an explicit allowlist of cookie names (exact) copied into the
+  `LegalRequestContext` given to `LegalAcceptanceRequestExemptionInterface` voters, read through the new
+  `LegalRequestContext::cookie(string): ?string` / `hasCookie(string): bool` (for example an e2e opt-in cookie). Only
+  string values are copied; the session cookie is never copied, even when listed, and no cookie (session, remember-me
+  or any other auth cookie) is ever copied unless the host names it. The values are kept outside the context's
+  properties (an internal `WeakMap` keyed by the context), so VarDumper, `var_export()`, `(array)`, `json_encode()` and
+  `serialize()` never show them; a clone or unserialized copy has none. The context is built per call
+  (REQ-RUNTIME-002). `AcceptanceRequestMatcher::context()` takes the names as a new optional second argument. With the
+  default empty list the context is exactly as in 1.12.0.
+
 ## [1.12.0] - 2026-11-11
 
 Next minor: 1.12.0. Architecture bar REQ-ARCH-001 (rules 3, 6 and 8), BC-safe. See

@@ -46,6 +46,8 @@ final readonly class AcceptanceRequestMatcher
      *                                                                                                     (1.12: the request-context form, and the deprecated one until 2.0)
      * @param iterable<LegalAcceptanceRequestExemptionInterface> $requestVoters Host voters tagged
      *                                                                          `nowo_legal_kit.acceptance_request_exemption` (1.12)
+     * @param list<string> $contextCookies `acceptance.context_cookies`: cookies copied into the {@see LegalRequestContext}
+     *                                     (1.13, exact names, default none)
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
@@ -53,6 +55,7 @@ final readonly class AcceptanceRequestMatcher
         private array $exemptPaths = [],
         iterable $voters = [],
         iterable $requestVoters = [],
+        private array $contextCookies = [],
     ) {
         $list = [];
         foreach ([$voters, $requestVoters] as $group) {
@@ -84,7 +87,7 @@ final readonly class AcceptanceRequestMatcher
         $context = null;
         foreach ($this->voters as $voter) {
             if ($voter instanceof LegalAcceptanceRequestExemptionInterface) {
-                if ($voter->isExemptRequest($context ??= self::context($request))) {
+                if ($voter->isExemptRequest($context ??= self::context($request, $this->contextCookies))) {
                     return true;
                 }
             } elseif ($voter->isExempt($request)) {
@@ -97,8 +100,14 @@ final readonly class AcceptanceRequestMatcher
 
     /**
      * The framework-free view of a request handed to {@see LegalAcceptanceRequestExemptionInterface} (1.12).
+     *
+     * Only the cookies named in `$cookies` are copied (1.13, `acceptance.context_cookies`, default none): exact names,
+     * string values only. The session cookie is never copied, even when named.
+     *
+     * @param Request $request The request
+     * @param list<string> $cookies Cookie names to copy
      */
-    public static function context(Request $request): LegalRequestContext
+    public static function context(Request $request, array $cookies = []): LegalRequestContext
     {
         $route      = $request->attributes->get('_route');
         $parameters = [];
@@ -106,6 +115,16 @@ final readonly class AcceptanceRequestMatcher
         foreach (is_array($raw) ? $raw : [] as $name => $value) {
             if (is_string($name) && (is_scalar($value) || $value === null)) {
                 $parameters[$name] = $value;
+            }
+        }
+
+        $sessionCookie = $cookies !== [] && $request->hasSession() ? $request->getSession()->getName() : null;
+        $sent          = $cookies !== [] ? $request->cookies->all() : [];
+        $copied        = [];
+        foreach ($cookies as $name) {
+            $value = $sent[$name] ?? null; // InputBag::get() throws on a non-scalar cookie a client can send
+            if (is_string($value) && $name !== $sessionCookie) {
+                $copied[$name] = $value;
             }
         }
 
@@ -117,6 +136,7 @@ final readonly class AcceptanceRequestMatcher
             (string) $request->getRequestFormat('html'),
             $request->isXmlHttpRequest(),
             $request->getLocale(),
+            $copied,
         );
     }
 

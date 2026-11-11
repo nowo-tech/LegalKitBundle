@@ -55,6 +55,7 @@ nowo_legal_kit:
         subject_resolver: null            # REQUIRED when enabled: LegalSubjectIdResolverInterface (1.12) or the deprecated LegalAcceptanceSubjectResolverInterface service id
         exempt_routes: []                 # route names or "prefix*"
         exempt_paths: []                  # "/api" matches /api and /api/…, not /apix
+        context_cookies: []               # cookies a LegalAcceptanceRequestExemptionInterface voter may read (1.13, opt-in)
         non_html: pass                    # pass | deny (403 JSON for session JSON / XHR GETs)
         default_target: null              # route name after accepting without a stored target; null = "/"
         logout_route: null                # null = the firewall logout path (none without one)
@@ -150,6 +151,11 @@ Opt-in, see [USAGE: Re-acceptance](USAGE.md#re-acceptance). Build-time errors: `
 `versioning.enabled` or without `subject_resolver`; `enforce` without `enabled`; a page whose `path` is `accept`
 (the re-acceptance page lives at `<routing.path_prefix>/accept`); `exempt_paths` entries that do not start with `/`
 or contain wildcards, `?`, `#` or `..`.
+
+`context_cookies` (1.13, default `[]`): cookie names (exact) copied into the `LegalRequestContext` that
+`LegalAcceptanceRequestExemptionInterface` voters receive, read through `LegalRequestContext::cookie()`. Nothing is
+copied unless named; the session cookie is never copied, even when listed; never list an authentication cookie. The
+values never show in a dump of the context.
 
 ## Personal data (GDPR)
 
