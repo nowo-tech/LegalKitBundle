@@ -22,12 +22,13 @@ use function preg_match;
 final readonly class CurrentLegalSubject
 {
     /**
-     * @param LegalAcceptanceSubjectResolverInterface $resolver Host resolver
+     * @param LegalAcceptanceSubjectResolverInterface|LegalSubjectIdResolverInterface $resolver Host resolver (the
+     *                                                                                          deprecated form until 2.0)
      * @param ?TokenStorageInterface $tokenStorage Security token storage (null without SecurityBundle)
      * @param LoggerInterface $logger Logger (never the id)
      */
     public function __construct(
-        private LegalAcceptanceSubjectResolverInterface $resolver,
+        private LegalSubjectIdResolverInterface|LegalAcceptanceSubjectResolverInterface $resolver,
         private ?TokenStorageInterface $tokenStorage = null,
         private LoggerInterface $logger = new NullLogger(),
     ) {
@@ -60,7 +61,7 @@ final readonly class CurrentLegalSubject
         if (!$user instanceof UserInterface) {
             return null;
         }
-        $id = $this->resolver->resolve($user);
+        $id = self::resolveSubject($this->resolver, $user);
         if ($id === null) {
             return null;
         }
@@ -71,5 +72,31 @@ final readonly class CurrentLegalSubject
         }
 
         return $id;
+    }
+
+    /**
+     * The subject id of a security user through either form of the host resolver (1.12: the framework-free
+     * {@see LegalSubjectIdResolverInterface} wins).
+     */
+    public static function resolveSubject(LegalSubjectIdResolverInterface|LegalAcceptanceSubjectResolverInterface $resolver, UserInterface $user): ?string
+    {
+        if ($resolver instanceof LegalSubjectIdResolverInterface) {
+            return $resolver->subjectIdFor(self::subjectUser($user));
+        }
+
+        return $resolver->resolve($user);
+    }
+
+    /**
+     * The framework-free view of a security user (1.12).
+     */
+    public static function subjectUser(UserInterface $user): LegalSubjectUser
+    {
+        $roles = [];
+        foreach ($user->getRoles() as $role) {
+            $roles[] = (string) $role;
+        }
+
+        return new LegalSubjectUser($user->getUserIdentifier(), $user::class, $roles, $user);
     }
 }

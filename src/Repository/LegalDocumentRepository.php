@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Repository;
 use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -157,7 +158,9 @@ class LegalDocumentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Persists a document; flushes unless `$flush` is false (ops-seed keeps one transaction).
+     * Persists a document; flushes unless `$flush` is false (ops-seed keeps one transaction). Through the bundle's
+     * private manager (1.12, `doctrine.entity_manager` unset) it always flushes: that manager holds only bundle rows
+     * and nobody else flushes it (inside an open transaction the row joins it).
      *
      * @return void Nothing (side effects only)
      */
@@ -165,7 +168,7 @@ class LegalDocumentRepository extends ServiceEntityRepository
     {
         $manager = $this->getEntityManager();
         $manager->persist($document);
-        if ($flush) {
+        if ($flush || $manager instanceof LegalKitEntityManager) {
             $manager->flush();
         }
     }

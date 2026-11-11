@@ -143,7 +143,7 @@ Playwright end-to-end tests and the README screenshots: `make -C demo/symfony8 t
 
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
-- [Usage](docs/USAGE.md)
+- [Usage](docs/USAGE.md) — [Standard host](docs/USAGE.md#standard-host) (zero config) and [DDD host](docs/USAGE.md#ddd-host) (opt-in)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Changelog](docs/CHANGELOG.md)

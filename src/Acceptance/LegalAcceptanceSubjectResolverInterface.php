@@ -9,6 +9,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 /**
  * Host contract (required with `acceptance.enabled`): who the subject of an acceptance is.
  *
+ * @deprecated since 1.12, implement {@see LegalSubjectIdResolverInterface} instead (no security type in the port);
+ *             removed in 2.0
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */

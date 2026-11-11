@@ -136,14 +136,17 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame(2, $versions->latestVersion('terms')?->version);
         self::assertCount(1, $events);
 
-        // flush: false — only persisted: a pending host entity is not flushed by the bundle; the host flushes,
-        // commits and calls afterPublish().
+        // flush: false — a pending host entity is never flushed by the bundle. 1.12: the bundle's private manager
+        // writes its own row at once (nobody else flushes that manager); the host flushes its own changes, commits and
+        // calls afterPublish() (no event before).
         $host->persist(new User('pending@example.com'));
         $pending = $versions->publishVersion('terms', false, LegalPageVersion::SOURCE_EDITOR, [], null, null, false);
         self::assertSame(3, $pending->version);
         self::assertSame(0, (int) $host->getConnection()->fetchOne('SELECT COUNT(*) FROM `user`'));
-        self::assertSame(2, $versions->currentUncached('terms'));
+        self::assertSame(3, $versions->currentUncached('terms'));
+        self::assertCount(1, $events);
         $host->flush();
+        self::assertSame(1, (int) $host->getConnection()->fetchOne('SELECT COUNT(*) FROM `user`'));
         $versions->afterPublish($pending);
         self::assertSame(3, $versions->current('terms'));
         self::assertCount(2, $events);

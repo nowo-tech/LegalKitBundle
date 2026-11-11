@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Versioning;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Event\LegalVersionPublishedEvent;
 use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Psr\Clock\ClockInterface;
@@ -236,6 +237,12 @@ final readonly class LegalPageVersions implements LegalPageVersionsInterface
         $row = new LegalPageVersion($slug, $version ?? $this->currentUncached($slug) + 1, $requiresAcceptance, $source, $this->clock->now(), $seedRevision, $changeSummary);
         $this->entityManager->persist($row);
         if (!$flush) {
+            // 1.12 (rule 6): the private manager holds only bundle rows and nobody else flushes it, so the row is
+            // written now (inside the caller's open transaction, if any); the caller still calls afterPublish().
+            if ($this->entityManager instanceof LegalKitEntityManager) {
+                $this->entityManager->flush();
+            }
+
             return $row;
         }
         $this->entityManager->flush();

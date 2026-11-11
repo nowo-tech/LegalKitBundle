@@ -20,6 +20,7 @@ use Nowo\LegalKitBundle\Form\LegalDocumentType;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Placeholder\LegalPlaceholderScanner;
+use Nowo\LegalKitBundle\Portability\LegalDocumentImportInterface;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortability;
 use Nowo\LegalKitBundle\Portability\LegalDocumentPortabilityInterface;
 use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
@@ -100,6 +101,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$dispatcher', service('event_dispatcher')->nullOnInvalid())
         ->arg('$seedTracker', null);
     $services->alias(LegalDocumentPortabilityInterface::class, LegalDocumentPortability::class)->public();
+    $services->alias(LegalDocumentImportInterface::class, LegalDocumentPortability::class)->public();
 
     $services->set(LegalRouteLoader::class)
         ->args([

@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use Nowo\LegalKitBundle\Blame\LegalActorId;
 use Nowo\LegalKitBundle\Blame\LegalActorIdResolverInterface;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalDocumentsImportedEvent;
@@ -35,14 +36,15 @@ use function trim;
  * - {@see apply()}: upserts sanitised rows in one unit of work; flushes only with `$flush` so the host ops-seed keeps
  *   a single transaction.
  *
- * Implements {@see LegalDocumentPortabilityInterface} (aliased to this class): type-hint the interface.
+ * Implements {@see LegalDocumentPortabilityInterface} and (1.12) {@see LegalDocumentImportInterface} (both aliased to
+ * this class): type-hint the interfaces.
  *
  * @phpstan-import-type LegalDocumentRow from LegalDocumentPortabilityInterface
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class LegalDocumentPortability implements LegalDocumentPortabilityInterface
+final readonly class LegalDocumentPortability implements LegalDocumentPortabilityInterface, LegalDocumentImportInterface
 {
     /**
      * @param LegalDocumentRepository $documents Stored rows
@@ -153,6 +155,10 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
      */
     public function apply(array $rows, ?object $actor = null, bool $flush = false): int
     {
+        if ($actor !== null && !$actor instanceof LegalActorId && $this->entityManager instanceof LegalKitEntityManager) {
+            // 1.12: a user entity of the application's manager becomes a reference of the bundle's private manager.
+            $actor = $this->entityManager->adopt($actor);
+        }
         $written = [];
         foreach ($rows as $row) {
             $document = $this->documents->findOneBySlugAndLocale($row['slug'], $row['locale']);
@@ -183,9 +189,18 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
         if ($flush) {
             $this->entityManager->flush();
             $this->afterCommit($written);
+        } elseif ($this->entityManager instanceof LegalKitEntityManager) {
+            // 1.12 (rule 6): the private manager holds only bundle rows and nobody else flushes it, so the rows are
+            // written now (inside the caller's open transaction, if any); the caller still calls afterCommit().
+            $this->entityManager->flush();
         }
 
         return count($written);
+    }
+
+    public function import(array $rows, ?LegalActorId $actor = null, bool $flush = false): int
+    {
+        return $this->apply($rows, $actor, $flush);
     }
 
     /**

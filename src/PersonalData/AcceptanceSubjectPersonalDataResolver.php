@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\PersonalData;
 
+use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalSubjectIdResolverInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
@@ -19,10 +21,11 @@ use Symfony\Component\Security\Core\User\UserInterface;
 final readonly class AcceptanceSubjectPersonalDataResolver implements LegalPersonalDataSubjectResolverInterface
 {
     /**
-     * @param LegalAcceptanceSubjectResolverInterface $resolver The host resolver of `acceptance.subject_resolver`
+     * @param LegalAcceptanceSubjectResolverInterface|LegalSubjectIdResolverInterface $resolver The host resolver of
+     *                                                                                          `acceptance.subject_resolver`
      */
     public function __construct(
-        private LegalAcceptanceSubjectResolverInterface $resolver,
+        private LegalSubjectIdResolverInterface|LegalAcceptanceSubjectResolverInterface $resolver,
     ) {
     }
 
@@ -31,7 +34,7 @@ final readonly class AcceptanceSubjectPersonalDataResolver implements LegalPerso
         if (!$user instanceof UserInterface) {
             return [];
         }
-        $id = $this->resolver->resolve($user);
+        $id = CurrentLegalSubject::resolveSubject($this->resolver, $user);
 
         return $id === null || $id === '' ? [] : [$id];
     }

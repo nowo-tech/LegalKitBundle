@@ -41,7 +41,11 @@ interface LegalDocumentPortabilityInterface
     /**
      * Upserts normalised rows (sanitised bodies) and returns how many were written. With `$flush` it flushes and
      * dispatches {@see LegalDocumentsImportedEvent}; without, the host transaction stays open and the caller calls
-     * {@see afterCommit()} with the same rows once it committed.
+     * {@see afterCommit()} with the same rows once it committed. 1.12: with the bundle's private manager
+     * (`doctrine.entity_manager` unset) the rows are written at once even without `$flush`, inside the caller's open
+     * transaction when there is one; your own entity manager is never flushed.
+     *
+     * Prefer the typed {@see LegalDocumentImportInterface::import()} (1.12); 2.0 narrows `$actor` to `?LegalActorId`.
      *
      * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
      * @param object|null $actor Since 1.10 a {@see LegalActorId} (the actor by id, for

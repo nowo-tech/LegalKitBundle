@@ -354,11 +354,23 @@ final class Configuration implements ConfigurationInterface
                             ->defaultValue(self::BLAME_RELATION)
                         ->end()
                         ->scalarNode('entity_manager')
-                            ->info('1.10: Doctrine entity manager of the bundle entities (null = the one autowired as EntityManagerInterface, mapping prepended as before). A literal name maps the entities on that manager only (removed from the others, auto_mapping included), wires every bundle service to it and fails the build when it does not exist.')
+                            ->info('1.10: Doctrine entity manager of the bundle entities (null = the mapping is prepended to your default manager and, since 1.12, the bundle writes through a private manager, see private_entity_manager). A literal name maps the entities on that manager only (removed from the others, auto_mapping included), wires every bundle service to it and fails the build when it does not exist.')
                             ->defaultNull()
                             ->validate()
                                 ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || preg_match('/^[A-Za-z0-9_]+$/', $value) !== 1))
                                 ->thenInvalid('nowo_legal_kit.doctrine.entity_manager must be null or a literal entity manager name (letters, digits, "_"), got %s.')
+                            ->end()
+                        ->end()
+                        ->booleanNode('private_entity_manager')
+                            ->info('1.12 (rule 6): without doctrine.entity_manager, the bundle writes through a private entity manager on the connection, mapping and events of the manager that maps its entities, so a bundle flush never commits your pending changes. false = the 1.11 behaviour (the bundle flushes the manager that maps its entities, usually your default one); deprecated, removed in 2.0.')
+                            ->defaultTrue()
+                        ->end()
+                        ->scalarNode('connection')
+                            ->info('1.12 (rule 8): DBAL connection of the private entity manager (null = the connection of the manager that maps the bundle entities). Needs doctrine.blame actor_id or none; not combinable with doctrine.entity_manager (that manager has its own connection) nor with private_entity_manager: false.')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || preg_match('/^[A-Za-z0-9_]+$/', $value) !== 1))
+                                ->thenInvalid('nowo_legal_kit.doctrine.connection must be null or a literal DBAL connection name (letters, digits, "_"), got %s.')
                             ->end()
                         ->end()
                         ->arrayNode('accepted_user_classes')
@@ -403,7 +415,7 @@ final class Configuration implements ConfigurationInterface
             throw new InvalidArgumentException('nowo_legal_kit.acceptance.enabled requires versioning.enabled: true (acceptances are recorded per page version).');
         }
         if ($acceptance['subject_resolver'] === null || $acceptance['subject_resolver'] === '') {
-            throw new InvalidArgumentException('nowo_legal_kit.acceptance.enabled requires acceptance.subject_resolver: the id of a service implementing LegalAcceptanceSubjectResolverInterface (a stable, non-personal user id; the bundle never guesses one).');
+            throw new InvalidArgumentException('nowo_legal_kit.acceptance.enabled requires acceptance.subject_resolver: the id of a service implementing LegalSubjectIdResolverInterface (or the deprecated LegalAcceptanceSubjectResolverInterface; a stable, non-personal user id; the bundle never guesses one).');
         }
         /** @var array<string, array{path: string}> $pages */
         $pages = $config['pages'];
@@ -487,7 +499,7 @@ final class Configuration implements ConfigurationInterface
                     ->defaultFalse()
                 ->end()
                 ->scalarNode('subject_resolver')
-                    ->info('Service id implementing LegalAcceptanceSubjectResolverInterface (required when enabled).')
+                    ->info('Service id implementing LegalSubjectIdResolverInterface (1.12) or the deprecated LegalAcceptanceSubjectResolverInterface (required when enabled).')
                     ->defaultNull()
                 ->end()
                 ->arrayNode('exempt_routes')
