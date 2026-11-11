@@ -7,26 +7,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.9.0] - 2026-11-10](#190---2026-11-10)
+- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
   - [Added](#added)
-- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Changed](#changed)
+  - [Deprecated](#deprecated)
+- [[1.9.0] - 2026-11-10](#190---2026-11-10)
   - [Added](#added-1)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Added](#added-2)
   - [Fixed](#fixed)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
-  - [Added](#added-2)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-3)
-  - [Changed](#changed)
-  - [Security](#security)
-- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-4)
   - [Changed](#changed-1)
+  - [Security](#security)
+- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+  - [Added](#added-5)
+  - [Changed](#changed-2)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-5)
-  - [Changed](#changed-2)
+  - [Added](#added-6)
+  - [Changed](#changed-3)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
@@ -35,22 +39,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-5)
-  - [Changed](#changed-3)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-4)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-6)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-5)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-7)
+  - [Changed](#changed-6)
   - [Fixed](#fixed-2)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-3)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-7)
+  - [Added](#added-8)
 
 ## [Unreleased]
 
-Target 1.10.0. Architecture bar (standard Symfony and DDD hosts, rules 1, 3, 4, 6 and 7; audit 2026-11-10).
+## [1.10.0] - 2026-11-11
+
+Real `entity_manager` option, a versions port and ID-carrying events dispatched only after commit. See [UPGRADING](https://github.com/nowo-tech/LegalKitBundle/blob/v1.10.0/docs/UPGRADING.md#to-1100).
+
 
 ### Added
 
