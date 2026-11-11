@@ -195,7 +195,7 @@ final class DddPortsTest extends VersioningTestCase
         self::assertCount(2, $manager->pendingFor('u-bob', 'en'));
         self::assertCount(2, $events);
 
-        // record() outside a transaction: autocommitted rows, events at once (unchanged).
+        // record() outside a transaction: one transaction of its own (1.10), events right after its commit.
         self::assertSame(2, $manager->record('u-bob', $manager->pendingFor('u-bob', 'en')));
         self::assertCount(4, $events);
     }

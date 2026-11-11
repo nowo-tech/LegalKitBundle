@@ -10,7 +10,8 @@ use Symfony\Contracts\EventDispatcher\Event;
 /**
  * Dispatched after an import / ops-seed apply flushed (public API, SemVer): by
  * {@see LegalDocumentPortability::apply()} with `flush: true`, or by {@see LegalDocumentPortability::afterCommit()}
- * once the host committed an `apply(..., flush: false)` (since 1.8).
+ * once the host committed an `apply(..., flush: false)` (since 1.8), and by `nowo:legal-kit:seed` after it stored the
+ * missing rows (since 1.10; an empty list when nothing was missing).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech

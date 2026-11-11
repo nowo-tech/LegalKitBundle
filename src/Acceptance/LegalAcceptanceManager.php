@@ -12,6 +12,7 @@ use Nowo\LegalKitBundle\Acceptance\Entity\LegalAcceptance;
 use Nowo\LegalKitBundle\Catalog\LegalPageCatalogInterface;
 use Nowo\LegalKitBundle\Document\LegalDocumentResolverInterface;
 use Nowo\LegalKitBundle\Document\ResolvedLegalDocument;
+use Nowo\LegalKitBundle\Event\LegalAcceptancesErasedEvent;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
 use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
@@ -49,7 +50,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      * @param LegalAcceptanceRepository $acceptances Records
      * @param LegalDocumentResolverInterface $resolver Published texts
      * @param EntityManagerInterface $entityManager Entity manager (DBAL inserts)
-     * @param ?EventDispatcherInterface $dispatcher Event dispatcher
+     * @param ?EventDispatcherInterface $dispatcher Event dispatcher (the bundle wires its after-commit dispatcher, 1.10)
      * @param ?ClockInterface $clock Clock (null = native)
      * @param LoggerInterface $logger Logger (never the subject)
      */
@@ -162,7 +163,17 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      */
     public function record(string $subjectId, array $pages): int
     {
-        $batch = $this->insert($subjectId, $pages);
+        $connection = $this->entityManager->getConnection();
+        if ($connection->isTransactionActive()) {
+            // Inside the host transaction: the rows commit or roll back with it; the bundle's after-commit dispatcher
+            // holds the events until its outermost commit (1.10).
+            $batch = $this->insert($subjectId, $pages);
+        } else {
+            // 1.10 (rule 6): the batch in one explicit transaction (all pages or none; a savepoint per row keeps a
+            // duplicate from aborting it), committed before the events.
+            /** @var LegalAcceptanceBatch $batch */
+            $batch = $connection->transactional(fn (): LegalAcceptanceBatch => $this->insert($subjectId, $pages));
+        }
         $this->afterCommit($batch);
 
         return $batch->count();
@@ -224,13 +235,17 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      */
     public function eraseFor(string $subjectId): int
     {
-        return $this->acceptances->deleteForSubject($subjectId);
+        $count = $this->acceptances->deleteForSubject($subjectId);
+        // 1.10 (rule 4): after the commit of the deletion (held until the host's outermost commit inside a transaction).
+        $this->dispatcher?->dispatch(new LegalAcceptancesErasedEvent($subjectId, $count));
+
+        return $count;
     }
 
     /**
-     * Inserts one row per page. Outside a transaction each insert is autocommitted (no shared transaction: on
-     * PostgreSQL a unique violation would abort it); inside the caller's transaction each insert runs in a savepoint
-     * (when the platform has them), so a duplicate rolls back only that row.
+     * Inserts one row per page. Inside a transaction (the caller's, or the one {@see record()} opens) each insert runs
+     * in a savepoint (when the platform has them), so a duplicate rolls back only that row (on PostgreSQL a unique
+     * violation would otherwise abort the whole transaction); outside one each insert is autocommitted.
      *
      * @param list<PendingLegalPage> $pages
      */

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle;
 
+use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
+use Nowo\LegalKitBundle\DependencyInjection\Compiler\AfterCommitMiddlewarePass;
+use Nowo\LegalKitBundle\DependencyInjection\Compiler\EntityManagerMappingPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\IntegrationPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\SecurityPass;
 use Nowo\LegalKitBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -22,7 +26,8 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 final class NowoLegalKitBundle extends Bundle
 {
     /**
-     * Registers the compiler passes (Twig paths, admin security, late integrations).
+     * Registers the compiler passes (Twig paths, admin security, late integrations, dedicated entity manager mapping,
+     * after-commit middleware).
      *
      * @param ContainerBuilder $container The container being compiled
      *
@@ -34,6 +39,20 @@ final class NowoLegalKitBundle extends Bundle
         $container->addCompilerPass(new TwigPathsPass());
         $container->addCompilerPass(new SecurityPass());
         $container->addCompilerPass(new IntegrationPass());
+        // 1.10 (rule 7): the after-commit middleware follows the bundle's connection only (before MiddlewaresPass).
+        $container->addCompilerPass(new AfterCommitMiddlewarePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
+        // 1.10 (rule 6): with doctrine.entity_manager, the entities are mapped on that manager (not prepended to the
+        // default one) and removed from every other manager's chain (auto_mapping), after the mapping passes. An
+        // unknown manager fails first, with the option's name in the message.
+        $container->addCompilerPass(new EntityManagerMappingPass(true), PassConfig::TYPE_BEFORE_OPTIMIZATION, 20);
+        foreach ([
+            NowoLegalKitExtension::DEDICATED_MAPPING_PARAMETER            => [EntityManagerMappingPass::ENTITY_NAMESPACE, __DIR__ . '/Entity'],
+            NowoLegalKitExtension::DEDICATED_VERSIONING_MAPPING_PARAMETER => [EntityManagerMappingPass::VERSIONING_NAMESPACE, __DIR__ . '/Versioning/Entity'],
+            NowoLegalKitExtension::DEDICATED_ACCEPTANCE_MAPPING_PARAMETER => [EntityManagerMappingPass::ACCEPTANCE_NAMESPACE, __DIR__ . '/Acceptance/Entity'],
+        ] as $enabled => [$namespace, $directory]) {
+            $container->addCompilerPass(DoctrineOrmMappingsPass::createAttributeMappingDriver([$namespace], [$directory], [NowoLegalKitExtension::ENTITY_MANAGER_PARAMETER], $enabled));
+        }
+        $container->addCompilerPass(new EntityManagerMappingPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
     }
 
     /**

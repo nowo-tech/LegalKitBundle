@@ -50,6 +50,9 @@ interface LegalDocumentResolverInterface
      * Raw effective text (tokens kept) of a page: the stored row when it has text, else the seed. `$stored` is the
      * bundle's own row (bundle-internal: an application layer passes null).
      *
+     * @deprecated since 1.10 as a public API (it takes the Doctrine entity): application code uses {@see resolve()} or
+     *             {@see seedForEditor()}; in 2.0 it leaves this port (bundle-internal)
+     *
      * @return array{title: string, body: string, source: 'fallback'|'seed'|'stored'}|null
      */
     public function effective(string $slug, string $locale, ?LegalDocument $stored): ?array;

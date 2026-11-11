@@ -578,16 +578,59 @@ All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subject
 
 ### Transactions and after-commit events
 
-- `record()` (the accept page) inserts with autocommit and dispatches `LegalAcceptedEvent` right after: the event
-  follows the commit. A decorator of `LegalAcceptanceManagerInterface` must have **durably written** the rows when its
-  `record()` returns (no buffering, no deferred commit): the accept page marks the session satisfied right after it, so
-  a row that is never written would leave the user through the gate without an acceptance on record. Inside **your** transaction (sign-up: "create account + accept terms") call
-  `recordInTransaction()` instead: it inserts in your transaction (one savepoint per row, so a duplicate does not
-  abort it) and dispatches nothing; after your commit pass the returned `LegalAcceptanceBatch` to `afterCommit()`.
-  On rollback, drop the batch: no row, no event.
+- `record()` (the accept page) writes the batch in one transaction of its own (all pages or none, since 1.10) and
+  dispatches `LegalAcceptedEvent` after its commit. Called inside **your** transaction, the rows join it and the events
+  wait for your **outermost commit** (dropped on rollback; a DBAL middleware on the bundle's connection follows the
+  real transaction and its savepoints). They are never dispatched from inside the commit: they go out at the next
+  point where DBAL reports no open transaction — the next bundle event, a Doctrine `postFlush`, the end of the request,
+  console command or Messenger message, or an explicit `LegalPendingEventsInterface::dispatchPending()` right after
+  your commit — so a listener that writes to the database runs in a transaction of its own. A decorator of `LegalAcceptanceManagerInterface` must have **durably written**
+  the rows when its `record()` returns (no buffering, no deferred commit): the accept page marks the session satisfied
+  right after it. To keep the dispatch in your hands (sign-up: "create account + accept terms"), call
+  `recordInTransaction()`: it inserts in your transaction (one savepoint per row, so a duplicate does not abort it) and
+  dispatches nothing; after your commit pass the returned `LegalAcceptanceBatch` to `afterCommit()`. On rollback, drop
+  the batch: no row, no event.
+- `eraseFor()` dispatches `LegalAcceptancesErasedEvent` (`subjectId`, `count`) after the deletion is committed (after
+  your outermost commit inside your transaction), since 1.10.
 - `LegalDocumentPortability::apply($rows, flush: false)` keeps your transaction open and dispatches nothing; after your
   commit call `afterCommit($rows)` to dispatch `LegalDocumentsImportedEvent` (`apply(..., flush: true)` does it itself).
-- `LegalPageVersions::publish()` inside a transaction: call `LegalPageVersions::afterCommit($version)` after the commit.
+  Pass the actor as `new LegalActorId('…')` (1.10) instead of a user entity. `nowo:legal-kit:seed` dispatches
+  `LegalDocumentsImportedEvent` too (1.10).
+- `LegalPageVersionsInterface` (1.10, public alias with `versioning.enabled`) returns `LegalPageVersionView` DTOs:
+  `latestVersion()`, `publishVersion(..., flush: true)`, `afterPublish()`. With `flush: false` the version is only
+  persisted (the host controls the unit of work): flush and commit yourself, then call `afterPublish($view)`. With
+  `flush: true` inside a transaction, call `afterPublish($view)` after the commit. The entity-typed `latest()`,
+  `publish()` and `afterCommit()` of `LegalPageVersions` are deprecated.
+
+### Entity managers (standard and DDD hosts, 1.10)
+
+The bundle's writes go to the entity manager that maps its entities:
+
+- *Standard application* (one default manager, no option): that is your default manager, as before. The admin editor,
+  imports with `flush: true`, the seed command and `publishVersion(flush: true)` flush it (explicit admin / CRUD writes,
+  normally inside their own transaction); acceptances are DBAL inserts that never flush it. From your own code with
+  pending changes of your own, use `publishVersion(..., flush: false)` / `apply(..., flush: false)` inside your
+  transaction, or give the bundle its own manager.
+- *DDD application* (XML-mapped domain, several managers): set `doctrine.entity_manager`. The entities are mapped on
+  that manager only (removed from the others, `auto_mapping: true` included), every bundle service uses it, the build
+  fails when it does not exist, and your default manager is never flushed by the bundle. Keep `default_entity_manager`
+  pointing at yours. Use `doctrine.blame: actor_id` (or `none`): a relation to your user entity cannot cross managers
+  (the build fails otherwise). The `legal` manager must map only the bundle entities (the build refuses your default
+  manager or one that maps other classes). A failed write that closed the bundle's manager is recovered at the next request,
+  command or message; your managers are never reset by the bundle.
+
+  ```yaml
+  doctrine:
+      orm:
+          default_entity_manager: default
+          entity_managers:
+              default: { connection: default, mappings: { Domain: { type: xml, dir: '%kernel.project_dir%/config/doctrine', prefix: 'App\Domain' } } }
+              legal: { connection: default }   # same connection: your transactions include the legal rows
+  nowo_legal_kit:
+      doctrine:
+          entity_manager: legal
+          blame: actor_id
+  ```
 
 ### Example: anti-corruption adapter
 
@@ -653,10 +696,10 @@ final readonly class LegalAcceptanceBridge
 
 ### Known limitations
 
-- `eraseFor()` and `nowo:legal-kit:seed` dispatch no event.
-- `LegalPageVersions::latest()` / `publish()` return the `LegalPageVersion` entity; keep them inside your adapter.
-- Hosts that declare `doctrine.orm.entity_managers` must register the bundle mappings themselves; the admin editor
-  uses the default entity manager.
+- `LegalDocumentResolverInterface::effective()` still takes the `LegalDocument` entity (bundle-internal, deprecated as
+  a public API since 1.10); use `resolve()` / `seedForEditor()`.
+- The admin editor and `LegalSeedUpgrader` keep working on the entity (inside their own transaction).
+- `nowo-tech/audit-kit-bundle` is still required with `doctrine.blame: actor_id` / `none`.
 
 ## Translations
 

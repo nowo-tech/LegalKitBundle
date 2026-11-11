@@ -96,7 +96,7 @@ nowo_legal_kit:
     seo: { sitemap: auto, head: auto }
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
-    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [] }   # blame: relation | actor_id | none
+    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [], entity_manager: null }   # blame: relation | actor_id | none; entity_manager: 1.10
 ```
 
 ## Locales
@@ -248,6 +248,22 @@ security:
 `doctrine.table_prefix: app_` → table `app_legal_document`, indexes `app_uniq_legal_document_slug_locale`,
 `app_idx_legal_document_created_by`, `app_idx_legal_document_updated_by` (REQ-ORM-002). Adopters of an existing table
 keep it empty.
+
+## Doctrine entity manager
+
+`doctrine.entity_manager` (1.10, default `null`): the Doctrine entity manager of the bundle entities. `null` keeps the
+behaviour of earlier versions (the autowired default manager; mapping prepended unless the host declares
+`doctrine.orm.entity_managers`). A literal manager name maps `legal_document`, `legal_page_version` and
+`legal_acceptance` on that manager only (also removed from a default manager with `auto_mapping: true`), wires every
+bundle service (versions, acceptances, admin editor, portability, seed and upgrade commands) to it, attaches the
+after-commit DBAL middleware to its connection, and fails the build when the manager does not exist or does not map
+the entities. It must name a manager that maps **only the bundle entities**: the build also fails when it is your default
+manager (`doctrine.default_entity_manager`, for example `default` on a single-manager Flex application) or when that
+manager maps anything else (other mappings, `auto_mapping`, a default driver), because the bundle owns it and resets /
+clears it between requests. It must be set in the host configuration (the mapping is decided before parameters resolve). Combine it
+with `doctrine.blame: actor_id` or `none` (the build fails with `relation`). The bundle owns that manager: when a
+failed write closed it, it is reset at the next request, console command or Messenger message, and cleared at the end
+of each (worker safe without the services resetter). See [USAGE](USAGE.md#entity-managers-standard-and-ddd-hosts-110).
 
 ## Doctrine blame
 
