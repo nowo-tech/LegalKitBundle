@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.11.1](#to-1111)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
@@ -29,6 +30,14 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.11.1
+
+From **1.11.0**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 Next patch: 1.11.1. No configuration change.
 
