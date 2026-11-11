@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
+use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -80,6 +82,30 @@ abstract class KernelTestCase extends TestCase
         return $manager;
     }
 
+    /**
+     * Stores a changed legal document the way the bundle does (its repository: the bundle's private manager since 1.12,
+     * which a flush of the application's manager never writes).
+     */
+    protected function save(TestKernel $kernel, LegalDocument $document): void
+    {
+        $repository = $this->testContainer($kernel)->get(LegalDocumentRepository::class);
+        self::assertInstanceOf(LegalDocumentRepository::class, $repository);
+        $repository->save($document);
+    }
+
+    /**
+     * Detaches every row from the bundle's private manager (1.12), as the unit-of-work boundaries do.
+     */
+    protected function clearBundleManager(TestKernel $kernel): void
+    {
+        $container = $this->testContainer($kernel);
+        if ($container->has(LegalKitEntityManager::class)) {
+            $private = $container->get(LegalKitEntityManager::class);
+            self::assertInstanceOf(LegalKitEntityManager::class, $private);
+            $private->clear();
+        }
+    }
+
     protected function store(TestKernel $kernel, string $slug, string $locale, string $title, string $body): LegalDocument
     {
         $document = new LegalDocument($slug, $locale);
@@ -97,6 +123,7 @@ abstract class KernelTestCase extends TestCase
     {
         $manager = $this->entityManager($kernel);
         $manager->clear();
+        $this->clearBundleManager($kernel);
 
         return $manager->getRepository(LegalDocument::class)->findOneBy(['slug' => $slug, 'locale' => $locale]);
     }

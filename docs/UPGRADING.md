@@ -31,6 +31,56 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+Next minor: 1.12.0. From **1.11.x**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+No schema change, no data move: the tables, columns and mapping stay where they are.
+
+1. **The bundle writes through a private entity manager** when `doctrine.entity_manager` is not set (the zero-config
+   path). Nothing to configure. What changes for your code:
+   - A bundle call never flushes your pending changes any more. If your code relied on the bundle's flush to write
+     **your own** entities (for example a `publishVersion()` or an import used as the flush of your unit of work),
+     flush your manager yourself.
+   - Change the legal entities through the bundle (`LegalDocumentRepository::save()`, the ports). A `LegalDocument`
+     loaded through the bundle's repository, or through `$yourEntityManager->getRepository(LegalDocument::class)`
+     (same service), belongs to the private manager: `$yourEntityManager->flush()` does not write a change made to it.
+   - `publishVersion(..., flush: false)`, `apply(..., flush: false)` / `import()` and `save(..., flush: false)` write the
+     bundle's rows at once (inside your transaction when one is open; your rollback undoes them). Keep calling
+     `afterPublish()` / `afterCommit()` after your commit for the events. Without an open transaction the row is
+     committed at once; wrap the call and your own writes in `$connection->transactional()` to stay atomic with them.
+   - `LegalDocument::getCreatedBy()` / `getUpdatedBy()` (and the same on `LegalPageVersion`, blame `relation`) return a
+     reference (proxy) of the bundle's private manager, not the object your manager holds: compare users by id, not
+     with `===`, and do not flush your manager expecting a change made through it to be written.
+   - The private manager mirrors the SQL filters enabled on your manager (and their parameters) on every call, so a
+     tenant or soft-delete filter applies to the bundle's reads as before. It also shares your manager's event
+     manager: your Doctrine listeners see the bundle's flushes, as they did when the bundle used your manager.
+   - Escape hatch: `nowo_legal_kit.doctrine.private_entity_manager: false` restores the 1.11 behaviour. Deprecated,
+     removed in 2.0.
+2. **Optional `doctrine.connection`** (DDD hosts): put the private manager on another DBAL connection (actor-id or no
+   blame). Existing tables are not moved: create them on that connection yourself, and copy the rows if you switch an
+   existing installation. Acceptances (`record()`, `recordInTransaction()`) then run on that connection: they are no
+   longer atomic with a transaction you open on your default connection (for example "create account + accept terms").
+   Keep the default connection when that atomicity matters.
+3. **Deprecations** (removed in 2.0):
+   - `LegalAcceptanceSubjectResolverInterface::resolve(UserInterface)` → implement
+     `LegalSubjectIdResolverInterface::subjectIdFor(LegalSubjectUser $user)`; read `$user->principal` (your user object)
+     or `$user->identifier`. `acceptance.subject_resolver` accepts both; the new form wins when a service implements
+     both.
+   - `LegalAcceptanceExemptionInterface::isExempt(Request)` → implement
+     `LegalAcceptanceRequestExemptionInterface::isExemptRequest(LegalRequestContext $request)` (autoconfigured; read
+     `$request->route`, `$request->path`, `$request->method`, ...).
+   - `doctrine.private_entity_manager` (the option itself: setting it triggers a deprecation; remove it).
+   - A deprecation is triggered at container build for an `acceptance.subject_resolver` that implements only
+     `LegalAcceptanceSubjectResolverInterface` and for each exemption voter that implements only
+     `LegalAcceptanceExemptionInterface`.
+   - `LegalSubjectUser::$principal` is typed `object` on purpose (no security type in the port): check it against your
+     own user class with `instanceof`, or ignore it and resolve from `$identifier`.
+   - A user object as the import `$actor` (since 1.10): use `LegalDocumentImportInterface::import($rows, new
+     LegalActorId($id))`; 2.0 types `apply()`'s `$actor` as `?LegalActorId`.
+
 ## To 1.11.1
 
 From **1.11.0**:

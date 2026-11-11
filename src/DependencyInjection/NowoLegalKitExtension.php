@@ -13,6 +13,7 @@ use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRepository;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRequestExemptionInterface;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
 use Nowo\LegalKitBundle\Blame\ActorIdBlameListener;
 use Nowo\LegalKitBundle\Blame\BlameMappingListener;
@@ -33,6 +34,9 @@ use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManagerSubscriber;
+use Nowo\LegalKitBundle\Doctrine\LegalKitManagerRegistry;
 use Nowo\LegalKitBundle\Doctrine\LegalPendingEventsInterface;
 use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\Doctrine\TablePrefixListener;
@@ -132,6 +136,19 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
     /** Container parameter holding `doctrine.entity_manager` (null = the autowired default manager; 1.10). */
     public const string ENTITY_MANAGER_PARAMETER = 'nowo_legal_kit.doctrine.entity_manager';
+
+    /** Container parameter holding `doctrine.connection` (null = the connection of the manager that maps the entities; 1.12). */
+    public const string CONNECTION_PARAMETER = 'nowo_legal_kit.doctrine.connection';
+
+    /** Container parameter: true when the bundle writes through its private entity manager (1.12). */
+    public const string PRIVATE_ENTITY_MANAGER_PARAMETER = 'nowo_legal_kit.doctrine.private_entity_manager';
+
+    /** Bundle repositories whose `$registry` argument resolves the bundle entities to the private manager (1.12). */
+    private const array REPOSITORY_SERVICES = [
+        LegalDocumentRepository::class,
+        LegalPageVersionRepository::class,
+        LegalAcceptanceRepository::class,
+    ];
 
     /** Set by prepend() with `doctrine.entity_manager`: the legal document entity is mapped on that manager only. */
     public const string DEDICATED_MAPPING_PARAMETER = 'nowo_legal_kit.doctrine.dedicated_mapping';
@@ -321,9 +338,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $this->configureVersioning($container, $config, $configs);
         $this->configureCommands($container, (bool) ($config['console']['legacy_aliases'] ?? true));
 
-        /** @var array{table_prefix: string, blame: string, accepted_user_classes: list<string>, entity_manager: string|null} $doctrine */
+        /** @var array{table_prefix: string, blame: string, accepted_user_classes: list<string>, entity_manager: string|null, private_entity_manager: bool, connection: string|null} $doctrine */
         $doctrine = $config['doctrine'];
-        $this->configureEntityManager($container, $doctrine['entity_manager'], $doctrine['blame']);
+        $this->configureEntityManager($container, $doctrine['entity_manager'], $doctrine['blame'], $doctrine['private_entity_manager'], $doctrine['connection']);
         if ($doctrine['table_prefix'] !== '') {
             $container->register(TablePrefixListener::class, TablePrefixListener::class)
                 ->setArguments([$doctrine['table_prefix']])
@@ -331,7 +348,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 ->addTag('doctrine.event_listener', ['event' => 'loadClassMetadata']);
         }
         $this->configureBlame($container, $doctrine['blame'], $doctrine['accepted_user_classes']);
-        $this->wireEntityManager($container, $doctrine['entity_manager']);
+        $this->wireEntityManager($container, $doctrine['entity_manager'], $doctrine['private_entity_manager']);
         $container->getDefinition(SeedCommand::class)->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE));
 
         /** @var array{sitemap: bool|string, head: bool|string} $seo */
@@ -354,14 +371,36 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     /**
      * 1.10 (rules 6 and 7): the after-commit dispatcher and its DBAL middleware (on the bundle's connection only, see
      * AfterCommitMiddlewarePass), and `doctrine.entity_manager`: every bundle service that takes an entity manager gets
-     * that one (the repositories resolve it by entity class: the mapping lives on that manager only).
+     * that one (the repositories resolve it by entity class: the mapping lives on that manager only). 1.12 (rules 6 and
+     * 8): without it, the private entity manager ({@see LegalKitEntityManager}, optionally on `doctrine.connection`)
+     * and its boundary subscriber.
      */
-    private function configureEntityManager(ContainerBuilder $container, ?string $entityManager, string $blame): void
+    private function configureEntityManager(ContainerBuilder $container, ?string $entityManager, string $blame, bool $private, ?string $connection): void
     {
         if ($entityManager !== null && $blame === Configuration::BLAME_RELATION) {
             throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.entity_manager "%s" needs nowo_legal_kit.doctrine.blame: actor_id or none: the default "relation" blame points at your user entity, which the bundle\'s own entity manager does not map.', $entityManager));
         }
+        if ($connection !== null && ($entityManager !== null || !$private)) {
+            throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.connection "%s" sets the connection of the bundle\'s private entity manager: remove doctrine.entity_manager (that manager has its own connection) and keep private_entity_manager true.', $connection));
+        }
+        if ($connection !== null && $blame === Configuration::BLAME_RELATION) {
+            throw new InvalidConfigurationException(sprintf('nowo_legal_kit.doctrine.connection "%s" needs nowo_legal_kit.doctrine.blame: actor_id or none: the default "relation" blame is a foreign key to your user table, which another connection does not hold.', $connection));
+        }
+        $private = $private && $entityManager === null;
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManager);
+        $container->setParameter(self::CONNECTION_PARAMETER, $connection);
+        $container->setParameter(self::PRIVATE_ENTITY_MANAGER_PARAMETER, $private);
+        if ($private) {
+            // 1.12 (rule 6): the bundle never flushes the application's managers (see LegalKitEntityManager).
+            $container->register(LegalKitEntityManager::class, LegalKitEntityManager::class)
+                ->setArguments([new Reference('doctrine'), $connection])
+                ->addTag('kernel.reset', ['method' => 'reset']);
+            $container->register(LegalKitManagerRegistry::class, LegalKitManagerRegistry::class)
+                ->setArguments([new Reference('doctrine'), new Reference(LegalKitEntityManager::class)]);
+            $container->register(LegalKitEntityManagerSubscriber::class, LegalKitEntityManagerSubscriber::class)
+                ->setArguments([new Reference(LegalKitEntityManager::class)])
+                ->addTag('kernel.event_subscriber');
+        }
         if ($entityManager !== null) {
             // LG-LK-M1: recover (reset when closed) and clear the bundle's own manager at every unit-of-work boundary.
             // Tagged as a subscriber by EntityManagerMappingPass only once the manager is known to be the bundle's own.
@@ -380,7 +419,10 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ->addTag('doctrine.event_listener', ['event' => 'postFlush']);
         $container->setAlias(LegalPendingEventsInterface::class, AfterCommitEventDispatcher::class)->setPublic(true);
         $container->register(AfterCommitMiddleware::class, AfterCommitMiddleware::class)
-            ->setArguments([new Reference(AfterCommitEventDispatcher::class)])
+            ->setArguments($private
+                // 1.12: the private manager is also told about rollbacks (it is replaced after one).
+                ? [new Reference(AfterCommitEventDispatcher::class), new Reference(LegalKitEntityManager::class)]
+                : [new Reference(AfterCommitEventDispatcher::class)])
             ->addTag('doctrine.middleware');
 
         if ($container->hasExtension('doctrine') && $container->hasParameter(self::DEDICATED_MAPPING_PARAMETER) !== ($entityManager !== null)) {
@@ -389,15 +431,23 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
     }
 
     /**
-     * Points the `$entityManager` argument of the bundle services at `doctrine.entity_manager` (after every service is
-     * registered).
+     * Points the `$entityManager` argument of the bundle services at `doctrine.entity_manager`, or (1.12) at the
+     * private manager and the repositories at its registry (after every service is registered).
      */
-    private function wireEntityManager(ContainerBuilder $container, ?string $entityManager): void
+    private function wireEntityManager(ContainerBuilder $container, ?string $entityManager, bool $private): void
     {
-        if ($entityManager === null) {
+        if ($entityManager === null && $private) {
+            $reference = new Reference(LegalKitEntityManager::class);
+            foreach (self::REPOSITORY_SERVICES as $service) {
+                if ($container->hasDefinition($service)) {
+                    $container->getDefinition($service)->setArgument('$registry', new Reference(LegalKitManagerRegistry::class));
+                }
+            }
+        } elseif ($entityManager !== null) {
+            $reference = new Reference(sprintf('doctrine.orm.%s_entity_manager', $entityManager));
+        } else {
             return;
         }
-        $reference = new Reference(sprintf('doctrine.orm.%s_entity_manager', $entityManager));
         foreach (self::ENTITY_MANAGER_SERVICES as $service) {
             if ($container->hasDefinition($service)) {
                 $container->getDefinition($service)->setArgument('$entityManager', $reference);
@@ -605,6 +655,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         /** @var string $resolver */
         $resolver = $acceptance['subject_resolver'];
         $container->registerForAutoconfiguration(LegalAcceptanceExemptionInterface::class)->addTag(LegalAcceptanceExemptionInterface::TAG);
+        $container->registerForAutoconfiguration(LegalAcceptanceRequestExemptionInterface::class)->addTag(LegalAcceptanceRequestExemptionInterface::TAG);
         $register(LegalAcceptanceRepository::class);
         $container->getDefinition(LegalDocumentAdminController::class)->setArgument('$acceptances', new Reference(LegalAcceptanceRepository::class));
         // 1.10 (rule 7): LegalAcceptedEvent / LegalAcceptancesErasedEvent after the outermost commit (dropped on rollback).
@@ -619,7 +670,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $register(AcceptanceRequestMatcher::class)
             ->setArgument('$exemptRoutes', $acceptance['exempt_routes'])
             ->setArgument('$exemptPaths', $acceptance['exempt_paths'])
-            ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG));
+            ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG))
+            ->setArgument('$requestVoters', new TaggedIteratorArgument(LegalAcceptanceRequestExemptionInterface::TAG));
         $register(VerifyAcceptanceHashCommand::class);
         $register(LegalAcceptanceType::class);
         $register(LegalAcceptanceController::class)

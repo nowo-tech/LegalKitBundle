@@ -36,12 +36,15 @@
   - [Forms](#forms)
   - [Twig functions](#twig-functions)
 - [Extension points](#extension-points)
+- [Standard host](#standard-host)
+- [DDD host](#ddd-host)
 - [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
   - [Keep your domain free of the bundle](#keep-your-domain-free-of-the-bundle)
   - [Ports you implement (infrastructure adapters)](#ports-you-implement-infrastructure-adapters)
   - [Ports you call](#ports-you-call)
   - [Signals you consume](#signals-you-consume)
   - [Transactions and after-commit events](#transactions-and-after-commit-events)
+  - [Entity managers (standard and DDD hosts, 1.10)](#entity-managers-standard-and-ddd-hosts-110)
   - [Example: anti-corruption adapter](#example-anti-corruption-adapter)
   - [Known limitations](#known-limitations)
 - [Translations](#translations)
@@ -344,20 +347,34 @@ is refused at build time; cookie consent stays with CookieConsentBundle (`doctor
 ### Host contracts
 
 ```php
-use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
-use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceExemptionInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceRequestExemptionInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalRequestContext;
+use Nowo\LegalKitBundle\Acceptance\LegalSubjectIdResolverInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalSubjectUser;
 
-final class SubjectResolver implements LegalAcceptanceSubjectResolverInterface
+final class SubjectResolver implements LegalSubjectIdResolverInterface // acceptance.subject_resolver
 {
     // Stable, non-personal id matching ^[A-Za-z0-9._:@-]{1,128}$ (never an e-mail); null = not subject to acceptance.
-    public function resolve(UserInterface $user): ?string { return $user instanceof User ? $user->getPublicId() : null; }
+    public function subjectIdFor(LegalSubjectUser $user): ?string
+    {
+        return $user->principal instanceof User ? $user->principal->getPublicId() : null;
+    }
 }
 
-final class MfaExemption implements LegalAcceptanceExemptionInterface // autoconfigured
+final class MfaExemption implements LegalAcceptanceRequestExemptionInterface // autoconfigured
 {
-    public function isExempt(Request $request): bool { return str_starts_with((string) $request->attributes->get('_route'), 'app_mfa_'); }
+    public function isExemptRequest(LegalRequestContext $request): bool
+    {
+        return str_starts_with((string) $request->route, 'app_mfa_');
+    }
 }
 ```
+
+Both ports are framework-free since 1.12 (architecture bar rule 3): `LegalSubjectUser` carries the user identifier,
+class, roles and the authenticated object (typed `object`), and `LegalRequestContext` the path, method, route name and
+scalar parameters, format, XHR flag and locale. The 1.0 forms `LegalAcceptanceSubjectResolverInterface::resolve(UserInterface)`
+and `LegalAcceptanceExemptionInterface::isExempt(Request)` still work and are deprecated (removed in 2.0); when one
+service implements both resolver forms, the new one is used.
 
 ### The request gate
 
@@ -554,13 +571,56 @@ The category column of the cookie table shows `cookies.category.<key>` (domain `
 | `LegalPageCatalogInterface` | alias it for a dynamic catalogue |
 | `LegalKitAccessCheckerInterface` | `security.access_checker` |
 | `LegalVersionPublisherCheckerInterface` | `versioning.publisher_checker` |
-| `LegalAcceptanceSubjectResolverInterface` | `acceptance.subject_resolver` (required with acceptance) |
-| `LegalAcceptanceExemptionInterface` | autoconfigured, tag `nowo_legal_kit.acceptance_exemption` |
+| `LegalSubjectIdResolverInterface` | `acceptance.subject_resolver` (required with acceptance; 1.12, or the deprecated `LegalAcceptanceSubjectResolverInterface`) |
+| `LegalAcceptanceRequestExemptionInterface` | autoconfigured, tag `nowo_legal_kit.acceptance_request_exemption` (1.12; the deprecated `LegalAcceptanceExemptionInterface` keeps tag `nowo_legal_kit.acceptance_exemption`) |
 | `LegalAcceptanceManagerInterface` | pending pages, records, `exportFor` / `eraseFor` (alias of `LegalAcceptanceManager`) |
 | Events | see [Events](#events) |
 | `LegalDocumentResolverInterface` | published texts (alias of `LegalDocumentResolver`; since 1.9) |
 | `LegalDocumentPortabilityInterface` | export / normalize / apply / afterCommit (public alias of `LegalDocumentPortability`; since 1.9) |
+| `LegalDocumentImportInterface` | typed `import()` (public alias of `LegalDocumentPortability`; since 1.12) |
 | `LegalActorIdResolverInterface` | alias it (blame `actor_id` mode) |
+
+## Standard host
+
+A standard Symfony application needs no Doctrine option (zero config):
+
+- The bundle prepends the attribute mapping of its entities to your default entity manager (unless you declare
+  `doctrine.orm.entity_managers`, see [INSTALLATION](INSTALLATION.md)); `doctrine:migrations:diff` sees the tables as
+  usual. `doctrine.blame: relation` (default) keeps the AuditKit `created_by_id` / `updated_by_id` relation to your user.
+- **Since 1.12 the bundle writes through its own private entity manager** (`doctrine.private_entity_manager: true`,
+  default): a manager created on the connection, mapping and event listeners of the manager that maps the bundle
+  entities. The admin editor, imports, `publishVersion()`, the seed and upgrade commands and the repositories'
+  `save()` / `remove()` flush **only the legal rows**; your pending changes are never written by a bundle call.
+  The connection is shared, so a bundle write inside your transaction joins it and is undone by your rollback.
+- Load and change the legal entities through the bundle (ports, `LegalDocumentRepository::save()`), not through your
+  own manager: a `LegalDocument` loaded by the bundle's repository belongs to the private manager, so
+  `$yourEntityManager->flush()` does not write a change made to it. `$yourEntityManager->getRepository(LegalDocument::class)`
+  returns the bundle's repository service (bound to the private manager).
+- With `flush: false`, `publishVersion()` and `apply()` / `import()` still write their rows at once (nobody else
+  flushes the private manager); call `afterPublish()` / `afterCommit()` after your commit as before.
+- Worker mode: the private manager is cleared at the start and the end of every request, console command and Messenger
+  message, replaced when a failed write closed it or a rollback on its connection made its identity map stale, and
+  dropped at `kernel.reset` (see [FRANKENPHP-WORKER-AUDIT](FRANKENPHP-WORKER-AUDIT.md)).
+- `doctrine.private_entity_manager: false` restores the 1.11 behaviour (the bundle flushes the manager that maps its
+  entities, usually your default one). It is deprecated and removed in 2.0.
+
+## DDD host
+
+A DDD / hexagonal application opts in; nothing below is required by the standard path:
+
+- Plain-PHP domain with XML mapping: the bundle never asks your entities for a base class, trait or interface. Use
+  `doctrine.blame: actor_id` (string actor ids, no foreign key to your users) or `none`.
+- Framework-free ports (1.12): `LegalSubjectIdResolverInterface` (subject id from a `LegalSubjectUser` VO),
+  `LegalAcceptanceRequestExemptionInterface` (exemptions from a `LegalRequestContext` VO) and
+  `LegalDocumentImportInterface::import(rows, ?LegalActorId, flush)` (typed actor). The ports you call return DTOs
+  (`ResolvedLegalDocument`, `LegalPageVersionView`, `LegalAcceptanceBatch`) and the events carry scalars.
+- Persistence: keep the zero-config private manager, put it on another connection with `doctrine.connection`
+  (rule 8; actor-id or no blame), or give the bundle a manager of its own with `doctrine.entity_manager` (1.10). In
+  every mode the bundle never flushes, clears or resets your managers.
+- `tests/Integration/DddHostKernelTest.php` boots such a host (XML-mapped `Account`, actor-id blame, the 1.12 ports)
+  and proves that its unit of work stays pending across bundle writes.
+
+The details follow.
 
 ## Using it from a DDD / hexagonal application
 
@@ -571,8 +631,8 @@ request gate). Treat it as a supporting subdomain next to yours: your domain nev
 ### Keep your domain free of the bundle
 
 - **Acceptances are keyed by a string subject id**, not by a relation to your user. Implement
-  `LegalAcceptanceSubjectResolverInterface` in your infrastructure layer and return a stable, non-personal id
-  (e.g. the public id of your user aggregate).
+  `LegalSubjectIdResolverInterface` (1.12; or the deprecated `LegalAcceptanceSubjectResolverInterface`) in your
+  infrastructure layer and return a stable, non-personal id (e.g. the public id of your user aggregate).
 - **Blame columns** on `legal_document` and `legal_page_version` follow `nowo_legal_kit.doctrine.blame` (operator
   provenance only; acceptance evidence is keyed by the subject id in every mode):
   - `relation` (default, unchanged): `created_by_id` / `updated_by_id` are an AuditKit `ManyToOne` to
@@ -594,9 +654,9 @@ request gate). Treat it as a supporting subdomain next to yours: your domain nev
 
 | Port | Use |
 | --- | --- |
-| `LegalAcceptanceSubjectResolverInterface` | Symfony user → subject id (`acceptance.subject_resolver`) |
+| `LegalSubjectIdResolverInterface` | `LegalSubjectUser` VO → subject id (`acceptance.subject_resolver`; 1.12, replaces the deprecated `LegalAcceptanceSubjectResolverInterface`) |
 | `LegalActorIdResolverInterface` | actor id of the blame columns (`doctrine.blame: actor_id`; alias) |
-| `LegalAcceptanceExemptionInterface` | requests never sent to the re-acceptance page |
+| `LegalAcceptanceRequestExemptionInterface` | `LegalRequestContext` VO → requests never sent to the re-acceptance page (1.12, autoconfigured; replaces the deprecated `LegalAcceptanceExemptionInterface`) |
 | `LegalSeedProviderInterface`, `LegalTokenResolverInterface` | texts and `%token%` values from your own sources |
 | `LegalPageCatalogInterface`, `LegalHtmlSanitizerInterface` | replace the catalogue or the sanitiser (alias) |
 | `LegalKitAccessCheckerInterface`, `LegalVersionPublisherCheckerInterface` | admin / publish authorisation from your own policy |
@@ -608,6 +668,7 @@ request gate). Treat it as a supporting subdomain next to yours: your domain nev
 | `LegalAcceptanceManagerInterface` | `pendingFor`, `record`, `recordInTransaction` + `afterCommit`, `exportFor`, `eraseFor` (aliased to `LegalAcceptanceManager`; decorate the interface, the bundle's gate and accept page use it too) |
 | `LegalDocumentResolverInterface` | `resolve()`: the published text as a `ResolvedLegalDocument` DTO (aliased to `LegalDocumentResolver`; the public page, admin, gate and commands use it too) |
 | `LegalDocumentPortabilityInterface` | `export` / `normalize` / `apply` / `afterCommit` for imports (public alias of `LegalDocumentPortability`; the export / import commands use it too) |
+| `LegalDocumentImportInterface` | `import(rows, ?LegalActorId, flush)`: the typed form of `apply()` (1.12, public alias of `LegalDocumentPortability`) |
 
 Neither port checks access: the resolver only reads texts, and `apply()` writes whatever it is given (sanitised).
 Decide who may import in your own use case, as the bundle's admin and commands do. A replacement resolver also
@@ -639,23 +700,32 @@ All events carry scalars or DTOs, never entities: `LegalAcceptedEvent` (`subject
   your outermost commit inside your transaction), since 1.10.
 - `LegalDocumentPortability::apply($rows, flush: false)` keeps your transaction open and dispatches nothing; after your
   commit call `afterCommit($rows)` to dispatch `LegalDocumentsImportedEvent` (`apply(..., flush: true)` does it itself).
-  Pass the actor as `new LegalActorId('…')` (1.10) instead of a user entity. `nowo:legal-kit:seed` dispatches
+  With the private manager (1.12, default) the rows are written at once, inside your transaction when one is open.
+  Pass the actor as `new LegalActorId('…')` (1.10) instead of a user entity, or call the typed
+  `LegalDocumentImportInterface::import()` (1.12). `nowo:legal-kit:seed` dispatches
   `LegalDocumentsImportedEvent` too (1.10).
 - `LegalPageVersionsInterface` (1.10, public alias with `versioning.enabled`) returns `LegalPageVersionView` DTOs:
-  `latestVersion()`, `publishVersion(..., flush: true)`, `afterPublish()`. With `flush: false` the version is only
-  persisted (the host controls the unit of work): flush and commit yourself, then call `afterPublish($view)`. With
+  `latestVersion()`, `publishVersion(..., flush: true)`, `afterPublish()`. With `flush: false` no event is dispatched:
+  commit yourself, then call `afterPublish($view)`. With the private manager (1.12, default) the row is written at once
+  (inside your transaction when one is open); with `doctrine.entity_manager` or `private_entity_manager: false` it is
+  only persisted and you flush that manager. With
   `flush: true` inside a transaction, call `afterPublish($view)` after the commit. The entity-typed `latest()`,
   `publish()` and `afterCommit()` of `LegalPageVersions` are deprecated.
 
 ### Entity managers (standard and DDD hosts, 1.10)
 
-The bundle's writes go to the entity manager that maps its entities:
+The bundle's writes never go through your entity manager (1.12):
 
-- *Standard application* (one default manager, no option): that is your default manager, as before. The admin editor,
-  imports with `flush: true`, the seed command and `publishVersion(flush: true)` flush it (explicit admin / CRUD writes,
-  normally inside their own transaction); acceptances are DBAL inserts that never flush it. From your own code with
-  pending changes of your own, use `publishVersion(..., flush: false)` / `apply(..., flush: false)` inside your
-  transaction, or give the bundle its own manager.
+- *Standard application* (one default manager, no option): the entities are mapped on your default manager, and the
+  bundle writes through its **private** manager on the same connection, mapping and listeners (see
+  [Standard host](#standard-host)). Your pending changes are never flushed by a bundle call; a bundle write inside your
+  transaction joins it. Acceptances are DBAL inserts, as before. Before 1.12 the admin editor, imports with
+  `flush: true`, the seed command and `publishVersion(flush: true)` flushed your default manager;
+  `doctrine.private_entity_manager: false` keeps that behaviour (deprecated).
+- *Private manager on another connection* (rule 8, 1.12): `doctrine.connection: legal` (a DBAL connection you
+  configure) puts the private manager, and the after-commit middleware, on that connection. The mapping stays on the
+  manager that maps the entities (create the tables on that connection: migrations of your default connection do not
+  see them). Needs `doctrine.blame: actor_id` or `none`; not combinable with `doctrine.entity_manager`.
 - *DDD application* (XML-mapped domain, several managers): set `doctrine.entity_manager`. The entities are mapped on
   that manager only (removed from the others, `auto_mapping: true` included), every bundle service uses it, the build
   fails when it does not exist, and your default manager is never flushed by the bundle. Keep `default_entity_manager`
@@ -687,16 +757,16 @@ use App\Domain\Account\TermsAccepted;          // your domain event
 use App\Domain\Shared\DomainEventBus;           // your port
 use Doctrine\DBAL\Connection;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
-use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceSubjectResolverInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalSubjectIdResolverInterface;
+use Nowo\LegalKitBundle\Acceptance\LegalSubjectUser;
 use Nowo\LegalKitBundle\Event\LegalAcceptedEvent;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\Security\Core\User\UserInterface;
 
-final class LegalSubjectResolver implements LegalAcceptanceSubjectResolverInterface
+final class LegalSubjectResolver implements LegalSubjectIdResolverInterface
 {
-    public function resolve(UserInterface $user): ?string
+    public function subjectIdFor(LegalSubjectUser $user): ?string
     {
-        return $user instanceof SecurityUser ? $user->accountPublicId() : null; // never an e-mail
+        return $user->principal instanceof SecurityUser ? $user->principal->accountPublicId() : null; // never an e-mail
     }
 }
 

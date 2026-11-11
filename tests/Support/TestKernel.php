@@ -77,9 +77,10 @@ final class TestKernel extends Kernel
      * fed by the tagged adapters (`user_kit`, without the UserKit bundle itself), a host subject SPI
      * (`subject_spi`, service `test.legal_kit.personal_data_subjects`), and the MySQL / MariaDB / PostgreSQL server of
      * LEGAL_KIT_TEST_DATABASE_URL (`server_database`, CI job "Subject ids on database servers"; SQLite in memory when
-     * the variable is not set).
+     * the variable is not set), and the 1.12 framework-free twin ports (`ddd_ports`: subject id resolver service
+     * `test.legal_kit.subject_id_resolver` and a request exemption voter).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents', 'user_kit', 'subject_spi', 'server_database'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents', 'user_kit', 'subject_spi', 'server_database', 'ddd_ports'];
 
     /** Environment variable of the database server (`server_database`). */
     public const string DATABASE_URL_ENV = 'LEGAL_KIT_TEST_DATABASE_URL';
@@ -249,6 +250,12 @@ final class TestKernel extends Kernel
             $container->register(PersonalDataExporter::class, PersonalDataExporter::class)
                 ->setArguments([new TaggedIteratorArgument('nowo_user_kit.personal_data.export_provider'), new Reference('clock')])
                 ->setPublic(true);
+        }
+        if (in_array('ddd_ports', $this->extraBundles, true)) {
+            // 1.12 framework-free twins: subject id resolver (acceptance.subject_resolver: test.legal_kit.subject_id_resolver)
+            // and an autoconfigured request exemption voter.
+            $container->register('test.legal_kit.subject_id_resolver', TestSubjectIdResolver::class);
+            $container->register(TestRequestExemption::class, TestRequestExemption::class)->setAutoconfigured(true);
         }
         if (in_array('subject_spi', $this->extraBundles, true)) {
             $container->register('test.legal_kit.personal_data_subjects', TestPersonalDataSubjectResolver::class);

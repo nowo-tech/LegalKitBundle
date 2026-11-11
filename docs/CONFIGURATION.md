@@ -52,7 +52,7 @@ nowo_legal_kit:
     acceptance:
         enabled: false                    # literal boolean; requires versioning; maps legal_acceptance
         enforce: false                    # request gate
-        subject_resolver: null            # REQUIRED when enabled: LegalAcceptanceSubjectResolverInterface service id
+        subject_resolver: null            # REQUIRED when enabled: LegalSubjectIdResolverInterface (1.12) or the deprecated LegalAcceptanceSubjectResolverInterface service id
         exempt_routes: []                 # route names or "prefix*"
         exempt_paths: []                  # "/api" matches /api and /api/…, not /apix
         non_html: pass                    # pass | deny (403 JSON for session JSON / XHR GETs)
@@ -100,7 +100,7 @@ nowo_legal_kit:
     seo: { sitemap: auto, head: auto }
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
-    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [], entity_manager: null }   # blame: relation | actor_id | none; entity_manager: 1.10
+    doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [], entity_manager: null, private_entity_manager: true, connection: null }   # blame: relation | actor_id | none; entity_manager: 1.10; private_entity_manager, connection: 1.12
 ```
 
 ## Locales
@@ -266,8 +266,8 @@ keep it empty.
 ## Doctrine entity manager
 
 `doctrine.entity_manager` (1.10, default `null`): the Doctrine entity manager of the bundle entities. `null` keeps the
-behaviour of earlier versions (the autowired default manager; mapping prepended unless the host declares
-`doctrine.orm.entity_managers`). A literal manager name maps `legal_document`, `legal_page_version` and
+mapping of earlier versions (prepended to the default manager unless the host declares `doctrine.orm.entity_managers`)
+and, since 1.12, writes through the bundle's private manager (see below). A literal manager name maps `legal_document`, `legal_page_version` and
 `legal_acceptance` on that manager only (also removed from a default manager with `auto_mapping: true`), wires every
 bundle service (versions, acceptances, admin editor, portability, seed and upgrade commands) to it, attaches the
 after-commit DBAL middleware to its connection, and fails the build when the manager does not exist or does not map
@@ -278,6 +278,29 @@ clears it between requests. It must be set in the host configuration (the mappin
 with `doctrine.blame: actor_id` or `none` (the build fails with `relation`). The bundle owns that manager: when a
 failed write closed it, it is reset at the next request, console command or Messenger message, and cleared at the end
 of each (worker safe without the services resetter). See [USAGE](USAGE.md#entity-managers-standard-and-ddd-hosts-110).
+
+`doctrine.private_entity_manager` (1.12, default `true`; used when `doctrine.entity_manager` is `null`): the bundle
+reads and writes its entities through a private entity manager created on the connection, configuration (mapping,
+metadata cache, repository factory) and event manager of the manager that maps them. A bundle flush therefore commits
+only the legal rows, never a change your application left pending (architecture bar rule 6); the shared connection
+keeps your transactions around bundle calls all-or-nothing. The bundle repositories resolve the entities to that
+manager. It is cleared at every request, command and message boundary, replaced after a failed write or a rollback on
+its connection, and dropped at `kernel.reset`. `false` keeps the 1.11 behaviour (writes through, and flushes, the
+manager that maps the entities); deprecated, removed in 2.0.
+
+`doctrine.connection` (1.12, default `null`): the DBAL connection of the private manager (null = the connection of the
+manager that maps the entities). The after-commit middleware follows it. Create the bundle tables on that connection
+yourself (the mapping stays on your manager, so its migrations do not see the other connection). Needs
+`doctrine.blame: actor_id` or `none` (a foreign key cannot reach your users table on another connection); the build
+fails with `relation`, with `doctrine.entity_manager`, with `private_entity_manager: false`, or when the connection does
+not exist. Acceptances are written on that connection too, so they are **no longer atomic** with a transaction you open
+on your default connection (a sign-up that creates the account and records the acceptance): keep the default
+connection when you need that.
+
+The private manager mirrors the SQL filters enabled on your manager and their parameters on every call (a filter whose
+parameters changed is re-enabled before they are copied, so no stale parameter survives; a filter you disabled is
+disabled), and shares your manager's event manager (your listeners see its flushes). Setting
+`private_entity_manager` triggers a deprecation (1.12).
 
 ## Doctrine blame
 

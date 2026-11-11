@@ -7,37 +7,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+  - [Changed](#changed)
+  - [Added](#added)
+  - [Deprecated](#deprecated)
+  - [Tests](#tests)
 - [[1.11.1] - 2026-11-11](#1111---2026-11-11)
   - [Fixed](#fixed)
-  - [Tests](#tests)
+  - [Tests](#tests-1)
   - [Documentation](#documentation)
 - [[1.11.0] - 2026-11-11](#1110---2026-11-11)
-  - [Added](#added)
-  - [Changed](#changed)
-- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
   - [Added](#added-1)
   - [Changed](#changed-1)
-  - [Deprecated](#deprecated)
-- [[1.9.0] - 2026-11-10](#190---2026-11-10)
+- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
   - [Added](#added-2)
-- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Changed](#changed-2)
+  - [Deprecated](#deprecated-1)
+- [[1.9.0] - 2026-11-10](#190---2026-11-10)
   - [Added](#added-3)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
+  - [Added](#added-4)
   - [Fixed](#fixed-1)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
-  - [Added](#added-4)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-5)
-  - [Changed](#changed-2)
-  - [Security](#security)
-- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-6)
   - [Changed](#changed-3)
+  - [Security](#security)
+- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+  - [Added](#added-7)
+  - [Changed](#changed-4)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-7)
-  - [Changed](#changed-4)
+  - [Added](#added-8)
+  - [Changed](#changed-5)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
@@ -46,20 +50,87 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-5)
-  - [Changed](#changed-5)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-6)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-8)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-7)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-9)
+  - [Changed](#changed-8)
   - [Fixed](#fixed-3)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
   - [Fixed](#fixed-4)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-9)
+  - [Added](#added-10)
 
 ## [Unreleased]
+
+Next minor: 1.12.0. Architecture bar REQ-ARCH-001 (rules 3, 6 and 8), BC-safe. See
+[UPGRADING](UPGRADING.md#unreleased).
+
+### Changed
+
+- **The bundle never flushes your entity manager on the zero-config path (rule 6).** Without
+  `doctrine.entity_manager`, the bundle used to write through the manager that maps its entities (usually your default
+  one), so the admin editor, `publishVersion(flush: true)`, imports with `flush: true`, the seed and upgrade commands
+  and `LegalDocumentRepository::save()` / `remove()` also committed every change your application had left pending.
+  The bundle now writes through a private entity manager (`Doctrine\LegalKitEntityManager`) created on the connection,
+  configuration (mapping, metadata cache, repository factory) and event manager (AuditKit blame, table prefix, the
+  after-commit dispatcher) of the manager that maps its entities; the bundle repositories resolve the entities to it.
+  Its unit of work holds only legal rows. The connection is shared, so a bundle write inside your transaction joins it
+  and is undone by your rollback; the after-commit events are unchanged. With `flush: false`,
+  `publishVersion()`, `apply()` and `LegalDocumentRepository::save()` write the bundle's rows at once (nobody else
+  flushes the private manager); you still call `afterPublish()` / `afterCommit()` after your commit. A user entity of
+  your manager given as the deprecated import `$actor` becomes a reference of the private manager. A
+  `LegalDocument` loaded through the bundle's repository (also what `$yourEntityManager->getRepository(LegalDocument::class)`
+  returns) belongs to the private manager: save it through the repository, not with your manager's `flush()`.
+  `doctrine.entity_manager` (1.10) is unchanged. The private manager mirrors the SQL filters enabled on the source
+  manager and their parameters (a filter whose parameters differ is disabled and enabled again before copying; a
+  filter the source disabled is disabled). After a rollback on its connection its identity map is cleared at the next
+  call, unless managed rows have changes waiting to be written (kept until written). `getCreatedBy()` /
+  `getUpdatedBy()` return references of the private manager.
+- **Worker mode (REQ-RUNTIME-002) for the private manager.** `Doctrine\LegalKitEntityManagerSubscriber` drops a
+  closed or stale manager and clears it at the main `kernel.request`, `console.command` and
+  `WorkerMessageReceivedEvent`, and clears it at `kernel.terminate`, `console.terminate`, `WorkerMessageHandledEvent`
+  and `WorkerMessageFailedEvent`; the manager is replaced on the next call after a failed write closed it or after a
+  rollback (transaction or savepoint) on its connection (told by the after-commit middleware), and `kernel.reset` drops
+  it. The 1.11.1 placeholder-scanner boundaries are unchanged.
+
+### Added
+
+- `doctrine.private_entity_manager` (default `true`): `false` keeps the 1.11 behaviour (deprecated, see below).
+- `doctrine.connection` (rule 8): the DBAL connection of the private manager (actor-id or no blame; the build fails
+  with `relation`, with `doctrine.entity_manager`, with `private_entity_manager: false` or for an unknown connection).
+  The after-commit middleware follows it.
+- Framework-free ports (rule 3): `Acceptance\LegalSubjectIdResolverInterface::subjectIdFor(LegalSubjectUser)` (VO with
+  identifier, user class, roles and the authenticated object typed `object`), accepted by `acceptance.subject_resolver`
+  next to the deprecated form; `Acceptance\LegalAcceptanceRequestExemptionInterface::isExemptRequest(LegalRequestContext)`
+  (autoconfigured, tag `nowo_legal_kit.acceptance_request_exemption`; VO with path, method, route, scalar route
+  parameters, format, XHR flag and locale); `Portability\LegalDocumentImportInterface::import(rows, ?LegalActorId,
+  flush)` (public alias of `LegalDocumentPortability`).
+
+### Deprecated
+
+- `LegalAcceptanceSubjectResolverInterface` → `LegalSubjectIdResolverInterface` (removed in 2.0).
+- `LegalAcceptanceExemptionInterface` → `LegalAcceptanceRequestExemptionInterface` (removed in 2.0).
+- `doctrine.private_entity_manager` (the option is deprecated: `setDeprecated()`; removed in 2.0).
+- Runtime deprecations (container build, `symfony/deprecation-contracts` now required): a subject resolver or an
+  exemption voter wired with only the deprecated interface.
+- 2.0 narrows `LegalDocumentPortabilityInterface::apply()`'s `$actor` to `?LegalActorId` (a user object has been
+  deprecated since 1.10); `import()` is the typed form now.
+
+### Tests
+
+- `tests/Integration/PrivateEntityManagerTest.php`: wiring of every service and repository; a pending host entity
+  stays scheduled and unwritten across `publishVersion()` (both flush modes), the deprecated `publish()`, `import()`
+  (both modes), `apply()` with a user entity of the host manager on an existing row, `save(flush: false)`, `remove()`
+  and the seed command, and the host flush still writes it; writes inside a host transaction are undone by its
+  rollback and by a savepoint rollback without a stale identity; a closed private manager is replaced (same unit of
+  work and at a boundary) while the host manager stays open; boundaries through `http_kernel`, `kernel.reset`; the
+  `private_entity_manager: false` escape hatch; `doctrine.connection` on a second connection and its build errors.
+- `tests/Integration/DddHostKernelTest.php`: DDD host kernel (XML-mapped plain-PHP `Account`, actor-id blame, the new
+  ports, HTTP gate with the request-context voter and the subject-id resolver).
+- `WorkerBoundariesTest` edits through DBAL (another worker), so the private manager's boundary clears are proven too.
 
 ## [1.11.1] - 2026-11-11
 

@@ -6,9 +6,13 @@ namespace Nowo\LegalKitBundle\Tests\Unit\Acceptance;
 
 use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
 use Nowo\LegalKitBundle\Acceptance\CurrentLegalSubject;
+use Nowo\LegalKitBundle\Acceptance\LegalRequestContext;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
 use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
+use Nowo\LegalKitBundle\PersonalData\AcceptanceSubjectPersonalDataResolver;
 use Nowo\LegalKitBundle\Tests\Support\TestExemption;
+use Nowo\LegalKitBundle\Tests\Support\TestRequestExemption;
+use Nowo\LegalKitBundle\Tests\Support\TestSubjectIdResolver;
 use Nowo\LegalKitBundle\Tests\Support\TestSubjectResolver;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -154,5 +158,44 @@ final class AcceptanceRulesTest extends TestCase
         self::assertTrue($subject->isImpersonating());
 
         self::assertNull((new CurrentLegalSubject(new TestSubjectResolver()))->id(), 'Without SecurityBundle');
+    }
+
+    public function testFrameworkFreeTwinPorts(): void
+    {
+        // LegalAcceptanceRequestExemptionInterface (1.12) next to the deprecated voter; the same voter tagged twice counts once.
+        $twin    = new TestRequestExemption();
+        $matcher = new AcceptanceRequestMatcher(new ConfiguredLegalPageCatalog([]), [], [], [new TestExemption(), $twin], [$twin]);
+        $skip    = Request::create('/app/skip');
+        $skip->attributes->set('_route', 'app_skip');
+        self::assertTrue($matcher->isExempt($skip));
+        self::assertTrue($matcher->isExempt(Request::create('/app/mfa')), 'the deprecated voter is still asked');
+        $post = Request::create('/app/skip', 'POST');
+        $post->attributes->set('_route', 'app_skip');
+        self::assertFalse($matcher->isExempt($post));
+
+        $request = Request::create('/es/app/42', 'PATCH', server: ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
+        $request->attributes->set('_route', 'app_item');
+        $request->attributes->set('_route_params', ['id' => 42, 'flag' => true, 'none' => null, 'list' => ['x'], 7 => 'numeric']);
+        $request->setRequestFormat('json');
+        $request->setLocale('es');
+        $context = AcceptanceRequestMatcher::context($request);
+        self::assertEquals(new LegalRequestContext('/es/app/42', 'PATCH', 'app_item', ['id' => 42, 'flag' => true, 'none' => null], 'json', true, 'es'), $context);
+        $bare = AcceptanceRequestMatcher::context(Request::create('/'));
+        self::assertSame([null, [], 'html', false], [$bare->route, $bare->routeParameters, $bare->format, $bare->xmlHttpRequest]);
+
+        // LegalSubjectIdResolverInterface (1.12): the resolver sees a VO, never the security user type.
+        $storage = new TokenStorage();
+        $subject = new CurrentLegalSubject(new TestSubjectIdResolver(), $storage);
+        $storage->setToken(new UsernamePasswordToken(new InMemoryUser('ann', null, ['ROLE_USER']), 'main'));
+        self::assertSame('acc-ann', $subject->id());
+        $storage->setToken(new UsernamePasswordToken(new InMemoryUser('robot', null), 'main'));
+        self::assertNull($subject->id());
+        $user = CurrentLegalSubject::subjectUser(new InMemoryUser('ann', null, ['ROLE_USER']));
+        self::assertSame(['ann', InMemoryUser::class, ['ROLE_USER']], [$user->identifier, $user->userClass, $user->roles]);
+        self::assertInstanceOf(InMemoryUser::class, $user->principal);
+
+        $personal = new AcceptanceSubjectPersonalDataResolver(new TestSubjectIdResolver());
+        self::assertSame(['acc-ann'], $personal->subjectsFor(new InMemoryUser('ann', null), null));
+        self::assertSame([], $personal->subjectsFor(new InMemoryUser('robot', null), null));
     }
 }

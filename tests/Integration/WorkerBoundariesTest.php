@@ -46,8 +46,9 @@ use function sprintf;
  *
  * Before each unit "another worker" edits the "notice" page, alternating two versions: version A still carries a seed
  * marker (`privacy@example.com`), version B does not. Each unit asks the scanner whether "notice" has placeholders and
- * must get the answer of the version stored now, not the memo of the previous unit. The test acts as a host that
- * follows the REQ-RUNTIME-002 rule 7 (it clears its entity manager after each edit).
+ * must get the answer of the version stored now, not the memo of the previous unit, nor (1.12) a legal entity the
+ * bundle's private entity manager kept from it: the edit is a plain DBAL update, so only the boundary clears of the
+ * scanner memo and of the private manager make the next unit see it.
  *
  * N = 500 per path: HTTP through the http_kernel service (not Kernel::handle(), so no resetter; with a sub-request),
  * Messenger through a real Worker without ResetServicesListener (every 7th handler fails), and console Application
@@ -212,17 +213,18 @@ final class WorkerBoundariesTest extends KernelTestCase
     }
 
     /**
-     * Another worker stores version A (with a seed marker) for even units and version B (clean) for odd units; the
-     * host then clears its entity manager (rule 7).
+     * Another worker stores version A (with a seed marker) for even units and version B (clean) for odd units.
      */
     private function edit(TestKernel $kernel, int $index): void
     {
-        $document = $this->find($kernel, 'notice', 'en');
-        self::assertInstanceOf(LegalDocument::class, $document);
-        $document->setBody($index % 2 === 0 ? '<p>Write to ' . self::MARKER . '</p>' : '<p>Write to legal@acme.test</p>');
-        $manager = $this->entityManager($kernel);
-        $manager->flush();
-        $manager->clear();
+        // 1.12: another worker's write reaches the table only (a DBAL update, no identity map of this process), so a
+        // legal entity the bundle's private manager kept from an earlier unit would answer the stale version.
+        $updated = $this->entityManager($kernel)->getConnection()->update(
+            LegalDocument::TABLE,
+            ['body' => $index % 2 === 0 ? '<p>Write to ' . self::MARKER . '</p>' : '<p>Write to legal@acme.test</p>'],
+            ['slug' => 'notice', 'locale' => 'en'],
+        );
+        self::assertSame(1, (int) $updated);
     }
 
     private function unitOfWork(LegalPlaceholderScanner $scanner, int $index): void

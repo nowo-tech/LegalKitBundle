@@ -31,16 +31,16 @@ FrankenPHP worker mode boots the Symfony kernel once per worker and serves many 
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Mutable state in shared services | ✅ | Every service is `final readonly` (or holds only injected collaborators) except the three listed in [Stateful services](#stateful-services-and-how-each-is-cleared), each cleared at every boundary |
+| Mutable state in shared services | ✅ | Every service is `final readonly` (or holds only injected collaborators) except those listed in [Stateful services](#stateful-services-and-how-each-is-cleared), each cleared at every boundary |
 | Translator locale | ✅ | `TwigSeedProvider` switches the translator locale inside `try / finally` and always restores it |
 | Caches | ✅ | No cache pool; the scanner memo only |
 | Static properties / `static` locals | ✅ | None |
 | Request / user captured in services | ✅ | Controllers and the Twig extension read the request per call (`RequestStack`) |
 | Superglobals, `putenv`, `ini_set`, `setlocale`, `exit` | ✅ | None in `src/` |
 | Blocking I/O and timeouts | ✅ | No outbound HTTP or subprocess; OutboundUrlGuard is used without DNS resolution |
-| Doctrine | ✅ | The bundle's own manager (`doctrine.entity_manager`) is recovered and cleared per unit of work; the host's managers are never touched (see [Host rule](#host-rule-entity-managers)) |
+| Doctrine | ✅ | The bundle's private manager (1.12, default) or its own manager (`doctrine.entity_manager`) is recovered and cleared per unit of work; the host's managers are never touched (see [Host rule](#host-rule-entity-managers)) |
 | PHPStan FrankenPHP rulesets | ✅ | `ruleset-classic.neon` + `ruleset-worker.neon` in `phpstan.neon.dist` |
-| Igor worker-state audit | ✅ | `make igor` in `release-check` and CI (REQ-CS-008): 123 service files, 0 KO, 0 WARN |
+| Igor worker-state audit | ✅ | `make igor` in `release-check` and CI (REQ-CS-008): 131 service files, 0 KO, 0 WARN |
 
 ## Stateful services and how each is cleared
 
@@ -49,6 +49,7 @@ FrankenPHP worker mode boots the Symfony kernel once per worker and serves many 
 | `Placeholder\LegalPlaceholderScanner` | `$memo`: hits per locale (site-wide page text, no personal data) | `EventSubscriber\PlaceholderScannerResetSubscriber` at every boundary (1.11.1) | `kernel.reset`; admin save / restore; `reset()` after an edit in the same unit of work |
 | `Doctrine\AfterCommitEventDispatcher` | `$transactions` (`WeakMap` per connection) and `$committed` events | dispatched at `kernel.terminate`, `console.terminate`, `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent` and `postFlush`; rolled-back levels dropped | `kernel.reset` drops everything (a request that died mid-transaction) |
 | The bundle's own entity manager (`doctrine.entity_manager`, optional) | identity map | `Doctrine\OwnEntityManagerSubscriber`: recovered when closed at main `kernel.request` / `console.command` / `WorkerMessageReceivedEvent`, cleared at `kernel.terminate` / `console.terminate` / `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent` | registered only when `doctrine.entity_manager` is set |
+| `Doctrine\LegalKitEntityManager` (1.12, the private manager when `doctrine.entity_manager` is unset) | the wrapped entity manager (identity map) and a "stale after rollback" flag | `Doctrine\LegalKitEntityManagerSubscriber`: dropped when closed or stale and cleared at main `kernel.request` / `console.command` / `WorkerMessageReceivedEvent`, cleared at `kernel.terminate` / `console.terminate` / `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent` | replaced on the next call when closed, stale (a rollback on its connection, told by the after-commit middleware) or on another connection; `kernel.reset` drops it |
 
 ## Boundary events
 
@@ -66,13 +67,14 @@ Messenger and Console stay optional: every event is subscribed by its name. One 
 
 ## Worker tests
 
-- `tests/Integration/WorkerBoundariesTest.php` (1.11.1) boots **one** kernel and never calls `services_resetter`: 500 HTTP requests through the `http_kernel` service (not `Kernel::handle()`, so no resetter; each with a sub-request), 500 messages through a real `Symfony\Component\Messenger\Worker` on the kernel's dispatcher without `ResetServicesListener` (as `--no-reset`; every 7th handler fails), and 500 console `Application::run()` calls. Before each unit another worker alternates the "notice" page between a version with a seed marker and a clean one (and the test, as a host, clears its entity manager per rule 7). Each unit must see the stored version; memory margin: less than 1 MiB growth after a 50-unit warm-up. Without the 1.11.1 subscriber all three paths fail.
+- `tests/Integration/WorkerBoundariesTest.php` (1.11.1) boots **one** kernel and never calls `services_resetter`: 500 HTTP requests through the `http_kernel` service (not `Kernel::handle()`, so no resetter; each with a sub-request), 500 messages through a real `Symfony\Component\Messenger\Worker` on the kernel's dispatcher without `ResetServicesListener` (as `--no-reset`; every 7th handler fails), and 500 console `Application::run()` calls. Before each unit another worker alternates the "notice" page between a version with a seed marker and a clean one (a plain DBAL update since 1.12, so a legal entity kept by the bundle's private manager would answer the old text). Each unit must see the stored version; memory margin: less than 1 MiB growth after a 50-unit warm-up. Without the 1.11.1 subscriber all three paths fail.
 - `tests/Integration/PersonalDataTest.php::testWorkerModeManyRunsInOneKernel`: the same acceptance manager, exporter and eraser serve 1,000 erase / export runs for three users in one kernel; no cross-user data, no pending event left, an empty identity map, memory growth under 1 MiB.
+- `tests/Integration/PrivateEntityManagerTest.php` (1.12): the private manager is cleared at the request boundary through `http_kernel` (the host manager keeps its entities), reads a row changed by another worker after `begin()`, is dropped by `kernel.reset` and re-created on use, is replaced after a failed flush closed it and after a rollback (host transaction or savepoint) of its connection.
 - `reset()` is tested directly: `tests/Integration/ServicesTest.php::testScannerIsMemoisedUntilReset`, `tests/Unit/EventSubscriber/PlaceholderScannerResetSubscriberTest.php`.
 
 ## Host rule: entity managers
 
-A host that disables or bypasses the services resetter must also clear its **own** entity managers at every boundary (main request start or end, each Messenger message, each console command); otherwise the identity map serves stale rows (for example a downgraded permission or a soft-deleted item) across requests (REQ-RUNTIME-002 rule 7). Without `doctrine.entity_manager`, the legal entities live in the host's default manager, so that rule covers them too; with it, the bundle clears its own manager (see above).
+A host that disables or bypasses the services resetter must also clear its **own** entity managers at every boundary (main request start or end, each Messenger message, each console command); otherwise the identity map serves stale rows (for example a downgraded permission or a soft-deleted item) across requests (REQ-RUNTIME-002 rule 7). Since 1.12 the legal entities never live in the host's managers (the private manager, or `doctrine.entity_manager`), and the bundle clears its own manager at every boundary (see above). With the deprecated `doctrine.private_entity_manager: false`, they live in the host's default manager again and that rule covers them.
 
 ## Rules for future code
 

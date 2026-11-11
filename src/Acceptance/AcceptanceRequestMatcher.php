@@ -9,6 +9,8 @@ use Nowo\LegalKitBundle\Routing\LegalRouteLoader;
 use Symfony\Component\HttpFoundation\Request;
 
 use function in_array;
+use function is_array;
+use function is_scalar;
 use function is_string;
 use function rtrim;
 use function str_contains;
@@ -33,24 +35,32 @@ final readonly class AcceptanceRequestMatcher
     /** Built-in exempt route names. */
     public const array BUILTIN_ROUTES = ['_error', '_preview_error'];
 
-    /** @var list<LegalAcceptanceExemptionInterface> */
+    /** @var list<LegalAcceptanceExemptionInterface|LegalAcceptanceRequestExemptionInterface> */
     private array $voters;
 
     /**
      * @param LegalPageCatalogInterface $catalog Enabled pages (their public routes are exempt)
      * @param list<string> $exemptRoutes Configured route names or "prefix*"
      * @param list<string> $exemptPaths Configured path prefixes
-     * @param iterable<LegalAcceptanceExemptionInterface> $voters Host voters
+     * @param iterable<LegalAcceptanceExemptionInterface|LegalAcceptanceRequestExemptionInterface> $voters Host voters
+     *                                                                                                     (1.12: the request-context form, and the deprecated one until 2.0)
+     * @param iterable<LegalAcceptanceRequestExemptionInterface> $requestVoters Host voters tagged
+     *                                                                          `nowo_legal_kit.acceptance_request_exemption` (1.12)
      */
     public function __construct(
         private LegalPageCatalogInterface $catalog,
         private array $exemptRoutes = [],
         private array $exemptPaths = [],
         iterable $voters = [],
+        iterable $requestVoters = [],
     ) {
         $list = [];
-        foreach ($voters as $voter) {
-            $list[] = $voter;
+        foreach ([$voters, $requestVoters] as $group) {
+            foreach ($group as $voter) {
+                if (!in_array($voter, $list, true)) {
+                    $list[] = $voter;
+                }
+            }
         }
         $this->voters = $list;
     }
@@ -71,13 +81,43 @@ final readonly class AcceptanceRequestMatcher
                 return true;
             }
         }
+        $context = null;
         foreach ($this->voters as $voter) {
-            if ($voter->isExempt($request)) {
+            if ($voter instanceof LegalAcceptanceRequestExemptionInterface) {
+                if ($voter->isExemptRequest($context ??= self::context($request))) {
+                    return true;
+                }
+            } elseif ($voter->isExempt($request)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * The framework-free view of a request handed to {@see LegalAcceptanceRequestExemptionInterface} (1.12).
+     */
+    public static function context(Request $request): LegalRequestContext
+    {
+        $route      = $request->attributes->get('_route');
+        $parameters = [];
+        $raw        = $request->attributes->get('_route_params');
+        foreach (is_array($raw) ? $raw : [] as $name => $value) {
+            if (is_string($name) && (is_scalar($value) || $value === null)) {
+                $parameters[$name] = $value;
+            }
+        }
+
+        return new LegalRequestContext(
+            $request->getPathInfo(),
+            $request->getMethod(),
+            is_string($route) ? $route : null,
+            $parameters,
+            (string) $request->getRequestFormat('html'),
+            $request->isXmlHttpRequest(),
+            $request->getLocale(),
+        );
     }
 
     /**

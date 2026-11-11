@@ -76,7 +76,7 @@ final class DddPortsTest extends VersioningTestCase
 
         $this->signIn($kernel, 'editor');
         $stored->setTitle('Notice 2');
-        $manager->flush();
+        $this->save($kernel, $stored);
         $stored = $this->find($kernel, 'notice', 'en');
         self::assertNotNull($stored);
         self::assertSame('admin', $stored->getCreatedByActorId());
@@ -116,7 +116,7 @@ final class DddPortsTest extends VersioningTestCase
         $stored = $this->find($kernel, 'notice', 'en');
         self::assertNotNull($stored);
         $stored->setTitle('Notice 2');
-        $manager->flush();
+        $this->save($kernel, $stored);
         $edited = $this->find($kernel, 'notice', 'en');
         self::assertNotNull($edited);
         self::assertSame('5', $edited->getCreatedByActorId(), 'The creator stays');
@@ -125,12 +125,12 @@ final class DddPortsTest extends VersioningTestCase
         // No signed-in user (CLI): the row keeps what it has.
         $this->signInAs($kernel, new TestCustomerUser(5, 'customer'));
         $edited->setTitle('Notice 3');
-        $manager->flush();
+        $this->save($kernel, $edited);
         $this->signOut($kernel);
         $stored = $this->find($kernel, 'notice', 'en');
         self::assertNotNull($stored);
         $stored->setTitle('Notice 4');
-        $manager->flush();
+        $this->save($kernel, $stored);
         self::assertSame('5', $this->find($kernel, 'notice', 'en')?->getUpdatedByActorId());
     }
 
