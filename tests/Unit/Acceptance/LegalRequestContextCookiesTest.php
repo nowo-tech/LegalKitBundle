@@ -121,4 +121,16 @@ final class LegalRequestContextCookiesTest extends TestCase
         self::assertNull((clone $context)->cookie('theme'));
         self::assertSame('REDACTED-TEST-z', $context->cookie('theme'));
     }
+
+    /** MU-L-I2: the constructor keeps string values only, whoever builds the context. */
+    public function testTheConstructorKeepsStringValuesOnly(): void
+    {
+        $context = new LegalRequestContext('/app', cookies: ['ok' => '1', 'nested' => ['a' => 'b'], 'number' => 7, 9 => 'numeric-name']);
+
+        self::assertSame('1', $context->cookie('ok'));
+        self::assertFalse($context->hasCookie('nested'));
+        self::assertFalse($context->hasCookie('number'));
+        self::assertSame('numeric-name', $context->cookie('9'));
+        self::assertFalse((new LegalRequestContext('/app', cookies: ['nested' => ['x']]))->hasCookie('nested'));
+    }
 }

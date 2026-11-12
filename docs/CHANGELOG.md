@@ -78,7 +78,10 @@ Target **1.13.0** (minor; opt-in, no behaviour change for existing hosts).
   properties (an internal `WeakMap` keyed by the context), so VarDumper, `var_export()`, `(array)`, `json_encode()` and
   `serialize()` never show them; a clone or unserialized copy has none. The context is built per call
   (REQ-RUNTIME-002). `AcceptanceRequestMatcher::context()` takes the names as a new optional second argument. With the
-  default empty list the context is exactly as in 1.12.0.
+  default empty list the context is exactly as in 1.12.0. Cookie values are set by the client; never grant an exemption because of a cookie outside test environments; use cookies only to make the gate stricter. The
+  documented example is scoped to `when@test` (audit MU-L-L1). Non-string entries, `REMEMBERME`, `PHPSESSID` and
+  every firewall's remember-me cookie fail the container build (new `ContextCookiesPass`, MU-L-I1), and the
+  `LegalRequestContext` constructor keeps string cookie values only (MU-L-I2).
 
 ## [1.12.0] - 2026-11-11
 

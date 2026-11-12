@@ -45,12 +45,20 @@ given to exemption voters is then exactly the 1.12 one (no cookies).
 ### Cookies in the request context (opt-in)
 
 A voter migrating from the deprecated `LegalAcceptanceExemptionInterface::isExempt(Request)` that read a cookie names
-it and reads it with `LegalRequestContext::cookie()`:
+it and reads it with `LegalRequestContext::cookie()`. Cookie values are set by the client; never grant an exemption because of a cookie outside test environments; use cookies only to make the gate stricter. Keep both under `when@test`:
 
 ```yaml
-nowo_legal_kit:
-    acceptance:
-        context_cookies: ['app_e2e_legal_gate']
+# config/packages/nowo_legal_kit.yaml — test environment only
+when@test:
+    nowo_legal_kit:
+        acceptance:
+            context_cookies: ['app_e2e_legal_gate']
+
+# config/services.yaml — the voter exists only in the test container
+when@test:
+    services:
+        App\Tests\Support\Legal\LegalGateOptIn:
+            autoconfigure: true
 ```
 
 ```php
@@ -63,8 +71,9 @@ final class LegalGateOptIn implements LegalAcceptanceRequestExemptionInterface
 }
 ```
 
-The session cookie is never copied, even when listed. Never list a remember-me or other authentication cookie: a
-voter must not depend on a credential. The values never appear in a dump, `var_export()`, `(array)` cast,
+The session cookie is never copied, even when listed. `REMEMBERME`, `PHPSESSID` and every firewall's remember-me
+cookie fail the container build; never list any other authentication cookie: a voter must not depend on a
+credential. The values never appear in a dump, `var_export()`, `(array)` cast,
 `json_encode()` or `serialize()` of the context.
 
 ## To 1.12.0

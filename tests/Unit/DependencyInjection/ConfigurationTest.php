@@ -110,6 +110,9 @@ final class ConfigurationTest extends TestCase
         yield 'exempt path relative' => [['acceptance' => ['exempt_paths' => ['api']]]];
         yield 'exempt route' => [['acceptance' => ['exempt_routes' => ['bad route']]]];
         yield 'non html' => [['acceptance' => ['non_html' => 'block']]];
+        yield 'context cookie int (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['e2e_gate', 42]]]];
+        yield 'context cookie remember-me (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['RememberMe']]]];
+        yield 'context cookie session (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['PHPSESSID']]]];
         yield 'table prefix' => [['doctrine' => ['table_prefix' => 'App-']]];
         yield 'cache' => [['public' => ['cache' => ['max_age' => -1]]]];
         yield 'brand mode' => [['brand' => 'on']];

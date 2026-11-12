@@ -12,6 +12,7 @@ use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
+use function in_array;
 use function is_array;
 use function is_string;
 use function preg_match;
@@ -44,6 +45,9 @@ final class Configuration implements ConfigurationInterface
 
     /** Path of the re-acceptance interstitial under `routing.path_prefix` (a page may not use it). */
     public const string ACCEPTANCE_PATH = 'accept';
+
+    /** Lower-case cookie names refused in `acceptance.context_cookies` (authentication cookies, 1.13, MU-L-I1). */
+    public const array REFUSED_CONTEXT_COOKIES = ['rememberme', 'phpsessid'];
 
     /** Re-acceptance modes of a page. */
     public const array ACCEPTANCE_MODES = ['accept', 'acknowledge', 'none'];
@@ -524,8 +528,14 @@ final class Configuration implements ConfigurationInterface
                     ->defaultValue([])
                 ->end()
                 ->arrayNode('context_cookies')
-                    ->info('Cookies (exact names) copied into the LegalRequestContext given to LegalAcceptanceRequestExemptionInterface voters, read through LegalRequestContext::cookie() (e.g. an e2e opt-in cookie). Default: none. The session cookie is never copied, even when listed; never list an auth cookie. Since 1.13.0.')
-                    ->scalarPrototype()->cannotBeEmpty()->end()
+                    ->info('Cookies (exact names) copied into the LegalRequestContext given to LegalAcceptanceRequestExemptionInterface voters, read through LegalRequestContext::cookie() (e.g. an e2e opt-in cookie, under when@test). Default: none. Cookie values are set by the client; never grant an exemption because of a cookie outside test environments; use cookies only to make the gate stricter. The session cookie is never copied, even when listed; REMEMBERME, PHPSESSID and every firewall remember-me cookie are refused at build time. Since 1.13.0.')
+                    ->scalarPrototype()
+                        ->cannotBeEmpty()
+                        ->validate()
+                            ->ifTrue(static fn (mixed $value): bool => !is_string($value) || in_array(strtolower($value), self::REFUSED_CONTEXT_COOKIES, true))
+                            ->thenInvalid('nowo_legal_kit.acceptance.context_cookies entries must be cookie names (strings) other than an authentication cookie (REMEMBERME, PHPSESSID), got %s.')
+                        ->end()
+                    ->end()
                     ->defaultValue([])
                 ->end()
                 ->enumNode('non_html')

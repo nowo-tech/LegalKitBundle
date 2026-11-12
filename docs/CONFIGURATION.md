@@ -55,7 +55,7 @@ nowo_legal_kit:
         subject_resolver: null            # REQUIRED when enabled: LegalSubjectIdResolverInterface (1.12) or the deprecated LegalAcceptanceSubjectResolverInterface service id
         exempt_routes: []                 # route names or "prefix*"
         exempt_paths: []                  # "/api" matches /api and /api/…, not /apix
-        context_cookies: []               # cookies a LegalAcceptanceRequestExemptionInterface voter may read (1.13, opt-in)
+        context_cookies: []               # cookies a LegalAcceptanceRequestExemptionInterface voter may read (1.13, opt-in, when@test only)
         non_html: pass                    # pass | deny (403 JSON for session JSON / XHR GETs)
         default_target: null              # route name after accepting without a stored target; null = "/"
         logout_route: null                # null = the firewall logout path (none without one)
@@ -153,9 +153,10 @@ Opt-in, see [USAGE: Re-acceptance](USAGE.md#re-acceptance). Build-time errors: `
 or contain wildcards, `?`, `#` or `..`.
 
 `context_cookies` (1.13, default `[]`): cookie names (exact) copied into the `LegalRequestContext` that
-`LegalAcceptanceRequestExemptionInterface` voters receive, read through `LegalRequestContext::cookie()`. Nothing is
-copied unless named; the session cookie is never copied, even when listed; never list an authentication cookie. The
-values never show in a dump of the context.
+`LegalAcceptanceRequestExemptionInterface` voters receive, read through `LegalRequestContext::cookie()`. Cookie values are set by the client; never grant an exemption because of a cookie outside test environments; use cookies only to make the gate stricter.
+Set it under `when@test`. Nothing is copied unless named; the session cookie is never copied, even when listed;
+non-string entries, `REMEMBERME`, `PHPSESSID` and every firewall's remember-me cookie fail the container build; never
+list any other authentication cookie. The values never show in a dump of the context.
 
 ## Personal data (GDPR)
 
