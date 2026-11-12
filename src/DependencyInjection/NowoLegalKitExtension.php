@@ -90,6 +90,8 @@ use Throwable;
 
 use function array_fill_keys;
 use function array_key_exists;
+use function array_unique;
+use function array_values;
 use function class_exists;
 use function implode;
 use function in_array;
@@ -575,7 +577,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         $seed = $config['seed'];
         /** @var array{enabled: bool, publisher_checker: string|null} $versioning */
         $versioning = $config['versioning'];
-        /** @var array{enabled: bool, enforce: bool, subject_resolver: string|null, exempt_routes: list<string>, exempt_paths: list<string>, non_html: string, default_target: string|null, logout_route: string|null, layout_template: string|null, template: string, cache_pool: string|null, action_log: bool} $acceptance */
+        /** @var array{enabled: bool, enforce: bool, subject_resolver: string|null, exempt_routes: list<string>, exempt_paths: list<string>, context_cookies: list<string>, non_html: string, default_target: string|null, logout_route: string|null, layout_template: string|null, template: string, cache_pool: string|null, action_log: bool} $acceptance */
         $acceptance = $config['acceptance'];
         /** @var array{path_prefix: string, default_locale_style: string} $routing */
         $routing = $config['routing'];
@@ -671,7 +673,8 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             ->setArgument('$exemptRoutes', $acceptance['exempt_routes'])
             ->setArgument('$exemptPaths', $acceptance['exempt_paths'])
             ->setArgument('$voters', new TaggedIteratorArgument(LegalAcceptanceExemptionInterface::TAG))
-            ->setArgument('$requestVoters', new TaggedIteratorArgument(LegalAcceptanceRequestExemptionInterface::TAG));
+            ->setArgument('$requestVoters', new TaggedIteratorArgument(LegalAcceptanceRequestExemptionInterface::TAG))
+            ->setArgument('$contextCookies', array_values(array_unique($acceptance['context_cookies'])));
         $register(VerifyAcceptanceHashCommand::class);
         $register(LegalAcceptanceType::class);
         $register(LegalAcceptanceController::class)

@@ -73,6 +73,7 @@ final class ConfigurationTest extends TestCase
         self::assertSame('none', $config['pages']['privacy']['acceptance']);
         self::assertSame('accept', $config['pages']['extra']['acceptance']);
         self::assertSame('2026-11-04.1', $config['seed']['revision']);
+        self::assertSame([], $config['acceptance']['context_cookies'], 'Opt-in: no cookie in the request context by default.');
     }
 
     public function testPagesAndLocalesAsParameterString(): void
@@ -109,6 +110,9 @@ final class ConfigurationTest extends TestCase
         yield 'exempt path relative' => [['acceptance' => ['exempt_paths' => ['api']]]];
         yield 'exempt route' => [['acceptance' => ['exempt_routes' => ['bad route']]]];
         yield 'non html' => [['acceptance' => ['non_html' => 'block']]];
+        yield 'context cookie int (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['e2e_gate', 42]]]];
+        yield 'context cookie remember-me (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['RememberMe']]]];
+        yield 'context cookie session (MU-L-I1)' => [['acceptance' => ['context_cookies' => ['PHPSESSID']]]];
         yield 'table prefix' => [['doctrine' => ['table_prefix' => 'App-']]];
         yield 'cache' => [['public' => ['cache' => ['max_age' => -1]]]];
         yield 'brand mode' => [['brand' => 'on']];

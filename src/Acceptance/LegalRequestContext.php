@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Acceptance;
 
+use function is_string;
+
 /**
  * The request the re-acceptance gate is about to redirect, as the bundle hands it to
  * {@see LegalAcceptanceRequestExemptionInterface} (1.12, architecture bar rule 3): no HTTP type in the port.
+ *
+ * Cookies (1.13): none, unless the host names them in `acceptance.context_cookies` (default: none); then only those
+ * cookies, read through {@see cookie()}. The session cookie is never given, even when listed. The values are never
+ * stored in a property of this object (they live in an internal {@see \WeakMap} keyed by it), so no dump,
+ * `var_export()`, `(array)` cast, `json_encode()` or `serialize()` of the context shows them; a `clone` or an
+ * unserialized copy has none.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -21,6 +29,8 @@ final readonly class LegalRequestContext
      * @param string $format Request format (`html`, `json`, ...)
      * @param bool $xmlHttpRequest Whether it is an XMLHttpRequest
      * @param ?string $locale Request locale
+     * @param array<array-key, mixed> $cookies The allowlisted cookies the request sent (name => value, strings only; kept outside the
+     *                                         object's properties)
      */
     public function __construct(
         public string $path,
@@ -30,6 +40,37 @@ final readonly class LegalRequestContext
         public string $format = 'html',
         public bool $xmlHttpRequest = false,
         public ?string $locale = null,
+        array $cookies = [],
     ) {
+        $strings = [];
+        foreach ($cookies as $name => $value) {
+            if (is_string($value)) { // MU-L-I2: a non-string value (an array cookie a client sent) is never kept
+                $strings[(string) $name] = $value;
+            }
+        }
+        if ($strings !== []) {
+            LegalRequestContextCookies::put($this, $strings);
+        }
+    }
+
+    /**
+     * The value of a cookie the host named in `acceptance.context_cookies`, or null when it is not allowlisted or the
+     * request did not send it (1.13).
+     *
+     * @param string $name Cookie name (exact)
+     */
+    public function cookie(string $name): ?string
+    {
+        return LegalRequestContextCookies::get($this, $name);
+    }
+
+    /**
+     * Whether the host allowlisted this cookie and the request sent it (1.13).
+     *
+     * @param string $name Cookie name (exact)
+     */
+    public function hasCookie(string $name): bool
+    {
+        return LegalRequestContextCookies::has($this, $name);
     }
 }

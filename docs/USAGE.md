@@ -376,6 +376,43 @@ scalar parameters, format, XHR flag and locale. The 1.0 forms `LegalAcceptanceSu
 and `LegalAcceptanceExemptionInterface::isExempt(Request)` still work and are deprecated (removed in 2.0); when one
 service implements both resolver forms, the new one is used.
 
+**Cookies (opt-in, 1.13).** `LegalRequestContext` carries no cookie unless you name it in
+`acceptance.context_cookies` (default: none; exact names, string values only). A named cookie is read with
+`$request->cookie('name')` (and `hasCookie()`), for example an opt-in cookie your end-to-end tests set.
+
+**Cookie values are set by the client; never grant an exemption because of a cookie outside test environments; use
+cookies only to make the gate stricter.** Register such a voter and its cookie under `when@test` (or a `when@dev` that
+is never reachable from outside): copied into production, the voter below would disable the gate for every visitor.
+
+```yaml
+# config/packages/nowo_legal_kit.yaml — test environment only
+when@test:
+    nowo_legal_kit:
+        acceptance:
+            context_cookies: ['app_e2e_legal_gate']
+
+# config/services.yaml — the voter exists only in the test container
+when@test:
+    services:
+        App\Tests\Support\Legal\LegalGateOptIn:
+            autoconfigure: true
+```
+
+```php
+final class LegalGateOptIn implements LegalAcceptanceRequestExemptionInterface
+{
+    public function isExemptRequest(LegalRequestContext $request): bool
+    {
+        return '1' !== $request->cookie('app_e2e_legal_gate'); // exempt unless the e2e browser opted in
+    }
+}
+```
+
+The session cookie is never copied, even when listed; `REMEMBERME`, `PHPSESSID` and every firewall's remember-me
+cookie fail the container build; never list any other authentication cookie. Entries must be strings. The
+values are kept outside the context's properties, so dumps, `var_export()`, `(array)`, `json_encode()` and
+`serialize()` never show them (a clone or unserialized copy has none).
+
 ### The request gate
 
 The gate (`kernel.request`, priority 4) redirects (302, `no-store`) to the page only when all of this holds: main

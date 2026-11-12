@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
+use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Command\CheckPlaceholdersCommand;
@@ -312,6 +313,14 @@ final class ExtensionTest extends TestCase
 
         $custom = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects'], 'personal_data' => ['enabled' => true, 'subject_resolver' => 'app.personal_data_subjects']]);
         self::assertSame('app.personal_data_subjects', (string) $custom->getAlias(LegalPersonalDataSubjectResolverInterface::class));
+    }
+
+    public function testContextCookiesReachTheRequestMatcher(): void
+    {
+        $byDefault = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects']]);
+        self::assertSame([], $byDefault->getDefinition(AcceptanceRequestMatcher::class)->getArgument('$contextCookies'), 'None by default.');
+        $listed = $this->loaded(['versioning' => ['enabled' => true], 'acceptance' => ['enabled' => true, 'subject_resolver' => 'app.subjects', 'context_cookies' => ['e2e_gate', 'theme', 'e2e_gate']]]);
+        self::assertSame(['e2e_gate', 'theme'], $listed->getDefinition(AcceptanceRequestMatcher::class)->getArgument('$contextCookies'));
     }
 
     public function testNoPersonalDataAdaptersWhenDisabledOrWithoutAcceptance(): void
