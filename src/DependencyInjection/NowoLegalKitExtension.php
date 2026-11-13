@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\DependencyInjection;
 
+use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Configuration as DoctrineConfiguration;
 use Nowo\Brand\Contract\BrandProviderInterface;
 use Nowo\Ckeditor5EditorBundle\Form\Ckeditor5EditorType;
 use Nowo\Ckeditor5EditorBundle\Security\AllowlistCkeditor5HtmlSanitizer;
@@ -77,6 +78,7 @@ use Nowo\UserKitBundle\PersonalData\PersonalDataEraserInterface;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\Config\Definition\PrototypedArrayNode;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -207,6 +209,7 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
             if (self::flag($raw, 'acceptance')) {
                 $container->setParameter(self::DEDICATED_ACCEPTANCE_MAPPING_PARAMETER, true);
             }
+            $this->disableEntityAutoDiscovery($container, (string) self::rawEntityManager($raw));
         }
 
         if (!$dedicated && $container->hasExtension('doctrine') && !$this->hostHasKey($container, 'doctrine', ['orm', 'entity_managers'])) {
@@ -455,6 +458,42 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 $container->getDefinition($service)->setArgument('$entityManager', $reference);
             }
         }
+    }
+
+    /**
+     * DoctrineBundle 3.4 `auto_discover_entities` is on by default for a manager without `mappings` and `auto_mapping`,
+     * which is how the bundle's own manager is declared (the bundle maps its entities on it in a compiler pass): its
+     * default driver would claim every entity class and {@see EntityManagerMappingPass} would refuse the manager as
+     * shared. Turns it off on that manager, through DoctrineBundle's configuration, unless the host set it (an explicit
+     * `true` keeps failing the build) or the manager is not declared (the pass reports it). Appended, not prepended: a
+     * prepended entry would make the bundle manager the first one, i.e. the default one when
+     * `doctrine.orm.default_entity_manager` is not set.
+     */
+    private function disableEntityAutoDiscovery(ContainerBuilder $container, string $manager): void
+    {
+        if (!$this->hostHasKey($container, 'doctrine', ['orm', 'entity_managers', $manager])
+            || $this->hostHasKey($container, 'doctrine', ['orm', 'entity_managers', $manager, 'auto_discover_entities'])
+            || !$this->supportsEntityAutoDiscovery()) {
+            return;
+        }
+
+        $container->loadFromExtension('doctrine', ['orm' => ['entity_managers' => [$manager => ['auto_discover_entities' => false]]]]);
+    }
+
+    /**
+     * Whether the installed DoctrineBundle has the per-manager `auto_discover_entities` option (3.4+).
+     */
+    private function supportsEntityAutoDiscovery(): bool
+    {
+        if (!class_exists(DoctrineConfiguration::class)) {
+            return false;
+        }
+        $tree     = (new DoctrineConfiguration(false))->getConfigTreeBuilder()->buildTree();
+        $orm      = $tree instanceof ArrayNode ? ($tree->getChildren()['orm'] ?? null) : null;
+        $managers = $orm instanceof ArrayNode ? ($orm->getChildren()['entity_managers'] ?? null) : null;
+        $manager  = $managers instanceof PrototypedArrayNode ? $managers->getPrototype() : null;
+
+        return $manager instanceof ArrayNode && isset($manager->getChildren()['auto_discover_entities']);
     }
 
     /**
