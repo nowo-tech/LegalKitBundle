@@ -8,6 +8,7 @@ use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Configuration as Doctrine
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\ORM\Tools\SchemaTool;
 use InvalidArgumentException;
 use Nowo\AuditKitBundle\NowoAuditKitBundle;
@@ -41,6 +42,7 @@ use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
@@ -78,9 +80,10 @@ final class TestKernel extends Kernel
      * (`subject_spi`, service `test.legal_kit.personal_data_subjects`), and the MySQL / MariaDB / PostgreSQL server of
      * LEGAL_KIT_TEST_DATABASE_URL (`server_database`, CI job "Subject ids on database servers"; SQLite in memory when
      * the variable is not set), and the 1.12 framework-free twin ports (`ddd_ports`: subject id resolver service
-     * `test.legal_kit.subject_id_resolver` and a request exemption voter).
+     * `test.legal_kit.subject_id_resolver` and a request exemption voter), and a catch-all default metadata driver on
+     * the host's default manager (`host_default_driver`, what DoctrineBundle 3.4 `auto_discover_entities` does).
      */
-    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents', 'user_kit', 'subject_spi', 'server_database', 'ddd_ports'];
+    public const array PSEUDO_OPTIONS = ['consent_stub', 'test_seed', 'no_routes', 'host_controllers', 'app_routes', 'brand_provider', 'actor_resolver', 'host_documents', 'user_kit', 'subject_spi', 'server_database', 'ddd_ports', 'host_default_driver'];
 
     /** Environment variable of the database server (`server_database`). */
     public const string DATABASE_URL_ENV = 'LEGAL_KIT_TEST_DATABASE_URL';
@@ -176,6 +179,16 @@ final class TestKernel extends Kernel
                 }
             }
         }, PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
+        if (in_array('host_default_driver', $this->extraBundles, true)) {
+            $container->addCompilerPass(new class implements CompilerPassInterface {
+                public function process(ContainerBuilder $container): void
+                {
+                    // An attribute driver answers "not transient" for any class carrying #[ORM\Entity], whatever its paths.
+                    $container->getDefinition('doctrine.orm.default_metadata_driver')
+                        ->addMethodCall('setDefaultDriver', [new Definition(AttributeDriver::class, [[__DIR__ . '/Entity'], true])]);
+                }
+            });
+        }
     }
 
     protected function configureContainer(ContainerBuilder $container, LoaderInterface $loader): void

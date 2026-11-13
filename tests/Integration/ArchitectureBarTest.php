@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
 use ArrayObject;
+use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Configuration as DoctrineConfiguration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\LegalKitBundle\Acceptance\Entity\LegalAcceptance;
@@ -29,13 +31,19 @@ use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionsInterface;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionView;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\Config\Definition\PrototypedArrayNode;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernel;
 
+use function array_keys;
+use function array_map;
 use function dirname;
+use function sort;
 
 /**
  * 1.10 architecture bar: the host's pending changes and transactions (rules 6 / 7), the DTO ports (rules 1 / 3), the
@@ -213,6 +221,110 @@ final class ArchitectureBarTest extends VersioningTestCase
         self::assertSame(1, (int) $legal->getConnection()->fetchOne('SELECT COUNT(*) FROM legal_document'));
         self::assertSame(2, (int) $legal->getConnection()->fetchOne('SELECT COUNT(*) FROM legal_acceptance'));
         self::assertNotContains('legal_document', $host->getConnection()->createSchemaManager()->listTableNames());
+    }
+
+    /**
+     * DoctrineBundle 3.4 regression: `auto_discover_entities` (on by default for a manager without `mappings` and
+     * `auto_mapping`) gives a host manager's chain a default attribute driver, which claims every `#[ORM\Entity]`
+     * class, so `getManagerForClass()` answered that host manager (the first one in the list) and the bundle
+     * repositories / `getRepository()` used its database. A second host manager without mappings listed before the
+     * bundle's reproduces it on DoctrineBundle 3.4; an explicit catch-all default driver on the default manager on every
+     * DoctrineBundle version. The bundle's own manager (no mappings either) must not get auto-discovery itself.
+     */
+    #[DataProvider('hostManagersWithADefaultDriver')]
+    public function testDedicatedManagerWinsOverADefaultDriverOfAHostManager(bool $explicitDefaultDriver): void
+    {
+        $managers = ['default' => ['connection' => 'default']];
+        if (!$explicitDefaultDriver) {
+            $managers['reports'] = ['connection' => 'default'];
+        }
+        $managers['legal'] = ['connection' => 'legal'];
+        $kernel            = $this->versioningKernel([
+            'doctrine'   => ['entity_manager' => 'legal', 'blame' => 'actor_id'],
+            'acceptance' => ['enabled' => true, 'enforce' => true, 'subject_resolver' => 'test.legal_kit.subject_resolver'],
+        ], $explicitDefaultDriver ? ['app_routes', 'host_default_driver'] : ['app_routes'], [
+            'doctrine' => ['dbal' => ['connections' => ['legal' => ['url' => 'sqlite:///:memory:']]], 'orm' => ['default_entity_manager' => 'default', 'entity_managers' => $managers]],
+        ]);
+        $registry = $this->registry($kernel);
+
+        // The bundle manager is not initialized yet: DoctrineBundle 3.4 asks its metadata driver.
+        $beforeInit = $registry->getManagerForClass(LegalDocument::class);
+        $legal      = $this->manager($kernel, 'legal');
+        self::assertSame($legal, $beforeInit);
+        foreach (array_keys($managers) as $name) {
+            if ($name === 'legal') {
+                continue;
+            }
+            foreach ([LegalDocument::class, LegalPageVersion::class, LegalAcceptance::class] as $class) {
+                self::assertTrue($this->manager($kernel, $name)->getMetadataFactory()->isTransient($class), $class . ' is not mapped on ' . $name);
+            }
+        }
+        foreach ([LegalDocument::class, LegalPageVersion::class, LegalAcceptance::class] as $class) {
+            self::assertSame($legal, $registry->getManagerForClass($class), $class);
+        }
+        self::assertSame(
+            [LegalAcceptance::class, LegalDocument::class, LegalPageVersion::class],
+            self::sorted(array_map(static fn (ClassMetadata $metadata): string => $metadata->getName(), $legal->getMetadataFactory()->getAllMetadata())),
+            'the bundle manager maps the bundle entities only',
+        );
+        (new SchemaTool($legal))->createSchema($legal->getMetadataFactory()->getAllMetadata());
+
+        $this->service($kernel, LegalDocumentPortabilityInterface::class)->apply([['slug' => 'notice', 'locale' => 'en', 'title' => 'Notice', 'body' => '<p>A</p>']], new LegalActorId('acc-1'), true);
+
+        self::assertSame(1, (int) $legal->getConnection()->fetchOne('SELECT COUNT(*) FROM legal_document'));
+        self::assertCount(1, $registry->getRepository(LegalDocument::class)->findAll(), 'getRepository() reads the bundle database');
+        self::assertNotContains('legal_document', $this->manager($kernel, 'default')->getConnection()->createSchemaManager()->listTableNames(), 'nothing on the host database');
+    }
+
+    /**
+     * An explicit `auto_discover_entities: true` on the bundle's manager is the host's choice: it is kept, and the
+     * build fails as for any other mapping that is not the bundle's (DoctrineBundle 3.4+ only).
+     */
+    public function testExplicitAutoDiscoveryOnTheBundleManagerIsRefused(): void
+    {
+        $root     = (new DoctrineConfiguration(false))->getConfigTreeBuilder()->buildTree();
+        $orm      = $root instanceof ArrayNode ? ($root->getChildren()['orm'] ?? null) : null;
+        $managers = $orm instanceof ArrayNode ? ($orm->getChildren()['entity_managers'] ?? null) : null;
+        $manager  = $managers instanceof PrototypedArrayNode ? $managers->getPrototype() : null;
+        if (!$manager instanceof ArrayNode || !isset($manager->getChildren()['auto_discover_entities'])) {
+            self::markTestSkipped('DoctrineBundle 3.4+ entity auto-discovery is not available.');
+        }
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The Doctrine entity manager "legal" (nowo_legal_kit.doctrine.entity_manager) also maps a default driver (every class).');
+        $this->versioningKernel(['doctrine' => ['entity_manager' => 'legal', 'blame' => 'actor_id']], [], [
+            'doctrine' => [
+                'dbal' => ['connections' => ['legal' => ['url' => 'sqlite:///:memory:']]],
+                'orm'  => [
+                    'default_entity_manager' => 'default',
+                    'entity_managers'        => [
+                        'default' => ['connection' => 'default'],
+                        'legal'   => ['connection' => 'legal', 'auto_discover_entities' => true],
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function hostManagersWithADefaultDriver(): iterable
+    {
+        yield 'host manager without mappings (DoctrineBundle 3.4 auto-discovery)' => [false];
+        yield 'host manager with a catch-all default driver' => [true];
+    }
+
+    /**
+     * @param list<string> $values
+     *
+     * @return list<string>
+     */
+    private static function sorted(array $values): array
+    {
+        sort($values);
+
+        return $values;
     }
 
     /**

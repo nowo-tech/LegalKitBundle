@@ -6,12 +6,15 @@ namespace Nowo\LegalKitBundle\DependencyInjection\Compiler;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
 use Nowo\LegalKitBundle\DependencyInjection\NowoLegalKitExtension;
+use Nowo\LegalKitBundle\Doctrine\ExcludedEntityNamespaceDriver;
 use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 
 use function array_keys;
+use function array_unshift;
 use function implode;
 use function in_array;
 use function is_array;
@@ -25,7 +28,10 @@ use function str_starts_with;
  * With a dedicated manager the bundle maps its entities on that manager ({@see DoctrineOrmMappingsPass}, registered by
  * the bundle class). DoctrineBundle's `auto_mapping` (the Flex default on the default manager) would map them a second
  * time, and `getManagerForClass()` (the bundle repositories) would then return the default manager. This pass removes
- * the bundle namespaces from the mapping driver chain of every other manager and fails the build when the configured
+ * the bundle namespaces from the mapping driver chain of every other manager and registers an
+ * {@see ExcludedEntityNamespaceDriver} for each of them there instead (first in the chain), so a default driver of that
+ * chain cannot claim the entities either (DoctrineBundle 3.4 `auto_discover_entities`; only the public `addDriver()` of
+ * the `doctrine.orm.<manager>_metadata_driver` chain is used). It fails the build when the configured
  * manager does not exist or does not map {@see self::ENTITY_NAMESPACE}, when it is the default manager, or when it also
  * maps other classes (the bundle owns that manager: {@see OwnEntityManagerSubscriber} resets and clears it, and gets
  * its subscriber tag here, only once the manager is known to be the bundle's own). Without `doctrine.entity_manager` it does
@@ -106,6 +112,16 @@ final class EntityManagerMappingPass implements CompilerPassInterface
                 }
                 $maps    = $maps || ($isBundle && str_starts_with((string) $namespace, self::ENTITY_NAMESPACE));
                 $calls[] = $call;
+            }
+
+            if ($manager !== $name) {
+                // First in the chain: a chain asks its namespace drivers in order, then its default driver.
+                array_unshift(
+                    $calls,
+                    ['addDriver', [new Definition(ExcludedEntityNamespaceDriver::class), self::ENTITY_NAMESPACE]],
+                    ['addDriver', [new Definition(ExcludedEntityNamespaceDriver::class), self::VERSIONING_NAMESPACE]],
+                    ['addDriver', [new Definition(ExcludedEntityNamespaceDriver::class), self::ACCEPTANCE_NAMESPACE]],
+                );
             }
 
             $chain->setMethodCalls($calls);

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+  - [Fixed](#fixed)
 - [[1.13.0] - 2026-11-12](#1130---2026-11-12)
   - [Added](#added)
 - [[1.12.0] - 2026-11-11](#1120---2026-11-11)
@@ -15,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Deprecated](#deprecated)
   - [Tests](#tests)
 - [[1.11.1] - 2026-11-11](#1111---2026-11-11)
-  - [Fixed](#fixed)
+  - [Fixed](#fixed-1)
   - [Tests](#tests-1)
   - [Documentation](#documentation)
 - [[1.11.0] - 2026-11-11](#1110---2026-11-11)
@@ -29,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-4)
 - [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added-5)
-  - [Fixed](#fixed-1)
+  - [Fixed](#fixed-2)
 - [[1.7.0] - 2026-11-09](#170---2026-11-09)
   - [Added](#added-6)
 - [[1.6.0] - 2026-11-09](#160---2026-11-09)
@@ -48,7 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
-  - [Fixed](#fixed-2)
+  - [Fixed](#fixed-3)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
@@ -59,14 +60,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [[1.1.0] - 2026-10-20](#110---2026-10-20)
   - [Added](#added-10)
   - [Changed](#changed-8)
-  - [Fixed](#fixed-3)
+  - [Fixed](#fixed-4)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
-  - [Fixed](#fixed-4)
+  - [Fixed](#fixed-5)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
   - [Added](#added-11)
 
 ## [Unreleased]
+
+### Fixed
+
+- DoctrineBundle 3.4: bundle entities resolved to the default manager when a dedicated manager is configured.
+  DoctrineBundle 3.4 `auto_discover_entities` (on by default for a manager without `mappings` and `auto_mapping`, with
+  Symfony 7.3+ and doctrine/orm 3.6+) gives that manager's metadata driver chain a default attribute driver, which
+  claims every `#[ORM\Entity]` class. Two effects with `doctrine.entity_manager` set: the bundle's own manager
+  (declared without mappings, as documented) got that default driver too, so the build failed with "also maps a
+  default driver (every class)"; and a host manager without mappings listed before it made `getManagerForClass()`
+  answer that host manager, so the bundle repositories and `getRepository()` used its database. The bundle now turns
+  `auto_discover_entities` off on its own manager through DoctrineBundle's configuration (unless the host set the
+  option; an explicit `true` still fails the build), and `EntityManagerMappingPass` registers a driver that maps nothing
+  for the three bundle entity namespaces, first in the chain of every other manager
+  (`Doctrine\ExcludedEntityNamespaceDriver`, only the public `addDriver()` of the
+  `doctrine.orm.<manager>_metadata_driver` chain), so the entities resolve to the configured manager on DoctrineBundle
+  2.x, 3.3 and 3.4+. Nothing changes without the option. Affected in practice:
+  1.10.0 to 1.13.0 (every release with `doctrine.entity_manager`; all allow `doctrine/doctrine-bundle` `^3.0`) with
+  DoctrineBundle 3.4.0 or later.
 
 ## [1.13.0] - 2026-11-12
 
