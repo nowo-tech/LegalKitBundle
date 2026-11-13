@@ -73,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015). The bundle's legal pages, admin pages and CookieConsent widget are unchanged; the host-theme tokens, the Bootstrap CDN and the layout bridge files are gone.
+- docs: demo screenshots regenerated on the UiKit base style
 
 ## [1.13.1] - 2026-11-13
 
