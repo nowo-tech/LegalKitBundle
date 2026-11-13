@@ -70,6 +70,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Documentation: the manual DDL in `docs/INSTALLATION.md` (`legal_document` slug/locale, `legal_page_version.slug`, and `legal_acceptance.subject_id` / `slug`, the latter host-supplied) now uses a binary NO PAD collation (`utf8mb4_0900_bin` on MySQL 8.0.17+, `utf8mb4_nopad_bin` on MariaDB, `utf8mb4_bin` only on MySQL 5.7) instead of the case- and trailing-space-insensitive default `utf8mb4_unicode_ci` (REQ-SEC-006).
+
 ### Changed
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015). The bundle's legal pages, admin pages and CookieConsent widget are unchanged; the host-theme tokens, the Bootstrap CDN and the layout bridge files are gone.

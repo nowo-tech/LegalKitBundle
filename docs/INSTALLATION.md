@@ -124,8 +124,8 @@ Expected DDL (MySQL 8):
 ```sql
 CREATE TABLE legal_document (
     id INT AUTO_INCREMENT NOT NULL,
-    slug VARCHAR(32) NOT NULL,
-    locale VARCHAR(8) NOT NULL,
+    slug VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    locale VARCHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
     title VARCHAR(180) NOT NULL,
     body LONGTEXT NOT NULL,
     created_at DATETIME DEFAULT NULL,
@@ -141,12 +141,22 @@ CREATE TABLE legal_document (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB;
 ```
 
+**Collation of the key columns (REQ-SEC-006).** `slug` and `locale` (and, below, `subject_id`) are identifiers inside
+unique keys, so they must compare exactly. The table default `utf8mb4_unicode_ci` is case-, accent- and
+trailing-space-insensitive (`'Privacy' = 'privacy '`), and `utf8mb4_bin` is binary but PAD SPACE on MySQL 8 and MariaDB,
+so it still ignores trailing spaces. Give these columns a binary NO PAD collation, as in the DDL above:
+`utf8mb4_0900_bin` on MySQL 8.0.17+, `utf8mb4_nopad_bin` on MariaDB, `utf8mb4_bin` only on MySQL 5.7 (which has no NO PAD
+collation). Replace `utf8mb4_0900_bin` in the statements on this page when you run MariaDB. Already created the table
+with the default collation? `ALTER TABLE legal_document MODIFY slug VARCHAR(32) CHARACTER SET utf8mb4 COLLATE
+utf8mb4_0900_bin NOT NULL, MODIFY locale VARCHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL;` (check
+first that no two rows differ only by case or trailing space, or the unique key rejects the change).
+
 With `doctrine.table_prefix: app_` the table becomes `app_legal_document` and its index names get the same prefix.
 
 ### Versioning and acceptance tables
 
 Only with `versioning.enabled` / `acceptance.enabled` (nothing changes otherwise). Generate the migration with
-`doctrine:migrations:diff` and check it against this reference (MySQL 8; the `doctrine.table_prefix` is prepended to
+`doctrine:migrations:diff` and check it against this reference (MySQL 8.0.17+; use `utf8mb4_nopad_bin` on MariaDB; the `doctrine.table_prefix` is prepended to
 the table and index names):
 
 ```sql
@@ -154,7 +164,7 @@ ALTER TABLE legal_document ADD seed_revision VARCHAR(32) DEFAULT NULL, ADD seed_
 
 CREATE TABLE legal_page_version (
     id INT AUTO_INCREMENT NOT NULL,
-    slug VARCHAR(32) NOT NULL,
+    slug VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
     version INT NOT NULL,
     requires_acceptance TINYINT(1) NOT NULL,
     source VARCHAR(16) NOT NULL,
@@ -171,8 +181,8 @@ CREATE TABLE legal_page_version (
 
 CREATE TABLE legal_acceptance (                -- acceptance.enabled only
     id INT AUTO_INCREMENT NOT NULL,
-    subject_id VARCHAR(128) NOT NULL,
-    slug VARCHAR(32) NOT NULL,
+    subject_id VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,  -- host-supplied id
+    slug VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
     version INT NOT NULL,
     locale VARCHAR(8) NOT NULL,
     kind VARCHAR(16) NOT NULL,
