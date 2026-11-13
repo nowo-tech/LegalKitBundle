@@ -1,17 +1,9 @@
-# Host theme of the demo (REQ-UI-003): the same tokens as the other bundle demos; layouts are the demo bridges.
+# REQ-DEMO-014: UiKit's default theme, unchanged, with UiKit's own semantic stylesheet only (no CSS framework, no CDN,
+# no host-theme tokens).
 nowo_ui_kit:
-    css_framework: bootstrap5
+    css_framework: custom
+    icon_set: none
+    # REQ-UI-003: every UiKit scaffold (the LegalKit pages, public and admin) renders inside the demo base layout (UiKit admin layout, default theme).
     layouts:
-        admin: 'layouts/admin.html.twig'
-        guest: 'layouts/guest.html.twig'
-    theme:
-        tokens:
-            primary: '#0f766e'
-            primary-contrast: '#ffffff'
-            surface: '#fffdf8'
-            surface-muted: '#f5efe4'
-            border: '#e8dfd0'
-            border-strong: '#d6c8b2'
-            text: '#1c2a27'
-            muted: '#6b6a5e'
-            radius: '0.75rem'
+        admin: 'base.html.twig'
+        guest: 'base.html.twig'
