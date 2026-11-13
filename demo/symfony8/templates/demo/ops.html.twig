@@ -1,13 +1,16 @@
-{% extends nowo_ui_layout.admin %}
+{% extends 'base.html.twig' %}
 
-{% block nowo_ui_document_title %}{{ 'demo.nav.ops'|trans }}{% endblock %}
+{% block title %}{{ 'demo.nav.ops'|trans }}{% endblock %}
 
-{% block nowo_ui_content %}
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.nav.ops'|trans}) }}
+{% endblock %}
+
+{% block body %}
     <section data-testid="demo-ops">
-        <h1 class="h4">{{ 'demo.nav.ops'|trans }}</h1>
         {{ include('@NowoLegalKitBundle/_placeholder_banner.html.twig') }}
         {% if nowo_legal_kit_placeholder_hits() is empty %}
-            <p class="alert alert-success" data-testid="demo-ops-clear">{{ 'demo.ops.clear'|trans }}</p>
+            <p class="nowo-ui-flash nowo-ui-flash--success" role="status" data-testid="demo-ops-clear">{{ 'demo.ops.clear'|trans }}</p>
         {% endif %}
     </section>
 {% endblock %}

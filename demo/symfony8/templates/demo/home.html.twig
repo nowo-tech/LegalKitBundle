@@ -1,17 +1,21 @@
-{% extends nowo_ui_layout.guest %}
+{% extends 'base.html.twig' %}
 
-{% block nowo_ui_document_title %}{{ 'demo.title'|trans }}{% endblock %}
+{% block title %}{{ 'demo.title'|trans }}{% endblock %}
 
-{% block nowo_ui_content %}
-    <section class="demo-hero" data-testid="demo-home">
-        <h1 class="h3">{{ 'demo.home.title'|trans }}</h1>
-        <p class="lead">{{ 'demo.home.intro'|trans }}</p>
-        <div class="d-flex flex-wrap gap-2">
-            {% for link in nowo_legal_kit_links() %}
-                <a class="btn btn-outline-secondary" href="{{ link.url }}">{{ link.label }}</a>
-            {% endfor %}
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.home.title'|trans, intro: 'demo.home.intro'|trans}) }}
+{% endblock %}
+
+{% block body %}
+    <section class="nowo-ui-card" data-testid="demo-home">
+        <div class="nowo-ui-card__body">
+            <p class="nowo-ui-row-actions">
+                {% for link in nowo_legal_kit_links() %}
+                    <a class="nowo-ui-btn nowo-ui-btn--outline" href="{{ link.url }}">{{ link.label }}</a>
+                {% endfor %}
+            </p>
+            <p>{{ 'demo.home.admin'|trans }} <a class="nowo-ui-link" href="{{ path('nowo_legal_kit_admin_index') }}">/admin/legal</a> (admin / admin)</p>
+            <p class="nowo-ui-muted">{{ 'demo.home.gate'|trans }} <code class="nowo-ui-code">bin/console nowo:legal-kit:check-placeholders</code></p>
         </div>
-        <p class="mt-4">{{ 'demo.home.admin'|trans }} <a href="{{ path('nowo_legal_kit_admin_index') }}">/admin/legal</a> (admin / admin)</p>
-        <p class="text-muted small">{{ 'demo.home.gate'|trans }} <code>bin/console nowo:legal-kit:check-placeholders</code></p>
     </section>
 {% endblock %}
