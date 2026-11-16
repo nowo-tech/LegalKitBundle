@@ -51,7 +51,9 @@ final readonly class BlameMappingListener
 
         unset($metadata->associationMappings['createdBy'], $metadata->associationMappings['updatedBy']);
         $table = $metadata->table;
-        foreach ($table['indexes'] ?? [] as $name => $index) {
+        /** @var array<string, array{columns?: list<string>}> $indexes doctrine/orm 3.8 documents these as the not yet shipped IndexMapping class */
+        $indexes = $table['indexes'] ?? [];
+        foreach ($indexes as $name => $index) {
             if (array_intersect($index['columns'] ?? [], self::JOIN_COLUMNS) !== []) {
                 unset($table['indexes'][$name]);
             }

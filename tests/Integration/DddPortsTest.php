@@ -59,7 +59,9 @@ final class DddPortsTest extends VersioningTestCase
             self::assertFalse($meta->hasAssociation('updatedBy'), $class);
             self::assertSame('created_by', $meta->getColumnName('createdByActorId'));
             self::assertSame('updated_by', $meta->getColumnName('updatedByActorId'));
-            foreach ($meta->table['indexes'] ?? [] as $index) {
+            /** @var array<string, array{columns?: list<string>}> $indexes doctrine/orm 3.8 documents these as the not yet shipped IndexMapping class */
+            $indexes = $meta->table['indexes'] ?? [];
+            foreach ($indexes as $index) {
                 self::assertNotContains('created_by_id', $index['columns'] ?? []);
             }
         }
