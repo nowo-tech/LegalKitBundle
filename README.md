@@ -1,6 +1,6 @@
 # Legal Kit Bundle
 
-[![CI](https://github.com/nowo-tech/LegalKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/LegalKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/legal-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/legal-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/legal-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/legal-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/LegalKitBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/LegalKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/LegalKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/LegalKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/legal-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/legal-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/legal-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/legal-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/LegalKitBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/LegalKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.53%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/legal-kit-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/LegalKitBundle) so more developers can find it.
 
@@ -168,11 +168,11 @@ Playwright end-to-end tests and the README screenshots: `make -C demo/symfony8 t
 ## Tests and coverage
 
 - Tests: PHPUnit (unit, integration, functional, page contract, schema adoption), Playwright (demo e2e)
-- PHP: 100%
+- PHP: 99.53% (4044/4063 lines, CI)
 - TS/JS: N/A
 - Python: N/A
 
-PHP line coverage: **100%** of includable `src/` (gate **≥ 99%**; strict gate `make test-coverage-100`).
+PHP line coverage: **99.53%** of includable `src/` (4044/4063 lines in CI; gate **≥ 99%**, target 100% with `make test-coverage-100`).
 
 ```bash
 make test

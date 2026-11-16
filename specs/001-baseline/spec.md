@@ -138,6 +138,30 @@ console names as deprecated aliases).
 - **FR-081** Asset package `nowo_legal_kit` and `css/nowo-legal-kit.css`; Twig namespace `@NowoLegalKitBundle`.
 - **FR-082** Translations `NowoLegalKitBundle` and `NowoLegalKitSeed` in en, es, de, nl, fr, it, pt.
 
+### Acceptance (1.8–1.13, opt-in `acceptance.enabled`)
+
+- **FR-090** Re-acceptance gate: `AcceptanceGateSubscriber` sends signed-in browser navigations to `nowo_legal_kit_acceptance` (`LegalAcceptanceController`, `LegalAcceptanceType`: one unticked checkbox per page to accept, acknowledgements without one) while a required page version is pending (`PendingLegalPage`); `AcceptanceRequestMatcher` applies the built-in, configured and host exemptions (`LegalAcceptanceExemptionInterface`, `LegalAcceptanceRequestExemptionInterface`), `RelativeTargetValidator` only lets same-origin relative targets through; `compact` / `interstitial` templates.
+- **FR-091** Records: `LegalAcceptanceManagerInterface` (default `LegalAcceptanceManager`, `LegalAcceptanceRepository`, entity `LegalAcceptance`, `LegalAcceptanceBatch` for writes inside a host transaction) stores who accepted which version and content hash; `LegalAcceptedEvent` / `LegalAcceptancesErasedEvent`; `nowo:legal-kit:verify-acceptance-hash` checks a recorded hash against the current text.
+- **FR-092** Subject contracts (architecture bar rule 3, 1.12): the host says who the subject is through `LegalSubjectIdResolverInterface` (framework-free, `LegalSubjectUser`, `LegalRequestContext` with allowlisted `LegalRequestContextCookies`) or the deprecated `LegalAcceptanceSubjectResolverInterface`; `CurrentLegalSubject` reads the current token.
+- **FR-093** Personal data (1.11): UserKit export section and eraser `legal_acceptances` (`LegalAcceptancesPersonalDataExportProvider`, `LegalAcceptancesPersonalDataEraser`) over the subject ids of `LegalPersonalDataSubjectResolverInterface` (default `AcceptanceSubjectPersonalDataResolver`, `PersonalDataSubjects`).
+
+### Versioning (1.9–1.13, opt-in `versioning.enabled`)
+
+- **FR-100** Page versions: `LegalPageVersionsInterface` (default `LegalPageVersions`, `LegalPageVersionRepository`, entity `LegalPageVersion`, read view `LegalPageVersionView`) gives the current and required version per slug; publishing is checked by `LegalVersionPublisherCheckerInterface` (default `AccessLegalVersionPublisherChecker`), a concurrent publish aborts with `StaleVersionException`, `LegalVersionPublishedEvent` follows the commit; `VersioningMappingListener` maps `seed_revision` / `seed_hash` only when enabled.
+- **FR-101** Seed tracking: `LegalSeedHasher` (`legalkit-seed-v1`) and `LegalSeedTracker` know which built-in text each copy started from; `nowo:legal-kit:snapshot-seed` (`SeedSnapshotStore`) freezes built-in texts, `nowo:legal-kit:upgrade-seed` (`LegalSeedUpgrader`, `LegalSeedUpgradedEvent`) refreshes untouched copies and flags edited ones; the compare admin (`LegalSeedCompareController`, `compare.html.twig`, `_diff.html.twig`) shows a side-by-side diff (`LegalTextProjector`, `LineDiff`, `TextDiff`, `DiffRow`, `DiffSegment`, plain text only) and "Keep my text" raises `LegalDocumentRebasedEvent`.
+
+### Architecture bar (REQ-ARCH-001, 1.10–1.12)
+
+- **FR-110** Own and private entity manager (rule 6): `doctrine.entity_manager` keeps the bundle entities on one manager (`EntityManagerMappingPass`, `ExcludedEntityNamespaceDriver` elsewhere), `doctrine.private_entity_manager` builds `LegalKitEntityManager` / `LegalKitManagerRegistry`; `OwnEntityManagerSubscriber` and `LegalKitEntityManagerSubscriber` clear / recreate them at every unit-of-work boundary (worker mode).
+- **FR-111** Events after commit (rule 7): the DBAL `AfterCommitMiddleware` (`AfterCommitDriver`, `AfterCommitConnection`, attached by `AfterCommitMiddlewarePass`) reports real transactions to `TransactionObserverInterface`; `AfterCommitEventDispatcher` holds the events (`LegalPendingEventsInterface`) until commit.
+- **FR-112** Actor ids (rule 3): `doctrine.blame: actor_id` stamps `created_by` / `updated_by` with `LegalActorIdResolverInterface` (default `SecurityLegalActorIdResolver`, `LegalActorId`) through `ActorIdBlameListener` / `ActorIdBlameTrait`; `BlameMappingListener` drops AuditKit's relation mapping in that mode.
+- **FR-113** Framework-free ports (rule 1/3): `LegalDocumentResolverInterface`, `LegalDocumentPortabilityInterface`, typed import twin `LegalDocumentImportInterface`; `DeprecatedPortsPass` reports hosts still wiring the deprecated framework-typed ports; `ContextCookiesPass` validates the allowlisted cookies.
+
+### Public header and sanitiser limits
+
+- **FR-114** Optional public header (1.7): `LegalPublicHeader` renders the brand of `LegalBrand` (`nowo-tech/brand-contracts`) in `public/_header.html.twig`.
+- **FR-033** `NestingEstimator` refuses very deep markup before any parser sees it; constraint messages ship in the `validators` catalogues (en, es, de, nl, fr, it, pt).
+
 ## Key entities
 
 | Entity | Notes |
@@ -162,7 +186,7 @@ console names as deprecated aliases).
 
 ## Non-goals
 
-- Versioned documents, publication workflow, acceptance tracking, per-tenant pages, localised slugs, legal advice.
+- Per-tenant pages, localised slugs, legal advice. (Versioning and acceptance tracking exist since 1.8–1.13 as opt-in features, FR-090–FR-101.)
 
 ## Validation
 

@@ -73,6 +73,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+
+### Documentation
+
+- Spec Kit baseline: the code inventory maps all 173 files under `src/` (acceptance, versioning, architecture-bar entity manager / after-commit / actor-id / ports, public header, validator messages added since 1.7) with `FR-033`, `FR-090`–`FR-093`, `FR-100`/`FR-101`, `FR-110`–`FR-114` in the spec; the non-goals no longer list versioning and acceptance (REQ-SPECKIT-001/003). README and Coverage badge show the CI figure (99.53%, 4044/4063 lines; REQ-TEST-007).
+
 ## [1.13.2] - 2026-11-13
 
 ### Fixed

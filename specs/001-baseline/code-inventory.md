@@ -1,7 +1,7 @@
 # Legal Kit Bundle — baseline code inventory
 
 **Package**: `nowo-tech/legal-kit-bundle`  
-**Last audited**: 2026-10-28  
+**Last audited**: 2026-11-16  
 **Production units**: **82/82**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.css' \) | wc -l`
 
@@ -27,7 +27,11 @@
 | Console | 6 |
 | Templates & stylesheet | 13 |
 | Translations | 14 |
-| **Total** | **82** |
+| Acceptance | 29 |
+| Versioning | 26 |
+| Architecture bar (entity manager, after-commit, actor ids, ports) | 25 |
+| Public header, sanitiser limits and validator messages | 11 |
+| **Total** | **173** |
 
 
 ## Bundle, configuration & DI
@@ -181,6 +185,125 @@ Requirements: FR-021, FR-041…FR-044, FR-050, FR-051, FR-063, FR-072, FR-081.
 | `src/Resources/views/seed/notice.html.twig` | Legal notice seed body |
 | `src/Resources/views/seed/privacy.html.twig` | Privacy seed body |
 | `src/Resources/views/seed/terms.html.twig` | Terms seed body |
+
+## Acceptance
+
+Requirements: FR-090, FR-091, FR-092, FR-093.
+
+| File | Role |
+| --- | --- |
+| `src/Acceptance/AcceptanceRequestMatcher.php` | Gate exemptions (built-in, configured, host voters) |
+| `src/Acceptance/CurrentLegalSubject.php` | Subject of the current token |
+| `src/Acceptance/Entity/LegalAcceptance.php` | Acceptance record entity |
+| `src/Acceptance/LegalAcceptanceBatch.php` | Writes inside a host transaction |
+| `src/Acceptance/LegalAcceptanceExemptionInterface.php` | Host exemption voter (deprecated twin) |
+| `src/Acceptance/LegalAcceptanceRequestExemptionInterface.php` | Host exemption voter (framework-free) |
+| `src/Acceptance/LegalAcceptanceManager.php` | Default acceptance manager |
+| `src/Acceptance/LegalAcceptanceManagerInterface.php` | Acceptance port (public API) |
+| `src/Acceptance/LegalAcceptanceRepository.php` | Acceptance records |
+| `src/Acceptance/LegalAcceptanceSubjectResolverInterface.php` | Subject contract (deprecated twin) |
+| `src/Acceptance/LegalSubjectIdResolverInterface.php` | Subject contract (framework-free) |
+| `src/Acceptance/LegalSubjectUser.php` | Signed-in user handed to the resolver |
+| `src/Acceptance/LegalRequestContext.php` | Request handed to host voters |
+| `src/Acceptance/LegalRequestContextCookies.php` | Allowlisted cookie values per context |
+| `src/Acceptance/PendingLegalPage.php` | Page still to accept |
+| `src/Acceptance/RelativeTargetValidator.php` | Same-origin relative targets only |
+| `src/Controller/LegalAcceptanceController.php` | Re-acceptance page |
+| `src/EventSubscriber/AcceptanceGateSubscriber.php` | Re-acceptance gate |
+| `src/Form/LegalAcceptanceType.php` | Re-acceptance form |
+| `src/Command/VerifyAcceptanceHashCommand.php` | `nowo:legal-kit:verify-acceptance-hash` |
+| `src/Event/LegalAcceptedEvent.php` | After an acceptance |
+| `src/Event/LegalAcceptancesErasedEvent.php` | After an erasure |
+| `src/PersonalData/AcceptanceSubjectPersonalDataResolver.php` | Default subject id resolver |
+| `src/PersonalData/LegalAcceptancesPersonalDataEraser.php` | UserKit eraser `legal_acceptances` |
+| `src/PersonalData/LegalAcceptancesPersonalDataExportProvider.php` | UserKit export section |
+| `src/PersonalData/LegalPersonalDataSubjectResolverInterface.php` | Subject ids SPI |
+| `src/PersonalData/PersonalDataSubjects.php` | Distinct storable subject ids |
+| `src/Resources/views/acceptance/compact.html.twig` | Compact acceptance page |
+| `src/Resources/views/acceptance/interstitial.html.twig` | Interstitial acceptance page |
+
+## Versioning
+
+Requirements: FR-100, FR-101.
+
+| File | Role |
+| --- | --- |
+| `src/Versioning/LegalPageVersionsInterface.php` | Page versions port |
+| `src/Versioning/LegalPageVersions.php` | Default page versions |
+| `src/Versioning/LegalPageVersionRepository.php` | Published versions |
+| `src/Versioning/Entity/LegalPageVersion.php` | Version entity |
+| `src/Versioning/LegalPageVersionView.php` | Read-only version view |
+| `src/Versioning/LegalVersionPublisherCheckerInterface.php` | Publisher check SPI |
+| `src/Versioning/AccessLegalVersionPublisherChecker.php` | Default publisher check |
+| `src/Versioning/StaleVersionException.php` | Concurrent publish abort |
+| `src/Versioning/LegalSeedHasher.php` | Seed normalisation + hash |
+| `src/Versioning/LegalSeedTracker.php` | Seed base of stored copies |
+| `src/Versioning/LegalSeedUpgrader.php` | Upgrade of untouched copies |
+| `src/Versioning/SeedSnapshotStore.php` | Frozen built-in texts |
+| `src/Versioning/Diff/DiffRow.php` | Diff row |
+| `src/Versioning/Diff/DiffSegment.php` | Plain-text diff segment |
+| `src/Versioning/Diff/LegalTextProjector.php` | HTML to text lines |
+| `src/Versioning/Diff/LineDiff.php` | Line + word diff |
+| `src/Versioning/Diff/TextDiff.php` | Diff result |
+| `src/Doctrine/VersioningMappingListener.php` | Seed columns mapped when enabled |
+| `src/Command/SnapshotSeedCommand.php` | `nowo:legal-kit:snapshot-seed` |
+| `src/Command/UpgradeSeedCommand.php` | `nowo:legal-kit:upgrade-seed` |
+| `src/Controller/Admin/LegalSeedCompareController.php` | Compare / keep my text admin |
+| `src/Event/LegalVersionPublishedEvent.php` | After a version is published |
+| `src/Event/LegalSeedUpgradedEvent.php` | After upgrade-seed commits |
+| `src/Event/LegalDocumentRebasedEvent.php` | After "Keep my text" |
+| `src/Resources/views/admin/compare.html.twig` | Compare page |
+| `src/Resources/views/admin/_diff.html.twig` | Diff partial |
+
+## Architecture bar (entity manager, after-commit, actor ids, ports)
+
+Requirements: FR-110, FR-111, FR-112, FR-113.
+
+| File | Role |
+| --- | --- |
+| `src/DependencyInjection/Compiler/EntityManagerMappingPass.php` | Entities on one manager |
+| `src/Doctrine/ExcludedEntityNamespaceDriver.php` | Maps nothing on other managers |
+| `src/Doctrine/LegalKitEntityManager.php` | Private entity manager |
+| `src/Doctrine/LegalKitManagerRegistry.php` | Registry seen by repositories |
+| `src/Doctrine/OwnEntityManagerSubscriber.php` | Own manager reset at boundaries |
+| `src/Doctrine/LegalKitEntityManagerSubscriber.php` | Private manager boundaries |
+| `src/DependencyInjection/Compiler/AfterCommitMiddlewarePass.php` | Middleware on the bundle connection |
+| `src/Doctrine/AfterCommitMiddleware.php` | DBAL middleware |
+| `src/Doctrine/AfterCommitDriver.php` | Middleware driver |
+| `src/Doctrine/AfterCommitConnection.php` | Middleware connection |
+| `src/Doctrine/TransactionObserverInterface.php` | Transaction observer |
+| `src/Doctrine/AfterCommitEventDispatcher.php` | Events after commit |
+| `src/Doctrine/LegalPendingEventsInterface.php` | Pending events port |
+| `src/Blame/ActorIdBlameListener.php` | Actor id stamping |
+| `src/Blame/ActorIdBlameTrait.php` | String blame columns |
+| `src/Blame/BlameMappingListener.php` | Drops relation blame mapping |
+| `src/Blame/LegalActorId.php` | Actor by id (VO) |
+| `src/Blame/LegalActorIdResolverInterface.php` | Actor id port |
+| `src/Blame/SecurityLegalActorIdResolver.php` | Default actor id resolver |
+| `src/Document/LegalDocumentResolverInterface.php` | Published texts port |
+| `src/Portability/LegalDocumentPortabilityInterface.php` | Portability port |
+| `src/Portability/LegalDocumentImportInterface.php` | Typed import twin |
+| `src/DependencyInjection/Compiler/DeprecatedPortsPass.php` | Deprecation for framework-typed ports |
+| `src/DependencyInjection/Compiler/ContextCookiesPass.php` | Allowlisted context cookies |
+| `src/EventSubscriber/PlaceholderScannerResetSubscriber.php` | Scanner memo cleared at boundaries (FR-060) |
+
+## Public header, sanitiser limits and validator messages
+
+Requirements: FR-033, FR-114, FR-082.
+
+| File | Role |
+| --- | --- |
+| `src/Header/LegalPublicHeader.php` | Optional public header |
+| `src/Brand/LegalBrand.php` | Brand from brand-contracts |
+| `src/Resources/views/public/_header.html.twig` | Header partial |
+| `src/Sanitizer/NestingEstimator.php` | Nesting limit before parsing |
+| `src/Resources/translations/validators.de.yaml` | Constraint messages |
+| `src/Resources/translations/validators.en.yaml` | Constraint messages |
+| `src/Resources/translations/validators.es.yaml` | Constraint messages |
+| `src/Resources/translations/validators.fr.yaml` | Constraint messages |
+| `src/Resources/translations/validators.it.yaml` | Constraint messages |
+| `src/Resources/translations/validators.nl.yaml` | Constraint messages |
+| `src/Resources/translations/validators.pt.yaml` | Constraint messages |
 
 ## Translations
 
