@@ -1155,16 +1155,16 @@
         },
         {
             "name": "nowo-tech/ui-kit-bundle",
-            "version": "v2.51.0",
+            "version": "v2.52.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/UiKitBundle.git",
-                "reference": "bd14774abdb7fb3bb755bf8fb2bf4aaee0258d15"
+                "reference": "fb737a0bc8eb9b0a297a1952a2430af0263c892f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/bd14774abdb7fb3bb755bf8fb2bf4aaee0258d15",
-                "reference": "bd14774abdb7fb3bb755bf8fb2bf4aaee0258d15",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/fb737a0bc8eb9b0a297a1952a2430af0263c892f",
+                "reference": "fb737a0bc8eb9b0a297a1952a2430af0263c892f",
                 "shasum": ""
             },
             "require": {
@@ -1253,7 +1253,7 @@
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
                 "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-11-13T16:47:40+00:00"
+            "time": "2026-11-16T20:17:17+00:00"
         },
         {
             "name": "psr/cache",
@@ -7238,16 +7238,16 @@
         },
         {
             "name": "nowo-tech/seo-kit-bundle",
-            "version": "v1.19.0",
+            "version": "v1.24.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/SeoKitBundle.git",
-                "reference": "d574b4a8301a7c65f7427db34d724ca48542abe1"
+                "reference": "b89cb0ade8b74725714d4b241218f347fdfb4395"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/SeoKitBundle/zipball/d574b4a8301a7c65f7427db34d724ca48542abe1",
-                "reference": "d574b4a8301a7c65f7427db34d724ca48542abe1",
+                "url": "https://api.github.com/repos/nowo-tech/SeoKitBundle/zipball/b89cb0ade8b74725714d4b241218f347fdfb4395",
+                "reference": "b89cb0ade8b74725714d4b241218f347fdfb4395",
                 "shasum": ""
             },
             "require": {
@@ -7271,11 +7271,15 @@
                 "twig/string-extra": "^3.12",
                 "twig/twig": "^3.8"
             },
+            "conflict": {
+                "nowo-tech/brand-contracts": "<1.0 || >=2.0"
+            },
             "require-dev": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
                 "doctrine/orm": "^3.0",
                 "friendsofphp/php-cs-fixer": "^3.0",
                 "igor-php/igor-php": "^0.10.1",
+                "nowo-tech/brand-contracts": "^1.0",
                 "nowo-tech/phpstan-frankenphp": "^1.0",
                 "phpstan/extension-installer": "^1.4",
                 "phpstan/phpstan": "^2.0",
@@ -7287,6 +7291,7 @@
                 "symfony/browser-kit": "^7.4 || ^8.0",
                 "symfony/cache": "^7.4 || ^8.0",
                 "symfony/console": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4 || ^8.0",
                 "symfony/phpunit-bridge": "^7.4 || ^8.0",
                 "symfony/security-bundle": "^7.4 || ^8.0",
                 "vincentlanglet/twig-cs-fixer": "^4.0"
@@ -7294,6 +7299,7 @@
             "suggest": {
                 "doctrine/doctrine-bundle": "Registers ORM mappings when persistence is enabled",
                 "doctrine/orm": "Required when nowo_seo_kit.persistence.enabled is true (SeoSiteSettings / SeoSurface)",
+                "nowo-tech/brand-contracts": "^1.0 — site name (and, opt-in, logo) for the head tags and JSON-LD from a BrandProviderInterface service (nowo_seo_kit.brand, spec 220)",
                 "nowo-tech/generative-seo-kit-bundle": "Generative Engine Optimization (GEO, not geolocation): AI crawler robots groups, /llms.txt, citations, nowo:generative-seo:audit",
                 "symfony/cache": "Optional cache.app for SeoSiteConfigProvider snapshots",
                 "symfony/console": "Required for nowo:seo:audit",
@@ -7350,7 +7356,7 @@
                 "issues": "https://github.com/nowo-tech/SeoKitBundle/issues",
                 "source": "https://github.com/nowo-tech/SeoKitBundle"
             },
-            "time": "2026-10-30T19:48:38+00:00"
+            "time": "2026-11-12T18:34:15+00:00"
         },
         {
             "name": "nowo-tech/user-kit-bundle",
