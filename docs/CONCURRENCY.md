@@ -80,7 +80,9 @@ hash is H. The bundle keeps N and H consistent:
   the version could come from a stale cached map (the moment between a publication's commit and its cache delete, a
   failed cache delete, or a cache pool that is not shared between servers). Without this check, version N could be
   recorded with the hash of the text of N+1. Now such an offer raises `StaleLegalOfferException` and nothing is
-  recorded; the page drops the cached map and shows the current offer.
+  recorded; the bundle drops the cached map before refusing, so the next `pendingFor()` (the page does it at once)
+  shows the current offer. Rows recorded by 1.4.0–1.13.2 can be checked with the query in
+  [UPGRADING.md](UPGRADING.md#acceptances-recorded-against-a-stale-version-140-to-1132).
 - A publication that commits after that check commits after the acceptance of the previous version: version N with the
   text of version N, which is exactly what was offered and current when read. The gate then asks again for N+1.
 - Two submits of the same offer: one row per page (unique key). On two connections the second waits for the first's

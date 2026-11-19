@@ -78,6 +78,7 @@ final class AcceptanceStaleOfferTest extends VersioningTestCase
         $this->clearCache($kernel);
         $pending = $manager->pendingFor('u-ann', 'en');
         $versions->publishVersion('terms', true, 'editor', flush: false);
+        self::assertSame(1, $versions->current('terms'), 'the cached map is stale');
 
         try {
             $manager->record('u-ann', $pending);
@@ -86,6 +87,8 @@ final class AcceptanceStaleOfferTest extends VersioningTestCase
             self::assertSame(['terms', 1, 2], [$e->slug, $e->offeredVersion, $e->currentVersion]);
             self::assertStringContainsString('nothing was recorded', $e->getMessage());
         }
+        self::assertSame(2, $versions->current('terms'), 'UJ-LK-1: the stale cached map was dropped');
+        self::assertSame(2, $manager->pendingFor('u-ann', 'en')[1]->currentVersion, 'a second pendingFor() gets the current offer');
         $connection = $this->entityManager($kernel)->getConnection();
         $connection->beginTransaction();
         try {

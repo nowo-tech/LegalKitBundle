@@ -86,6 +86,9 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
             if (!$page->requiresAcceptance()) {
                 continue;
             }
+            // Order matters (audit UJ-LK-3): the version map is read before the texts, and the resolver stays
+            // uncached, so a text is never older than the version it is offered at. The acceptance batch re-checks
+            // the version uncached (assertCurrent()).
             $map ??= $this->versions->requirements();
             $required = max(1, $map[$page->slug][1] ?? 1);
             $accepted ??= $this->acceptances->acceptedVersions($subjectId);
@@ -332,7 +335,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      *
      * @param list<PendingLegalPage> $pages
      *
-     * @throws StaleLegalOfferException when a page moved on: nothing is recorded
+     * @throws StaleLegalOfferException when a page moved on: nothing is recorded (the cached map is dropped first)
      */
     private function assertCurrent(array $pages): void
     {
@@ -343,6 +346,10 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
         foreach ($pages as $page) {
             $current = max(1, $map[$page->page->slug][0] ?? 1);
             if ($current !== $page->currentVersion) {
+                // Audit UJ-LK-1: drop this server's cached map, so a caller that reads pendingFor() again gets the
+                // current offer instead of the same stale one.
+                $this->versions->invalidate();
+
                 throw new StaleLegalOfferException($page->page->slug, $page->currentVersion, $current);
             }
         }

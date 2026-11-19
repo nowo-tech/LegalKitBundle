@@ -87,11 +87,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Acceptances are evidence: the acceptance batch now re-reads the current version of every offered page from the database (never the cached requirements map) inside its transaction, before the first insert. An offer whose version is no longer current records nothing (`StaleLegalOfferException`) and the re-acceptance page shows the current offer. Before, a stale cached map (the moment between a publication's commit and its cache delete, a failed cache delete, or a cache pool not shared between servers) could record version N with the content hash of the text of version N+1.
+- Acceptances are evidence: the acceptance batch now re-reads the current version of every offered page from the database (never the cached requirements map) inside its transaction, before the first insert. An offer whose version is no longer current records nothing (`StaleLegalOfferException`) and the re-acceptance page shows the current offer. Before, a stale cached map (the moment between a publication's commit and its cache delete, a failed cache delete, or a cache pool not shared between servers) could record version N with the content hash of the text of version N+1. The batch also drops the cached map before refusing, so the next `pendingFor()` returns the current offer. Affected: 1.4.0–1.13.2 (security advisory, Low). Finding and repairing affected rows: [UPGRADING](UPGRADING.md#acceptances-recorded-against-a-stale-version-140-to-1132).
 
 ### Changed
 
 - Requires nowo-tech/transaction-doctrine ^1.6 and nowo-tech/transaction-contract ^1.0. The demo lock installs them.
+- Demo lock: symfony/html-sanitizer, symfony/http-client and symfony/security-http 8.1.11 (clears the 7 advisories `composer audit` reported for the demo).
 
 ### Documentation
 
