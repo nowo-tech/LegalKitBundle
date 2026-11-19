@@ -86,9 +86,9 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
             if (!$page->requiresAcceptance()) {
                 continue;
             }
-            // Order matters (audit UJ-LK-3): the version map is read before the texts, and the resolver stays
-            // uncached, so a text is never older than the version it is offered at. The acceptance batch re-checks
-            // the version uncached (assertCurrent()).
+            // Order matters (audit UJ-LK-3): the version map must be read before the texts, and the resolver must stay
+            // uncached; otherwise a text can be older than the version it is offered at, and the version-only re-check
+            // in assertCurrent() no longer proves that the offered hash and version match.
             $map ??= $this->versions->requirements();
             $required = max(1, $map[$page->slug][1] ?? 1);
             $accepted ??= $this->acceptances->acceptedVersions($subjectId);

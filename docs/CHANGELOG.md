@@ -78,6 +78,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Comment in `LegalAcceptanceManager::pendingFor()` states why the version map is read before the texts and why the resolver stays uncached (audit UJ-LK-3). No behaviour change; a unit test was not added because `LegalPageVersions` and the manager are final classes.
+
 ## [1.14.0] - 2026-11-19
 
 ### Added
