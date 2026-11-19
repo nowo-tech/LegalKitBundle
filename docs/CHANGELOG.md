@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.14.0] - 2026-11-19](#1140---2026-11-19)
   - [Added](#added)
   - [Fixed](#fixed)
   - [Changed](#changed)
@@ -76,6 +77,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - [Added](#added-12)
 
 ## [Unreleased]
+
+## [1.14.0] - 2026-11-19
 
 ### Added
 
