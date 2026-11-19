@@ -33,6 +33,7 @@ use Nowo\LegalKitBundle\Controller\Admin\LegalDocumentAdminController;
 use Nowo\LegalKitBundle\Controller\Admin\LegalSeedCompareController;
 use Nowo\LegalKitBundle\Controller\LegalAcceptanceController;
 use Nowo\LegalKitBundle\Controller\LegalPageController;
+use Nowo\LegalKitBundle\DependencyInjection\Compiler\AfterCommitMiddlewarePass;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
 use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
@@ -46,6 +47,7 @@ use Nowo\LegalKitBundle\Document\LegalDocumentResolver;
 use Nowo\LegalKitBundle\Event\LegalPageRenderEvent;
 use Nowo\LegalKitBundle\EventListener\SeoKitHeadListener;
 use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
+use Nowo\LegalKitBundle\EventSubscriber\LegalKitConflictListener;
 use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
@@ -74,6 +76,9 @@ use Nowo\LegalKitBundle\Versioning\SeedSnapshotStore;
 use Nowo\OutboundUrlGuardBundle\Guard\OutboundUrlGuard;
 use Nowo\SeoKitBundle\Service\SeoRuntime;
 use Nowo\SeoKitBundle\Service\SitemapUrlProviderInterface;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
+use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
+use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use Nowo\UserKitBundle\PersonalData\PersonalDataEraserInterface;
 use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -88,6 +93,7 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Throwable;
 
 use function array_fill_keys;
@@ -146,6 +152,15 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
 
     /** Container parameter: true when the bundle writes through its private entity manager (1.12). */
     public const string PRIVATE_ENTITY_MANAGER_PARAMETER = 'nowo_legal_kit.doctrine.private_entity_manager';
+
+    /** 1.14: real commits counted by {@see self::COMMIT_TRACKING_MIDDLEWARE}, read by the conflict answer. */
+    public const string COMMIT_LEDGER_SERVICE = 'nowo_legal_kit.commit_ledger';
+
+    /** 1.14: transaction-doctrine's commit-tracking DBAL middleware (scoped by {@see AfterCommitMiddlewarePass}). */
+    public const string COMMIT_TRACKING_MIDDLEWARE = 'nowo_legal_kit.commit_tracking_middleware';
+
+    /** 1.14: container parameter holding `conflict_response.commit_tracking` (bundle, all or off). */
+    public const string COMMIT_TRACKING_PARAMETER = 'nowo_legal_kit.conflict_response.commit_tracking';
 
     /** Bundle repositories whose `$registry` argument resolves the bundle entities to the private manager (1.12). */
     private const array REPOSITORY_SERVICES = [
@@ -354,6 +369,9 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         }
         $this->configureBlame($container, $doctrine['blame'], $doctrine['accepted_user_classes']);
         $this->wireEntityManager($container, $doctrine['entity_manager'], $doctrine['private_entity_manager']);
+        /** @var array{status: int|null, retry_after: int|null, commit_tracking: string} $conflictResponse */
+        $conflictResponse = $config['conflict_response'];
+        $this->registerConflictAnswer($container, $conflictResponse);
         $container->getDefinition(SeedCommand::class)->setArgument('$dispatcher', new Reference('event_dispatcher', ContainerInterface::NULL_ON_INVALID_REFERENCE));
 
         /** @var array{sitemap: bool|string, head: bool|string} $seo */
@@ -433,6 +451,46 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
         if ($container->hasExtension('doctrine') && $container->hasParameter(self::DEDICATED_MAPPING_PARAMETER) !== ($entityManager !== null)) {
             throw new InvalidConfigurationException('nowo_legal_kit.doctrine.entity_manager must be a literal manager name set in the host configuration (config/packages/nowo_legal_kit.yaml): the entity mapping is decided before the configuration is processed.');
         }
+    }
+
+    /**
+     * 1.14 (REQ-RUNTIME-003 rule 6): 409 (or 503) + CONFLICT_001 / CONFLICT_002 instead of a 500 for lock conflicts on
+     * the bundle's routes. Unset options follow transaction-doctrine's policy service when its bundle is registered.
+     *
+     * Commit tracking (`conflict_response.commit_tracking`): `bundle` (default) and `all` register transaction-doctrine's
+     * commit-tracking middleware; {@see AfterCommitMiddlewarePass} scopes it to the bundle's connection (`bundle`, the
+     * connection the after-commit middleware follows), or drops it and reuses transaction-doctrine's own ledger when
+     * that bundle's `commit_detection` is on (audit UE-CF-1: never a second wrapper, never every host connection by
+     * default). `off` registers neither the ledger nor the middleware.
+     *
+     * @param array{status: int|null, retry_after: int|null, commit_tracking: string} $conflictResponse
+     */
+    private function registerConflictAnswer(ContainerBuilder $container, array $conflictResponse): void
+    {
+        $container->setParameter(self::COMMIT_TRACKING_PARAMETER, $conflictResponse['commit_tracking']);
+        $tracking = $conflictResponse['commit_tracking'] !== 'off';
+        if ($tracking) {
+            $container->register(self::COMMIT_LEDGER_SERVICE, CommitLedger::class);
+            $container->register(self::COMMIT_TRACKING_MIDDLEWARE, CommitTrackingMiddleware::class)
+                ->setArguments([new Reference(self::COMMIT_LEDGER_SERVICE)])
+                ->addTag('doctrine.middleware');
+        }
+
+        $policy = $conflictResponse['status'] === null && $conflictResponse['retry_after'] === null
+            ? new Reference(ConflictResponsePolicy::class, ContainerInterface::NULL_ON_INVALID_REFERENCE)
+            : new Definition(ConflictResponsePolicy::class, [
+                $conflictResponse['status'] ?? ConflictResponsePolicy::STATUS_CONFLICT,
+                $conflictResponse['retry_after'] ?? ConflictResponsePolicy::DEFAULT_RETRY_AFTER,
+            ]);
+
+        $container->register(LegalKitConflictListener::class, LegalKitConflictListener::class)
+            ->setArguments([
+                $policy,
+                $tracking ? new Reference(self::COMMIT_LEDGER_SERVICE) : null,
+                new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE),
+            ])
+            ->addTag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => LegalKitConflictListener::REQUEST_PRIORITY])
+            ->addTag('kernel.event_listener', ['event' => KernelEvents::EXCEPTION, 'method' => 'onException', 'priority' => LegalKitConflictListener::PRIORITY]);
     }
 
     /**

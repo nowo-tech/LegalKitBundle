@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Nowo\LegalKitBundle\Catalog\ConfiguredLegalPageCatalog;
 use Nowo\LegalKitBundle\Header\LegalPublicHeader;
 use Nowo\LegalKitBundle\Sanitizer\DomAllowlistSanitizer;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -382,6 +383,30 @@ final class Configuration implements ConfigurationInterface
                             ->info('doctrine.blame: actor_id only. Security-user classes whose id the default actor resolver records; actors of other classes are recorded as unknown (null). Empty (default): any actor, which suits one identity domain only (Admin#5 and Customer#5 would both be "5").')
                             ->scalarPrototype()->cannotBeEmpty()->end()
                             ->defaultValue([])
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('conflict_response')
+                    ->info('1.14 (REQ-RUNTIME-003): answer of a lock conflict (deadlock, lock wait timeout, serialization failure) on the bundle\'s routes. Unset: nowo-tech/transaction-doctrine\'s conflict_response when that bundle is registered, else 409 with Retry-After 1.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('status')
+                            ->info('409 (default, CONFLICT_001 / CONFLICT_002) or 503. Null: follow transaction-doctrine, else 409.')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && !in_array($value, ConflictResponsePolicy::STATUSES, true))
+                                ->thenInvalid('nowo_legal_kit.conflict_response.status must be 409 or 503, got %s.')
+                            ->end()
+                        ->end()
+                        ->integerNode('retry_after')
+                            ->info('Retry-After seconds of a CONFLICT_001 answer. Null: follow transaction-doctrine, else 1.')
+                            ->defaultNull()
+                            ->min(0)
+                        ->end()
+                        ->enumNode('commit_tracking')
+                            ->values(['bundle', 'all', 'off'])
+                            ->defaultValue('bundle')
+                            ->info('Commits counted for CONFLICT_002 when nowo-tech/transaction-doctrine\'s commit_detection is off: bundle (default, the bundle\'s connection only: doctrine.connection, else the connection of doctrine.entity_manager or of the default manager), all (every Doctrine connection) or off (no middleware; only the failure itself and transaction-doctrine\'s request mark decide). With commit_detection on, transaction-doctrine\'s ledger is reused and the bundle adds no middleware.')
                         ->end()
                     ->end()
                 ->end()

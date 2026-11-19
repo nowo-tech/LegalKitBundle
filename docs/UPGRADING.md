@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Acceptances recorded against a stale version (1.4.0 to 1.13.2)](#acceptances-recorded-against-a-stale-version-140-to-1132)
 - [To 1.13.2](#to-1132)
 - [To 1.13.1](#to-1131)
 - [To 1.13.0](#to-1130)
@@ -35,6 +36,65 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+From **1.13.x** (minor, REQ-RUNTIME-003):
+
+```bash
+composer update nowo-tech/legal-kit-bundle -W
+```
+
+- **New dependencies:** nowo-tech/transaction-doctrine ^1.6 and nowo-tech/transaction-contract ^1.0 (pulled in by
+  Composer; registering `NowoTransactionDoctrineBundle` is optional).
+- **Lock conflicts answer 409, not 500.** On the bundle's routes, a deadlock, lock wait timeout or serialization
+  failure now answers 409 with `X-Conflict-Code: CONFLICT_001` + `Retry-After` (nothing committed) or `CONFLICT_002`
+  without `Retry-After` (part committed). To keep a "try later" status, set
+  `nowo_legal_kit.conflict_response.status: 503`. The host's own routes are unchanged.
+- **Commit tracking.** By default the bundle registers transaction-doctrine's `CommitTrackingMiddleware` on the
+  bundle's connection only (`doctrine.connection`, else the connection of `doctrine.entity_manager`, else of the
+  default manager: in a zero-config install that is your default connection, which the bundle shares). It counts
+  commits for `CONFLICT_002` and changes nothing else (the bundle requires DBAL 4, where `Connection::commit()`
+  returns `void`). Use `conflict_response.commit_tracking: off` to register nothing, or `all` for every connection.
+  With transaction-doctrine's `commit_detection` on, its ledger is reused and the bundle adds no middleware.
+- **`record()` / `recordInTransaction()` may throw `StaleLegalOfferException`** when an offered page is no longer at
+  the offered version (read from the database inside the batch's transaction). Nothing is recorded, and the bundle
+  drops the cached map; call `pendingFor()` again and show the new offer. The bundle's re-acceptance page does this
+  itself. Implementations of `LegalAcceptanceManagerInterface` keep their signatures.
+- **Several servers:** set `acceptance.cache_pool` to a pool the servers share (see
+  [CONCURRENCY.md](CONCURRENCY.md#host-options)).
+
+### Acceptances recorded against a stale version (1.4.0 to 1.13.2)
+
+Security advisory (Low). From 1.4.0 to 1.13.2, an acceptance could be recorded with **version N** and the
+`content_hash` of the text of a **newer version**, when the cached requirements map was stale: between a publication's
+commit and its cache delete, after a failed cache delete, or, most often, on another server of a deployment whose
+`acceptance.cache_pool` is per server (the default `cache.app` filesystem pool), for up to one hour after a
+publication. The hash still identifies the text that was shown; the version label is wrong. 1.14.0 refuses such an
+offer.
+
+**Detection.** Candidates are acceptances recorded after a newer version of the same page was published (add your
+`doctrine.table_prefix` to both table names):
+
+```sql
+SELECT a.id, a.subject_id, a.slug, a.version, a.locale, a.content_hash, a.accepted_at,
+       v.version AS newer_version, v.published_at
+FROM legal_acceptance a
+JOIN legal_page_version v
+  ON v.slug = a.slug AND v.version > a.version AND v.published_at <= a.accepted_at
+ORDER BY a.accepted_at;
+```
+
+Confirm a candidate by comparing its `content_hash` with the hashes recorded for the newer version in the same locale
+(`SELECT DISTINCT content_hash FROM legal_acceptance WHERE slug = :slug AND version = :newer_version AND locale = :locale`):
+a match means the row carries the newer text under the older version number. A candidate whose hash matches the other
+rows of its own version is an ordinary acceptance of an offer read just before the publication.
+
+**Remediation.**
+
+- Keep the rows: they are evidence of what was shown (the hash) and when.
+- Where the exact version matters legally, ask the affected subjects to accept again: for example publish a new version
+  that requires acceptance, or handle it in your application for those subject ids.
+- **Multi-server deployments:** set `acceptance.cache_pool` to a shared pool (Redis, database), then clear that pool once
+  after upgrading (`bin/console cache:pool:clear <pool>`).
 
 ## To 1.13.2
 

@@ -119,6 +119,17 @@ final readonly class LegalPageVersions implements LegalPageVersionsInterface
     }
 
     /**
+     * Slug => [current, required] read from the database (no cache; 1.14: the acceptance insert checks the offer
+     * against it inside its transaction).
+     *
+     * @return array<string, array{0: int, 1: int}>
+     */
+    public function requirementsUncached(): array
+    {
+        return $this->versions->requirementsMap();
+    }
+
+    /**
      * The highest version row of a page (null = implicit version 1).
      *
      * @deprecated since 1.10, use {@see latestVersion()} (DTO); removed in 2.0

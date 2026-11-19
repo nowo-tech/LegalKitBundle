@@ -86,6 +86,9 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
             if (!$page->requiresAcceptance()) {
                 continue;
             }
+            // Order matters (audit UJ-LK-3): the version map is read before the texts, and the resolver stays
+            // uncached, so a text is never older than the version it is offered at. The acceptance batch re-checks
+            // the version uncached (assertCurrent()).
             $map ??= $this->versions->requirements();
             $required = max(1, $map[$page->slug][1] ?? 1);
             $accepted ??= $this->acceptances->acceptedVersions($subjectId);
@@ -161,6 +164,8 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      *
      * @param list<PendingLegalPage> $pages
      *
+     * @throws StaleLegalOfferException 1.14: a page is no longer at the offered version (nothing recorded)
+     *
      * @return int Rows inserted
      */
     public function record(string $subjectId, array $pages): int
@@ -186,6 +191,8 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      * commit (savepoint per row, so a duplicate does not abort the caller's transaction).
      *
      * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException 1.14: a page is no longer at the offered version (nothing recorded)
      *
      * @return LegalAcceptanceBatch Inserted rows and their pending events
      */
@@ -282,6 +289,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      */
     private function insert(string $subjectId, array $pages): LegalAcceptanceBatch
     {
+        $this->assertCurrent($pages);
         $metadata   = $this->entityManager->getClassMetadata(LegalAcceptance::class);
         $connection = $this->entityManager->getConnection();
         $savepoint  = $connection->isTransactionActive() && $connection->getDatabasePlatform()->supportsSavepoints();
@@ -315,6 +323,36 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
         $this->logger->info('Legal pages accepted.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'acceptance_recorded', 'count' => count($events)]);
 
         return new LegalAcceptanceBatch($subjectId, $events);
+    }
+
+    /**
+     * 1.14 (REQ-RUNTIME-003, acceptances are evidence): every offered page must still be at the version the offer
+     * named, read from the database (never the cached map) before the first insert, inside the batch's transaction.
+     * The offer's version and text hash come from two reads; a version published between them, or a stale cached map
+     * (a failed cache delete, a cache that is not shared between servers), could otherwise record version N with the
+     * hash of the text of N+1. A version published after this check commits after the acceptance of the previous one,
+     * which is what the subject was offered.
+     *
+     * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException when a page moved on: nothing is recorded (the cached map is dropped first)
+     */
+    private function assertCurrent(array $pages): void
+    {
+        if ($pages === []) {
+            return;
+        }
+        $map = $this->versions->requirementsUncached();
+        foreach ($pages as $page) {
+            $current = max(1, $map[$page->page->slug][0] ?? 1);
+            if ($current !== $page->currentVersion) {
+                // Audit UJ-LK-1: drop this server's cached map, so a caller that reads pendingFor() again gets the
+                // current offer instead of the same stale one.
+                $this->versions->invalidate();
+
+                throw new StaleLegalOfferException($page->page->slug, $page->currentVersion, $current);
+            }
+        }
     }
 
     /**

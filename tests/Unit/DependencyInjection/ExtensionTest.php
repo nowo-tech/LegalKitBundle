@@ -17,6 +17,7 @@ use Nowo\LegalKitBundle\Doctrine\AfterCommitEventDispatcher;
 use Nowo\LegalKitBundle\Doctrine\AfterCommitMiddleware;
 use Nowo\LegalKitBundle\Doctrine\OwnEntityManagerSubscriber;
 use Nowo\LegalKitBundle\EventSubscriber\AdminAccessSubscriber;
+use Nowo\LegalKitBundle\EventSubscriber\LegalKitConflictListener;
 use Nowo\LegalKitBundle\NowoLegalKitBundle;
 use Nowo\LegalKitBundle\PersonalData\AcceptanceSubjectPersonalDataResolver;
 use Nowo\LegalKitBundle\PersonalData\LegalAcceptancesPersonalDataEraser;
@@ -29,6 +30,8 @@ use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionsInterface;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
+use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -36,6 +39,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 use function array_slice;
 
@@ -288,6 +293,36 @@ final class ExtensionTest extends TestCase
         $container = new ContainerBuilder();
         (new IntegrationPass())->process($container);
         self::assertSame(IntegrationPass::GENERIC_LOCALE_REQUIREMENT, $container->getParameter('nowo_legal_kit.locale_requirement'));
+    }
+
+    public function testTheConflictAnswerFollowsTransactionDoctrineByDefault(): void
+    {
+        $container = $this->loaded([]);
+
+        $listener = $container->getDefinition(LegalKitConflictListener::class);
+        self::assertInstanceOf(Reference::class, $listener->getArgument(0));
+        self::assertSame(ConflictResponsePolicy::class, (string) $listener->getArgument(0));
+        self::assertSame(NowoLegalKitExtension::COMMIT_LEDGER_SERVICE, (string) $listener->getArgument(1));
+        self::assertSame('bundle', $container->getParameter(NowoLegalKitExtension::COMMIT_TRACKING_PARAMETER));
+        self::assertSame(CommitTrackingMiddleware::class, $container->getDefinition(NowoLegalKitExtension::COMMIT_TRACKING_MIDDLEWARE)->getClass());
+        self::assertSame([['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => LegalKitConflictListener::REQUEST_PRIORITY], ['event' => KernelEvents::EXCEPTION, 'method' => 'onException', 'priority' => LegalKitConflictListener::PRIORITY]], $listener->getTag('kernel.event_listener'));
+    }
+
+    public function testTheConflictAnswerOptions(): void
+    {
+        $container = $this->loaded(['conflict_response' => ['status' => 503, 'commit_tracking' => 'off']]);
+
+        $listener = $container->getDefinition(LegalKitConflictListener::class);
+        $policy   = $listener->getArgument(0);
+        self::assertInstanceOf(Definition::class, $policy);
+        self::assertSame([503, ConflictResponsePolicy::DEFAULT_RETRY_AFTER], $policy->getArguments());
+        self::assertNull($listener->getArgument(1));
+        self::assertFalse($container->hasDefinition(NowoLegalKitExtension::COMMIT_TRACKING_MIDDLEWARE));
+        self::assertFalse($container->hasDefinition(NowoLegalKitExtension::COMMIT_LEDGER_SERVICE));
+
+        $policy = $this->loaded(['conflict_response' => ['retry_after' => 3]])->getDefinition(LegalKitConflictListener::class)->getArgument(0);
+        self::assertInstanceOf(Definition::class, $policy);
+        self::assertSame([ConflictResponsePolicy::STATUS_CONFLICT, 3], $policy->getArguments());
     }
 
     public function testLegacyConsoleAliasesCanBeDropped(): void

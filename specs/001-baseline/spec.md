@@ -157,6 +157,11 @@ console names as deprecated aliases).
 - **FR-112** Actor ids (rule 3): `doctrine.blame: actor_id` stamps `created_by` / `updated_by` with `LegalActorIdResolverInterface` (default `SecurityLegalActorIdResolver`, `LegalActorId`) through `ActorIdBlameListener` / `ActorIdBlameTrait`; `BlameMappingListener` drops AuditKit's relation mapping in that mode.
 - **FR-113** Framework-free ports (rule 1/3): `LegalDocumentResolverInterface`, `LegalDocumentPortabilityInterface`, typed import twin `LegalDocumentImportInterface`; `DeprecatedPortsPass` reports hosts still wiring the deprecated framework-typed ports; `ContextCookiesPass` validates the allowlisted cookies.
 
+### Concurrency (REQ-RUNTIME-003, 1.14)
+
+- **FR-120** Conflict answer (rule 6): `LegalKitConflictListener` answers a lock conflict on the bundle's routes with 409 (`conflict_response.status`, or 503) + `X-Conflict-Code` `CONFLICT_001` + `Retry-After`, or `CONFLICT_002` without `Retry-After` after a commit earlier in the request (transaction-doctrine's request mark, else the bundle's commit-tracking middleware, scoped to the bundle's connection by `AfterCommitMiddlewarePass`); an admin unique-key refusal is a domain 409 `LEGAL_KIT_DUPLICATE_KEY`; unique violations elsewhere and lost connections are not mapped.
+- **FR-121** Acceptance evidence: the acceptance batch checks, inside its transaction, that every offered page is still at the offered version (uncached); otherwise `StaleLegalOfferException` and nothing is recorded, and the re-acceptance page shows the current offer.
+
 ### Public header and sanitiser limits
 
 - **FR-114** Optional public header (1.7): `LegalPublicHeader` renders the brand of `LegalBrand` (`nowo-tech/brand-contracts`) in `public/_header.html.twig`.

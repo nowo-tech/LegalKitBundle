@@ -106,6 +106,15 @@ final class TestKernel extends Kernel
         parent::__construct('test', false);
     }
 
+    /**
+     * 1.14 (REQ-RUNTIME-003): a second, unbooted kernel of the same configuration (same compiled container, its own
+     * services and database connection): the race tests run two of them against one database server.
+     */
+    public function twin(): self
+    {
+        return new self($this->legalKitConfig, $this->extraBundles, $this->withSecurity, $this->extensionConfigs);
+    }
+
     public function registerBundles(): iterable
     {
         yield new FrameworkBundle();
