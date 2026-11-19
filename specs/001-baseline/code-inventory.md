@@ -1,7 +1,7 @@
 # Legal Kit Bundle — baseline code inventory
 
 **Package**: `nowo-tech/legal-kit-bundle`  
-**Last audited**: 2026-11-16  
+**Last audited**: 2026-11-19  
 **Production units**: **82/82**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.css' \) | wc -l`
 
@@ -31,7 +31,8 @@
 | Versioning | 26 |
 | Architecture bar (entity manager, after-commit, actor ids, ports) | 25 |
 | Public header, sanitiser limits and validator messages | 11 |
-| **Total** | **173** |
+| Concurrency (REQ-RUNTIME-003) | 2 |
+| **Total** | **175** |
 
 
 ## Bundle, configuration & DI
@@ -304,6 +305,15 @@ Requirements: FR-033, FR-114, FR-082.
 | `src/Resources/translations/validators.it.yaml` | Constraint messages |
 | `src/Resources/translations/validators.nl.yaml` | Constraint messages |
 | `src/Resources/translations/validators.pt.yaml` | Constraint messages |
+
+## Concurrency (REQ-RUNTIME-003)
+
+Requirements: FR-120, FR-121.
+
+| File | Role |
+| --- | --- |
+| `src/EventSubscriber/LegalKitConflictListener.php` | 409 / 503 + CONFLICT_001 / CONFLICT_002 on the bundle's routes; admin duplicate key = domain 409 (FR-120) |
+| `src/Acceptance/StaleLegalOfferException.php` | An offer whose version is no longer current records nothing (FR-121) |
 
 ## Translations
 

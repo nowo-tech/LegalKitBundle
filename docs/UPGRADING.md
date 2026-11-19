@@ -36,6 +36,30 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+From **1.13.x** (minor, REQ-RUNTIME-003):
+
+```bash
+composer update nowo-tech/legal-kit-bundle -W
+```
+
+- **New dependencies:** nowo-tech/transaction-doctrine ^1.6 and nowo-tech/transaction-contract ^1.0 (pulled in by
+  Composer; registering `NowoTransactionDoctrineBundle` is optional).
+- **Lock conflicts answer 409, not 500.** On the bundle's routes, a deadlock, lock wait timeout or serialization
+  failure now answers 409 with `X-Conflict-Code: CONFLICT_001` + `Retry-After` (nothing committed) or `CONFLICT_002`
+  without `Retry-After` (part committed). To keep a "try later" status, set
+  `nowo_legal_kit.conflict_response.status: 503`. The host's own routes are unchanged.
+- **Commit tracking.** By default the bundle registers transaction-doctrine's `CommitTrackingMiddleware` on the
+  bundle's connection only (`doctrine.connection`, else the connection of `doctrine.entity_manager`, else of the
+  default manager: in a zero-config install that is your default connection, which the bundle shares). It counts
+  commits for `CONFLICT_002` and changes nothing else (the bundle requires DBAL 4, where `Connection::commit()`
+  returns `void`). Use `conflict_response.commit_tracking: off` to register nothing, or `all` for every connection.
+  With transaction-doctrine's `commit_detection` on, its ledger is reused and the bundle adds no middleware.
+- **`record()` / `recordInTransaction()` may throw `StaleLegalOfferException`** when an offered page is no longer at
+  the offered version (read from the database inside the batch's transaction). Nothing is recorded: call
+  `pendingFor()` again and show the new offer. The bundle's re-acceptance page does this itself. Implementations of
+  `LegalAcceptanceManagerInterface` keep their signatures.
+- **Several servers:** prefer a shared pool for `acceptance.cache_pool` (see [CONCURRENCY.md](CONCURRENCY.md#host-options)).
+
 ## To 1.13.2
 
 From **1.13.1**:

@@ -7,71 +7,91 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[1.13.2] - 2026-11-13](#1132---2026-11-13)
+  - [Added](#added)
   - [Fixed](#fixed)
   - [Changed](#changed)
-- [[1.13.1] - 2026-11-13](#1131---2026-11-13)
+  - [Documentation](#documentation)
+- [[1.13.2] - 2026-11-13](#1132---2026-11-13)
   - [Fixed](#fixed-1)
-- [[1.13.0] - 2026-11-12](#1130---2026-11-12)
-  - [Added](#added)
-- [[1.12.0] - 2026-11-11](#1120---2026-11-11)
   - [Changed](#changed-1)
+- [[1.13.1] - 2026-11-13](#1131---2026-11-13)
+  - [Fixed](#fixed-2)
+- [[1.13.0] - 2026-11-12](#1130---2026-11-12)
   - [Added](#added-1)
+- [[1.12.0] - 2026-11-11](#1120---2026-11-11)
+  - [Changed](#changed-2)
+  - [Added](#added-2)
   - [Deprecated](#deprecated)
   - [Tests](#tests)
 - [[1.11.1] - 2026-11-11](#1111---2026-11-11)
-  - [Fixed](#fixed-2)
+  - [Fixed](#fixed-3)
   - [Tests](#tests-1)
-  - [Documentation](#documentation)
+  - [Documentation](#documentation-1)
 - [[1.11.0] - 2026-11-11](#1110---2026-11-11)
-  - [Added](#added-2)
-  - [Changed](#changed-2)
-- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
   - [Added](#added-3)
   - [Changed](#changed-3)
+- [[1.10.0] - 2026-11-11](#1100---2026-11-11)
+  - [Added](#added-4)
+  - [Changed](#changed-4)
   - [Deprecated](#deprecated-1)
 - [[1.9.0] - 2026-11-10](#190---2026-11-10)
-  - [Added](#added-4)
-- [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added-5)
-  - [Fixed](#fixed-3)
-- [[1.7.0] - 2026-11-09](#170---2026-11-09)
+- [[1.8.0] - 2026-11-09](#180---2026-11-09)
   - [Added](#added-6)
-- [[1.6.0] - 2026-11-09](#160---2026-11-09)
+  - [Fixed](#fixed-4)
+- [[1.7.0] - 2026-11-09](#170---2026-11-09)
   - [Added](#added-7)
-  - [Changed](#changed-4)
-  - [Security](#security)
-- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+- [[1.6.0] - 2026-11-09](#160---2026-11-09)
   - [Added](#added-8)
   - [Changed](#changed-5)
+  - [Security](#security)
+- [[1.5.0] - 2026-11-06](#150---2026-11-06)
+  - [Added](#added-9)
+  - [Changed](#changed-6)
   - [Security](#security-1)
 - [[1.4.1] - 2026-11-05](#141---2026-11-05)
   - [Security](#security-2)
 - [[1.4.0] - 2026-11-04](#140---2026-11-04)
-  - [Added](#added-9)
-  - [Changed](#changed-6)
+  - [Added](#added-10)
+  - [Changed](#changed-7)
 - [[1.3.2] - 2026-11-04](#132---2026-11-04)
   - [Security](#security-3)
 - [[1.3.1] - 2026-10-30](#131---2026-10-30)
-  - [Fixed](#fixed-4)
+  - [Fixed](#fixed-5)
 - [[1.3.0] - 2026-10-28](#130---2026-10-28)
   - [Security](#security-4)
 - [[1.2.0] - 2026-10-28](#120---2026-10-28)
   - [Security](#security-5)
-  - [Changed](#changed-7)
-- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-8)
-- [[1.1.0] - 2026-10-20](#110---2026-10-20)
-  - [Added](#added-10)
+- [[1.1.1] - 2026-10-22](#111---2026-10-22)
   - [Changed](#changed-9)
-  - [Fixed](#fixed-5)
+- [[1.1.0] - 2026-10-20](#110---2026-10-20)
+  - [Added](#added-11)
+  - [Changed](#changed-10)
+  - [Fixed](#fixed-6)
   - [Security](#security-6)
 - [[1.0.1] - 2026-10-18](#101---2026-10-18)
-  - [Fixed](#fixed-6)
+  - [Fixed](#fixed-7)
 - [[1.0.0] - 2026-10-18](#100---2026-10-18)
-  - [Added](#added-11)
+  - [Added](#added-12)
 
 ## [Unreleased]
+
+### Added
+
+- REQ-RUNTIME-003: a lock conflict (deadlock, lock wait timeout, serialization failure) on the bundle's routes (re-acceptance page, public pages, admin) answers **409** with `X-Conflict-Code: CONFLICT_001` and `Retry-After` when nothing of the request was committed, or `CONFLICT_002` without `Retry-After` when part of it may be (`LegalKitConflictListener`, nowo-tech/transaction-doctrine ^1.6). New `conflict_response` options: `status` (409 or 503), `retry_after`, `commit_tracking` (`bundle` default: only the bundle's connection is wrapped; `all`; `off`). With transaction-doctrine's `commit_detection` on, its commit ledger is reused and no connection is wrapped twice (audit UE-CF-1).
+- An admin write refused by a unique key the editor does not already handle (two admins creating the same page text at once) answers a domain 409 with `X-Error-Code: LEGAL_KIT_DUPLICATE_KEY`, never a `CONFLICT_*` code.
+- `StaleLegalOfferException` and `LegalPageVersions::requirementsUncached()`.
+- Two-connection race tests on MySQL, MariaDB and PostgreSQL (`AcceptanceRaceDatabaseTest`, group `database`); the database CI job also runs on MySQL 8.4 and PostgreSQL 16. New CI job "Dependency floor (nowo-tech/transaction-* lowest, demo lock)" and `.scripts/check-demo-lock.py`.
+- `docs/CONCURRENCY.md`: write paths, codes, host options, residual risks.
+
+### Fixed
+
+- Acceptances are evidence: the acceptance batch now re-reads the current version of every offered page from the database (never the cached requirements map) inside its transaction, before the first insert. An offer whose version is no longer current records nothing (`StaleLegalOfferException`) and the re-acceptance page shows the current offer. Before, a stale cached map (the moment between a publication's commit and its cache delete, a failed cache delete, or a cache pool not shared between servers) could record version N with the content hash of the text of version N+1.
+
+### Changed
+
+- Requires nowo-tech/transaction-doctrine ^1.6 and nowo-tech/transaction-contract ^1.0. The demo lock installs them.
 
 ### Documentation
 

@@ -10,6 +10,7 @@ use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
 use Nowo\LegalKitBundle\Acceptance\PendingLegalPage;
 use Nowo\LegalKitBundle\Acceptance\RelativeTargetValidator;
+use Nowo\LegalKitBundle\Acceptance\StaleLegalOfferException;
 use Nowo\LegalKitBundle\EventSubscriber\AcceptanceGateSubscriber;
 use Nowo\LegalKitBundle\Form\LegalAcceptanceType;
 use Nowo\LegalKitBundle\Locale\LegalLocales;
@@ -110,12 +111,24 @@ final readonly class LegalAcceptanceController
             $posted = $form->get('offer')->getData();
             $stale  = !is_string($posted) || !hash_equals($offer, $posted);
             if (!$stale && $form->isValid()) {
-                $this->manager->record($subject, $pending);
-                if ($request->hasSession()) {
-                    AcceptanceGateSubscriber::markSatisfied($request->getSession(), $fingerprint, $subject);
-                }
+                try {
+                    $this->manager->record($subject, $pending);
+                    if ($request->hasSession()) {
+                        AcceptanceGateSubscriber::markSatisfied($request->getSession(), $fingerprint, $subject);
+                    }
 
-                return $this->noStore(new RedirectResponse($this->target($request), Response::HTTP_SEE_OTHER));
+                    return $this->noStore(new RedirectResponse($this->target($request), Response::HTTP_SEE_OTHER));
+                } catch (StaleLegalOfferException) {
+                    // 1.14: a version was published after the offer was read (or the cached map was stale): nothing
+                    // was recorded. Drop the cached map and show the current offer.
+                    $this->versions->invalidate();
+                    $pending = $this->manager->pendingFor($subject, $request->getLocale());
+                    if ($pending === []) {
+                        return $this->noStore(new RedirectResponse($this->target($request), Response::HTTP_SEE_OTHER));
+                    }
+                    $offer = LegalAcceptanceManager::offerFingerprint($pending);
+                    $stale = true;
+                }
             }
             if ($stale) {
                 // Rebuild the form for the current offer: nothing was recorded.

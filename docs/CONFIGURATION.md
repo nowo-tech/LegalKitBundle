@@ -19,6 +19,7 @@
 - [Integrations](#integrations)
 - [Console](#console)
 - [Doctrine table prefix](#doctrine-table-prefix)
+- [Conflict answer (1.14)](#conflict-answer-114)
 - [Timeouts](#timeouts)
 
 The tree is strict (unknown keys fail the container build) and validated at compile time (REQ-SF-006).
@@ -102,6 +103,10 @@ nowo_legal_kit:
     cookie_consent: { prepend_routes: auto }
     console: { legacy_aliases: true }
     doctrine: { table_prefix: '', blame: relation, accepted_user_classes: [], entity_manager: null, private_entity_manager: true, connection: null }   # blame: relation | actor_id | none; entity_manager: 1.10; private_entity_manager, connection: 1.12
+    conflict_response:                    # 1.14 (REQ-RUNTIME-003), see docs/CONCURRENCY.md
+        status: null                      # 409 or 503; null = transaction-doctrine's conflict_response, else 409
+        retry_after: null                 # seconds of a CONFLICT_001 answer; null = transaction-doctrine's, else 1
+        commit_tracking: bundle           # bundle | all | off (ignored when transaction-doctrine's commit_detection is on)
 ```
 
 ## Locales
@@ -350,6 +355,16 @@ services:
 Switching an existing table changes the schema: run `doctrine:migrations:diff` (the old `created_by_id` /
 `updated_by_id` columns, their foreign keys and indexes are dropped by the diff; copy them into the new columns first
 if you need the history).
+
+## Conflict answer (1.14)
+
+A lock conflict (deadlock, lock wait timeout, serialization failure) on one of the bundle's routes answers **409**
+with `X-Conflict-Code: CONFLICT_001` and `Retry-After` when nothing of the request was committed, or `CONFLICT_002`
+without `Retry-After` when part of it may be. `conflict_response.status: 503` keeps the pre-1.14 "try later" status for
+hosts that want it. `commit_tracking` decides which commits count for `CONFLICT_002` when nowo-tech/transaction-doctrine's
+`commit_detection` is off: `bundle` (default) wraps only the bundle's connection, `all` every connection, `off` none.
+With `commit_detection` on, the bundle reuses transaction-doctrine's ledger and adds no middleware. See
+[CONCURRENCY.md](CONCURRENCY.md).
 
 ## Timeouts
 

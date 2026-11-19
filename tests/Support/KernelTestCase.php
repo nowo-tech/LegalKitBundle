@@ -47,6 +47,18 @@ abstract class KernelTestCase extends TestCase
         return $kernel;
     }
 
+    /**
+     * A second booted kernel of the same configuration on the same database (no schema change): two connections.
+     */
+    protected function twinKernel(TestKernel $kernel): TestKernel
+    {
+        $twin = $kernel->twin();
+        $twin->boot();
+        $this->kernels[] = $twin;
+
+        return $twin;
+    }
+
     protected function client(TestKernel $kernel): KernelBrowser
     {
         $client = new KernelBrowser($kernel);

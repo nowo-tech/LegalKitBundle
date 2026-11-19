@@ -162,6 +162,7 @@ Playwright end-to-end tests and the README screenshots: `make -C demo/symfony8 t
 - [Coverage policy](docs/COVERAGE.md)
 - [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md)
 - [FrankenPHP worker audit](docs/FRANKENPHP-WORKER-AUDIT.md)
+- [Concurrency](docs/CONCURRENCY.md) — write paths, conflict codes (409 + `CONFLICT_001` / `CONFLICT_002`), host options
 - [GitHub CI](docs/GITHUB_CI.md)
 - [GitHub About](docs/GITHUB.md)
 

@@ -41,6 +41,12 @@ final class ConfigurationTest extends TestCase
         self::assertSame('pass', $config['acceptance']['non_html']);
         self::assertSame('cache.app', $config['acceptance']['cache_pool']);
         self::assertSame(['enabled' => false, 'subject_resolver' => null], $config['personal_data']);
+        self::assertSame(['status' => null, 'retry_after' => null, 'commit_tracking' => 'bundle'], $config['conflict_response']);
+    }
+
+    public function testConflictResponse(): void
+    {
+        self::assertSame(['status' => 503, 'retry_after' => 5, 'commit_tracking' => 'off'], $this->process(['conflict_response' => ['status' => 503, 'retry_after' => 5, 'commit_tracking' => 'off']])['conflict_response']);
     }
 
     public function testPublicHeader(): void
@@ -124,6 +130,9 @@ final class ConfigurationTest extends TestCase
         yield 'header quote' => [['public' => ['header' => ['home' => '/x"onmouseover=y']]]];
         yield 'header space' => [['public' => ['header' => ['sign_in' => 'app login']]]];
         yield 'header non string' => [['public' => ['header' => ['home' => ['/']]]]];
+        yield 'conflict status' => [['conflict_response' => ['status' => 500]]];
+        yield 'conflict retry after' => [['conflict_response' => ['retry_after' => -1]]];
+        yield 'conflict commit tracking' => [['conflict_response' => ['commit_tracking' => 'host']]];
     }
 
     /**

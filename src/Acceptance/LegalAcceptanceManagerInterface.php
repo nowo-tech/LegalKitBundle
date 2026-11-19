@@ -31,7 +31,13 @@ interface LegalAcceptanceManagerInterface
      * transaction the rows join it and, since 1.10, the events wait for its outermost commit (dropped on rollback);
      * {@see recordInTransaction()} + {@see afterCommit()} keep the dispatch in your hands.
      *
+     * Since 1.14 every page must still be at the version of the offer (read from the database inside the batch's
+     * transaction): otherwise nothing is recorded and {@see StaleLegalOfferException} is thrown; read
+     * {@see pendingFor()} again and show the new offer.
+     *
      * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException a page is no longer at the offered version
      *
      * @return int Rows inserted
      */
@@ -42,6 +48,8 @@ interface LegalAcceptanceManagerInterface
      * not abort it) and dispatches nothing: call {@see afterCommit()} with the returned batch after your commit.
      *
      * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException 1.14: a page is no longer at the offered version (nothing recorded)
      *
      * @return LegalAcceptanceBatch The inserted rows and their pending events
      */

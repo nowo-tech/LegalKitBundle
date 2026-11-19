@@ -161,6 +161,8 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      *
      * @param list<PendingLegalPage> $pages
      *
+     * @throws StaleLegalOfferException 1.14: a page is no longer at the offered version (nothing recorded)
+     *
      * @return int Rows inserted
      */
     public function record(string $subjectId, array $pages): int
@@ -186,6 +188,8 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      * commit (savepoint per row, so a duplicate does not abort the caller's transaction).
      *
      * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException 1.14: a page is no longer at the offered version (nothing recorded)
      *
      * @return LegalAcceptanceBatch Inserted rows and their pending events
      */
@@ -282,6 +286,7 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
      */
     private function insert(string $subjectId, array $pages): LegalAcceptanceBatch
     {
+        $this->assertCurrent($pages);
         $metadata   = $this->entityManager->getClassMetadata(LegalAcceptance::class);
         $connection = $this->entityManager->getConnection();
         $savepoint  = $connection->isTransactionActive() && $connection->getDatabasePlatform()->supportsSavepoints();
@@ -315,6 +320,32 @@ final readonly class LegalAcceptanceManager implements LegalAcceptanceManagerInt
         $this->logger->info('Legal pages accepted.', ['bundle' => 'NowoLegalKitBundle', 'action' => 'acceptance_recorded', 'count' => count($events)]);
 
         return new LegalAcceptanceBatch($subjectId, $events);
+    }
+
+    /**
+     * 1.14 (REQ-RUNTIME-003, acceptances are evidence): every offered page must still be at the version the offer
+     * named, read from the database (never the cached map) before the first insert, inside the batch's transaction.
+     * The offer's version and text hash come from two reads; a version published between them, or a stale cached map
+     * (a failed cache delete, a cache that is not shared between servers), could otherwise record version N with the
+     * hash of the text of N+1. A version published after this check commits after the acceptance of the previous one,
+     * which is what the subject was offered.
+     *
+     * @param list<PendingLegalPage> $pages
+     *
+     * @throws StaleLegalOfferException when a page moved on: nothing is recorded
+     */
+    private function assertCurrent(array $pages): void
+    {
+        if ($pages === []) {
+            return;
+        }
+        $map = $this->versions->requirementsUncached();
+        foreach ($pages as $page) {
+            $current = max(1, $map[$page->page->slug][0] ?? 1);
+            if ($current !== $page->currentVersion) {
+                throw new StaleLegalOfferException($page->page->slug, $page->currentVersion, $current);
+            }
+        }
     }
 
     /**
