@@ -6,7 +6,9 @@ namespace Nowo\LegalKitBundle\Tests\Functional;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalVersionPublishedEvent;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
@@ -233,10 +235,19 @@ final class VersioningAdminTest extends VersioningTestCase
         // Another admin's save in the same second as the stamp the form carries: only the text token tells them apart.
         $manager = $this->entityManager($kernel);
         $manager->getConnection()->executeStatement('UPDATE ' . $manager->getClassMetadata(LegalDocument::class)->getTableName() . " SET body = '<p>Other admin</p>' WHERE slug = 'notice'");
+        $private = $this->testContainer($kernel)->get(LegalKitEntityManager::class);
+        self::assertInstanceOf(LegalKitEntityManager::class, $private);
+        $seen = $this->watchDirtyRowsAtResponse($kernel);
         $client->submit($form);
+        self::assertSame(0, $seen->dirty, 'the refused edit is not left in the unit of work');
 
         self::assertSame(302, $client->getResponse()->getStatusCode());
         self::assertSame('<p>Other admin</p>', $this->found($kernel, 'notice', 'en')->getBody());
+        // A refused save is a sentinel, not an exception: wrapInTransaction() closed no manager. live() would hide a
+        // closed inner manager by replacing it, so the instance the request started with is inspected.
+        self::assertTrue($this->entityManager($kernel)->isOpen());
+        self::assertInstanceOf(EntityManagerInterface::class, $seen->inner);
+        self::assertTrue($seen->inner->isOpen(), 'the inner manager the request used was not closed (live() would hide it by replacing it)');
         $client->followRedirect();
         self::assertStringContainsString('changed while you were editing', (string) $client->getResponse()->getContent());
     }

@@ -82,6 +82,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `IntegrationPass` no longer reads the container parameter `router.request_context.host` on framework-bundle 8.1+, where it is deprecated (a deprecation notice at every container build). The host the seed hash counts as internal now comes from `framework.router.default_uri` (parsed at compile time; an env or parameter placeholder gives no host, as before an unusable one did). Before 8.1 the parameter is still read, so Symfony 7.4 behaves as before (a host set by hand included).
+- The editor paths that end without saving (an invalid form, an empty body after sanitising, a missing change summary) leave the bound managed row dirty; it now gets its stored values back (`discardChanges()`), so a later flush of the same manager cannot store the refused text (audit WB-LegalKit-1).
+- With versioning, a stale version or text inside the save transaction threw `StaleVersionException` out of `wrapInTransaction()`, which closes the manager (the host's, when `doctrine.entity_manager` names it). It now returns a sentinel, as the unversioned save does, after giving the row its stored values back (audit WB-LegalKit-2). `StaleVersionException` stays for BC but the editor no longer throws it.
+
 ## [1.15.0] - 2026-11-20
 
 ### Fixed

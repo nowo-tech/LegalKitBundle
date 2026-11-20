@@ -303,6 +303,37 @@ final class AdminTest extends KernelTestCase
         self::assertSame(200, $client->getResponse()->getStatusCode());
     }
 
+    public function testAnInvalidFormLeavesNoDirtyRowInTheUnitOfWork(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->store($kernel, 'terms', 'en', 'Terms', '<p>Original</p>');
+        $client                                 = $this->adminClient($kernel);
+        $form                                   = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form['nowo_legal_kit_document[title]'] = '';
+        $form['nowo_legal_kit_document[body]']  = '<p>Posted</p>';
+        $seen                                   = $this->watchDirtyRowsAtResponse($kernel);
+        $client->submit($form);
+        self::assertSame(422, $client->getResponse()->getStatusCode());
+
+        self::assertSame(0, $seen->dirty, 'no managed row of the private manager is left dirty when the response is built');
+        self::assertSame('<p>Original</p>', $this->row($kernel, 'terms', 'en')->getBody());
+    }
+
+    public function testAnEmptyBodyLeavesNoDirtyRowInTheUnitOfWork(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->store($kernel, 'terms', 'en', 'Terms', '<p>Original</p>');
+        $client                                = $this->adminClient($kernel);
+        $form                                  = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form['nowo_legal_kit_document[body]'] = '<script>only()</script><p> </p>';
+        $seen                                  = $this->watchDirtyRowsAtResponse($kernel);
+        $client->submit($form);
+        self::assertSame(302, $client->getResponse()->getStatusCode());
+
+        self::assertSame(0, $seen->dirty, 'no managed row of the private manager is left dirty when the response is built');
+        self::assertSame('<p>Original</p>', $this->row($kernel, 'terms', 'en')->getBody());
+    }
+
     private function row(TestKernel $kernel, string $slug, string $locale): LegalDocument
     {
         $row = $this->find($kernel, $slug, $locale);

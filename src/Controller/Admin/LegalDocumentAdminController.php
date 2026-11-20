@@ -28,7 +28,6 @@ use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalSeedTracker;
 use Nowo\LegalKitBundle\Versioning\LegalVersionPublisherCheckerInterface;
-use Nowo\LegalKitBundle\Versioning\StaleVersionException;
 use Nowo\UiKitBundle\View\Action;
 use Nowo\UiKitBundle\View\AreaNav;
 use Nowo\UiKitBundle\View\AreaNavItem;
@@ -243,6 +242,8 @@ final readonly class LegalDocumentAdminController
         if ($form->isSubmitted() && $form->isValid()) {
             $document->setBody($this->sanitizer->sanitize($document->getBody()));
             if (!LegalDocumentResolver::hasText($document->getBody())) {
+                // The bound managed row is dirty: give it its stored values back (a later flush must not store it).
+                $this->documents->discardChanges($document);
                 $this->flash($request, 'error', 'flash.empty_body');
 
                 return $this->redirectToEdit($slug, $locale);
@@ -270,6 +271,11 @@ final readonly class LegalDocumentAdminController
             if ($saved instanceof Response) {
                 return $saved;
             }
+        }
+        if ($form->isSubmitted()) {
+            // Invalid form or a form error added by the save (summary required): the response is the 422 page, and the
+            // bound managed row keeps what was posted; give it its stored values back (the view has the posted ones).
+            $this->documents->discardChanges($document);
         }
 
         $tabs = [];
@@ -399,18 +405,19 @@ final readonly class LegalDocumentAdminController
         }
 
         try {
-            /** @var array{0: int, 1: ?LegalPageVersion, 2: bool} $result */
-            $result = $entityManager->wrapInTransaction(function (EntityManagerInterface $manager) use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase, $baseToken): array {
+            /** @var array{0: int, 1: ?LegalPageVersion, 2: bool}|null $result null: the text or the version changed meanwhile */
+            $result = $entityManager->wrapInTransaction(function (EntityManagerInterface $manager) use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase, $baseToken): ?array {
                 if ($manager->contains($document)) {
                     $manager->lock($document, LockMode::PESSIMISTIC_WRITE);
                 }
                 // Re-checked inside the transaction: a version committed since the form was read aborts the save.
-                if ($versions->currentUncached($slug) !== $publication['base_version']) {
-                    throw new StaleVersionException($slug);
-                }
-                // The text itself too, read under the row lock: an admin who saved a minor edit meanwhile wins.
-                if ($this->documents->lockedToken($slug, $locale) !== $baseToken) {
-                    throw new StaleVersionException($slug);
+                // The text itself too, read under the row lock: an admin who saved a minor edit meanwhile wins. A sentinel,
+                // not an exception: an exception would close the manager (which may be the host's); the row gets its
+                // stored values back first, because the unit ends with a flush.
+                if ($versions->currentUncached($slug) !== $publication['base_version'] || $this->documents->lockedToken($slug, $locale) !== $baseToken) {
+                    $this->documents->discardChanges($document);
+
+                    return null;
                 }
                 if ($rebase) {
                     $tracker->rebase($document);
@@ -436,8 +443,13 @@ final readonly class LegalDocumentAdminController
 
                 return [$publication['base_version'], null, false];
             });
+            if ($result === null) {
+                $this->flash($request, 'error', 'flash.changed_meanwhile');
+
+                return $this->redirectToEdit($slug, $locale);
+            }
             [$version, $published, $frozen] = $result;
-        } catch (StaleVersionException|UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             $this->documents->discardChanges($document);
             $this->flash($request, 'error', 'flash.changed_meanwhile');
 
