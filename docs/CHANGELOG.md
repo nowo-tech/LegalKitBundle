@@ -81,6 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Comment in `LegalAcceptanceManager::pendingFor()` states why the version map is read before the texts and why the resolver stays uncached (audit UJ-LK-3). No behaviour change; a unit test was not added because `LegalPageVersions` and the manager are final classes.
+- Requires `nowo-tech/transaction-doctrine` ^1.8 (fixes GHSA-9wh3-m3m5-jffx and GHSA-65w2-9r4h-848g).
 
 ## [1.14.0] - 2026-11-19
 
