@@ -215,6 +215,8 @@ final readonly class LegalDocumentAdminController
             }
         }
         $document ??= $formDocument;
+        // Token of the stored text the form is built from (before the submitted values reach the managed row).
+        $baseToken = $isStored ? LegalDocumentRepository::token($document->getTitle(), $document->getBody()) : LegalDocumentRepository::NEW_TOKEN;
 
         $publication = null;
         if ($versioning !== null) {
@@ -235,6 +237,7 @@ final readonly class LegalDocumentAdminController
             'editor'            => $this->editor,
             'ckeditor5_profile' => $this->ckeditor5Profile,
             'publication'       => $publication,
+            'base_token'        => $baseToken,
         ]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -244,15 +247,26 @@ final readonly class LegalDocumentAdminController
 
                 return $this->redirectToEdit($slug, $locale);
             }
+            $postedToken = (string) $form->get('base_token')->getData();
             if ($versioning === null || $publication === null) {
-                $this->documents->save($document);
+                try {
+                    $saved = $this->documents->saveIfCurrent($document, $postedToken);
+                } catch (UniqueConstraintViolationException) {
+                    // Two admins creating the same page text at once: the loser sees the winner's text.
+                    $saved = false;
+                }
+                if (!$saved) {
+                    $this->flash($request, 'error', 'flash.changed_meanwhile');
+
+                    return $this->redirectToEdit($slug, $locale);
+                }
                 $this->scanner->reset();
                 $this->dispatcher->dispatch(new LegalDocumentSavedEvent($slug, $locale));
                 $this->flash($request, 'success', 'flash.saved');
 
                 return $this->redirectToEdit($slug, $locale);
             }
-            $saved = $this->saveVersioned($request, $form, $legalPage, $document, $versioning, $publication, $fromSeed || !$isStored);
+            $saved = $this->saveVersioned($request, $form, $legalPage, $document, $versioning, $publication, $fromSeed || !$isStored, $postedToken);
             if ($saved instanceof Response) {
                 return $saved;
             }
@@ -358,7 +372,7 @@ final readonly class LegalDocumentAdminController
      * @param array{0: LegalSeedTracker, 1: LegalPageVersions, 2: EntityManagerInterface} $versioning
      * @param array{mode: string, can_publish: bool, summary: string, has_summary: bool, base_version: int, base_updated: string} $publication
      */
-    private function saveVersioned(Request $request, FormInterface $form, LegalPage $page, LegalDocument $document, array $versioning, array $publication, bool $rebase): ?Response
+    private function saveVersioned(Request $request, FormInterface $form, LegalPage $page, LegalDocument $document, array $versioning, array $publication, bool $rebase, string $baseToken): ?Response
     {
         [$tracker, $versions, $entityManager] = $versioning;
         $slug                                 = $page->slug;
@@ -369,6 +383,7 @@ final readonly class LegalDocumentAdminController
         }
         if ((string) $form->get('base_version')->getData() !== (string) $versions->currentUncached($slug)
             || (string) $form->get('base_updated')->getData() !== $publication['base_updated']) {
+            $this->documents->discardChanges($document);
             $this->flash($request, 'error', 'flash.changed_meanwhile');
 
             return $this->redirectToEdit($slug, $locale);
@@ -385,12 +400,16 @@ final readonly class LegalDocumentAdminController
 
         try {
             /** @var array{0: int, 1: ?LegalPageVersion, 2: bool} $result */
-            $result = $entityManager->wrapInTransaction(function (EntityManagerInterface $manager) use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase): array {
+            $result = $entityManager->wrapInTransaction(function (EntityManagerInterface $manager) use ($tracker, $versions, $document, $slug, $locale, $choice, $requires, $summary, $publication, $rebase, $baseToken): array {
                 if ($manager->contains($document)) {
                     $manager->lock($document, LockMode::PESSIMISTIC_WRITE);
                 }
                 // Re-checked inside the transaction: a version committed since the form was read aborts the save.
                 if ($versions->currentUncached($slug) !== $publication['base_version']) {
+                    throw new StaleVersionException($slug);
+                }
+                // The text itself too, read under the row lock: an admin who saved a minor edit meanwhile wins.
+                if ($this->documents->lockedToken($slug, $locale) !== $baseToken) {
                     throw new StaleVersionException($slug);
                 }
                 if ($rebase) {
@@ -419,6 +438,7 @@ final readonly class LegalDocumentAdminController
             });
             [$version, $published, $frozen] = $result;
         } catch (StaleVersionException|UniqueConstraintViolationException) {
+            $this->documents->discardChanges($document);
             $this->flash($request, 'error', 'flash.changed_meanwhile');
 
             return $this->redirectToEdit($slug, $locale);

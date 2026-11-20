@@ -10,6 +10,7 @@ never records an acceptance against a version other than the one offered and cur
 - [Write paths](#write-paths)
 - [Conflict answers and codes](#conflict-answers-and-codes)
 - [What is not a conflict](#what-is-not-a-conflict)
+- [Stale edits and double submits in the editor](#stale-edits-and-double-submits-in-the-editor)
 - [Acceptance evidence under races](#acceptance-evidence-under-races)
 - [Host options](#host-options)
 - [Retries](#retries)
@@ -39,8 +40,9 @@ never records an acceptance against a version other than the one offered and cur
 | --- | --- | --- | --- |
 | Acceptance (`LegalAcceptanceController::accept` POST, `LegalAcceptanceManagerInterface::record()` / `recordInTransaction()`) | One `transactional()` for the batch (all pages or none), or the caller's transaction; one savepoint per row inside a transaction | Insert only; unique `(subject_id, slug, version)` + catch ("already accepted" = 0 rows); since 1.14 every page must still be at the offered version, read uncached inside the transaction (else `StaleLegalOfferException`, nothing recorded) | 409 `CONFLICT_001` / `CONFLICT_002` on the page; a stale offer re-renders the current offer (422) |
 | Acceptance erasure (`eraseFor()`, UserKit eraser) | One `transactional()`, or the caller's | Delete by primary key in batches, exact subject id; idempotent | Caller's storage error (no HTTP route of the bundle) |
-| Editor save with versioning (`LegalDocumentAdminController::edit` POST) | One `wrapInTransaction()`: the text and the new version row | Form carries `base_version` + `base_updated`; inside the transaction `PESSIMISTIC_WRITE` on the document and the version re-read; new version = `base + 1` on the unique `(slug, version)` | `StaleVersionException` / unique key → "changed meanwhile" flash; lock conflict → 409 `CONFLICT_001` / `CONFLICT_002` |
-| Editor save without versioning, restore (`reset`) | One flush | Unique `(slug, locale)` | Lock conflict → 409 `CONFLICT_001` / `CONFLICT_002`; unique key (two admins creating the same page text at once) → 409 `LEGAL_KIT_DUPLICATE_KEY` |
+| Editor save with versioning (`LegalDocumentAdminController::edit` POST) | One `wrapInTransaction()`: the text and the new version row | Form carries `base_token` (hash of the stored title and body) + `base_version` + `base_updated`; inside the transaction `PESSIMISTIC_WRITE` on the document, the token and the version re-read; new version = `base + 1` on the unique `(slug, version)` | `StaleVersionException` / unique key → "changed meanwhile" flash; lock conflict → 409 `CONFLICT_001` / `CONFLICT_002` |
+| Editor save without versioning (default; `LegalDocumentRepository::saveIfCurrent()`) | One `wrapInTransaction()`: lock, token check, flush | Form carries `base_token`; inside the transaction the stored text is read under `PESSIMISTIC_WRITE` (scalar query, never the unit of work) and its token must equal the form's; unique `(slug, locale)` for a text that does not exist yet | Stale token or unique key (two admins creating the same page text at once) → "changed meanwhile" flash, nothing stored, the managed row gets its stored values back; lock conflict → 409 `CONFLICT_001` / `CONFLICT_002` |
+| Restore (`reset`) | One flush | Delete of the stored row; idempotent | Lock conflict → 409 `CONFLICT_001` / `CONFLICT_002` |
 | `LegalPageVersions::publishVersion()` (host API) | One flush, or the caller's transaction (then call `afterPublish()`) | Unique `(slug, version)` | Caller's storage error |
 | Seed upgrade (`nowo:legal-kit:upgrade-seed`) | One explicit transaction for the whole run | `PESSIMISTIC_WRITE` reads of the documents; events after the commit | Console: the storage error; nothing of the run is kept |
 | Seed (`nowo:legal-kit:seed`), import (`LegalDocumentPortability::apply()`) | One flush (or the caller's transaction with `flush: false`) | Unique `(slug, locale)`; operator-only | Console / caller's storage error |
@@ -55,7 +57,7 @@ the message is fixed and client-safe, the storage error stays in the logs.
 | --- | --- | --- | --- | --- |
 | `CONFLICT_001` (`X-Conflict-Code`) | Deadlock, lock wait timeout or serialization failure (MySQL 1213 / 1205, MariaDB 1020, PostgreSQL 40001 / 40P01 / 55P03, anywhere in the exception chain), or a `TransientStorageFailure`, and nothing committed since the request started | 409 (`conflict_response.status`) | Yes: the runner's hint, else `conflict_response.retry_after`, else 1 s | Retry |
 | `CONFLICT_002` (`X-Conflict-Code`) | The same after a commit earlier in the request (transaction-doctrine's request mark, `ConflictCode::forRequest()`, when its bundle is registered with `commit_detection`; otherwise the bundle's own ledger, fed by transaction-doctrine's commit-tracking middleware on the bundle's connection), a `ConcurrencyConflict` that committed, or a lost savepoint with no deadlock behind it (outcome unknown) | 409 (`conflict_response.status`) | No | Reload, do not repeat blindly |
-| `LEGAL_KIT_DUPLICATE_KEY` (`X-Error-Code`) | An admin write refused by a unique key that the editor does not already turn into "changed meanwhile" (two admins creating the same page text at once) | 409 | No | Reload the page and apply the change again |
+| `LEGAL_KIT_DUPLICATE_KEY` (`X-Error-Code`) | An admin write refused by a unique key that the editor does not already turn into "changed meanwhile" | 409 | No | Reload the page and apply the change again |
 
 `X-Conflict-Code` only ever carries `CONFLICT_001` or `CONFLICT_002`.
 
@@ -67,6 +69,18 @@ the message is fixed and client-safe, the storage error stays in the logs.
 - **Host routes.** The listener only answers for the bundle's controllers. The acceptance gate on host routes only
   reads (and fails open). The host's own routes keep the host's error handling, also when they call the bundle's
   services.
+
+## Stale edits and double submits in the editor
+
+The editor form carries `base_token`, a hash of the title and the body of the stored row at the time the form was
+built (`new` when no row exists yet). It is the same in both modes. When the form is saved, the bundle opens one
+transaction, reads the stored title and body from the database under a `PESSIMISTIC_WRITE` lock and compares: a
+different text means another admin saved meanwhile, so nothing is written, the managed row is refreshed from the
+database (the manager is never cleared) and the admin sees "changed meanwhile" (a domain answer: a flash and a
+redirect to the editor, not `CONFLICT_001` / `CONFLICT_002`). A double submit of the same form is the same case: the
+second one carries the old token. A lock wait that exceeds the timeout answers `CONFLICT_001`; nothing was committed,
+and the retry from the reloaded form is safe. The token covers the text only; the seed base and the audit columns are
+not part of it. Unique violations and lost connections are not lock conflicts.
 
 ## Acceptance evidence under races
 
@@ -133,6 +147,9 @@ nowo_legal_kit:
     offer records nothing and the new one records N+1 with the new text's hash;
   - two admins publishing the same version: one row; the loser answers `CONFLICT_001`, then the unique key (domain 409);
   - a commit earlier in the request, then a lock conflict: `CONFLICT_002` without `Retry-After` (real middleware).
+- `tests/Integration/EditorRaceDatabaseTest.php` (group `database`): the same two-connection setup for the editor: a
+  stale edit is refused and the managed row refreshed; a save waiting on the row answers `CONFLICT_001` and its retry
+  is stale (domain answer); two admins creating the same text store one row.
 - `tests/Functional/AcceptanceStaleOfferTest.php`: a stale cached map never records a wrong version.
 - `tests/Unit/EventSubscriber/LegalKitConflictListenerTest.php`: the conflict mapping (001, 002, 503, hints, domain
   409, what is not mapped, host routes). `tests/Unit/DependencyInjection/Compiler/CommitTrackingScopeTest.php`: the
@@ -145,9 +162,6 @@ nowo_legal_kit:
 
 ## Residual risks
 
-- **Last edit wins on minor saves without versioning.** Without `versioning.enabled`, the editor saves the text with
-  one flush and no version guard: a stale edit page overwrites a text another admin saved meanwhile (the form posts
-  every field). With versioning, `base_updated` refuses it.
 - **Per-server cache pool.** See `acceptance.cache_pool` above: the gate can lag on other servers for up to an hour
   after a publication; acceptances recorded there stay consistent.
 - **Host transactions.** Inside a transaction the host opened, the bundle's rows commit or roll back with it and the

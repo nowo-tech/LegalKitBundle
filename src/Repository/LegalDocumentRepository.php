@@ -6,6 +6,8 @@ namespace Nowo\LegalKitBundle\Repository;
 
 use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
@@ -21,6 +23,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class LegalDocumentRepository extends ServiceEntityRepository
 {
+    /** Base token of a page text that is not stored yet (the editor shows the seed). */
+    public const string NEW_TOKEN = 'new';
+
     /**
      * @param ManagerRegistry $registry Doctrine registry
      */
@@ -170,6 +175,82 @@ class LegalDocumentRepository extends ServiceEntityRepository
         $manager->persist($document);
         if ($flush || $manager instanceof LegalKitEntityManager) {
             $manager->flush();
+        }
+    }
+
+    /**
+     * Base token of a stored text: a hash of the title and the body, which are what a stale edit page would overwrite.
+     * A page text without a stored row has {@see self::NEW_TOKEN}. The editor puts it in the form and checks it
+     * again, under a row lock, when the form is saved (REQ-RUNTIME-003 rule 4), with or without versioning.
+     *
+     * @return string The token
+     */
+    public static function token(string $title, string $body): string
+    {
+        return hash('sha256', $title . "\0" . $body);
+    }
+
+    /**
+     * Token of the stored text read from the database (never the unit of work) under a pessimistic write lock, inside
+     * the caller's transaction. A concurrent save of the same row waits here until the caller ends its transaction.
+     *
+     * @return string The token, {@see self::NEW_TOKEN} when no row exists
+     */
+    public function lockedToken(string $slug, string $locale): string
+    {
+        /** @var list<array{title: string, body: string}> $rows */
+        $rows = $this->getEntityManager()->createQuery('SELECT d.title AS title, d.body AS body FROM ' . LegalDocument::class . ' d WHERE d.slug = :slug AND d.locale = :locale')
+            ->setParameter('slug', $slug)
+            ->setParameter('locale', $locale)
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getArrayResult();
+
+        return isset($rows[0]) ? self::token($rows[0]['title'], $rows[0]['body']) : self::NEW_TOKEN;
+    }
+
+    /**
+     * Saves a document only when the stored text is still the one the form was built from: one transaction, the row
+     * locked, the base token compared, then the flush. A stale edit changes nothing and the managed row gets its stored
+     * values back inside the unit (its closing flush would otherwise store the edit), so no later flush of the same
+     * manager can store it either.
+     *
+     * @param string $baseToken The token the form carried
+     *
+     * @return bool True when saved, false when the stored text changed meanwhile
+     */
+    public function saveIfCurrent(LegalDocument $document, string $baseToken): bool
+    {
+        $manager = $this->getEntityManager();
+        /** @var bool $saved */
+        // @igor-ignore - The closure runs at once inside the unit and is dropped; the repository keeps no reference to it.
+        $saved = $manager->wrapInTransaction(function (EntityManagerInterface $manager) use ($document, $baseToken): bool {
+            if ($this->lockedToken($document->getSlug(), $document->getLocale()) !== $baseToken) {
+                // The unit ends with a flush: give the managed row its stored values back first, or the refused edit
+                // would be stored by that very flush.
+                $this->discardChanges($document);
+
+                return false;
+            }
+            $manager->persist($document);
+            $manager->flush();
+
+            return true;
+        });
+
+        return $saved;
+    }
+
+    /**
+     * Gives a managed row its stored values back (a refused stale edit). Nothing for a new or detached row, or when the
+     * manager is closed. Never clears the manager.
+     *
+     * @return void Nothing (side effects only)
+     */
+    public function discardChanges(LegalDocument $document): void
+    {
+        $manager = $this->getEntityManager();
+        if ($manager->isOpen() && $document->getId() !== null && $manager->contains($document)) {
+            $manager->refresh($document);
         }
     }
 

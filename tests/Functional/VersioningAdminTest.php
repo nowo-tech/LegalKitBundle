@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Tests\Functional;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\Events;
+use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalVersionPublishedEvent;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
 use Nowo\LegalKitBundle\Versioning\Entity\LegalPageVersion;
@@ -218,6 +219,26 @@ final class VersioningAdminTest extends VersioningTestCase
         $crawler = $client->request('GET', '/admin/legal/notice/en');
         $client->submit($crawler->filter('form[name="nowo_legal_kit_document"]')->form());
         self::assertNotNull($this->find($kernel, 'notice', 'en'), 'Pages users do not accept are saved as minor corrections');
+    }
+
+    public function testATextChangedMeanwhileUnderTheSameStampAbortsTheVersionedSave(): void
+    {
+        $kernel = $this->versioningKernel(['locales' => ['en']]);
+        $this->store($kernel, 'notice', 'en', 'Notice', '<p>Original</p>');
+        $client = $this->adminClient($kernel);
+        $form   = $client->request('GET', '/admin/legal/notice/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        self::choose($form, 'nowo_legal_kit_document[publication]', 'minor');
+        $form['nowo_legal_kit_document[body]'] = '<p>Stale edit</p>';
+
+        // Another admin's save in the same second as the stamp the form carries: only the text token tells them apart.
+        $manager = $this->entityManager($kernel);
+        $manager->getConnection()->executeStatement('UPDATE ' . $manager->getClassMetadata(LegalDocument::class)->getTableName() . " SET body = '<p>Other admin</p>' WHERE slug = 'notice'");
+        $client->submit($form);
+
+        self::assertSame(302, $client->getResponse()->getStatusCode());
+        self::assertSame('<p>Other admin</p>', $this->found($kernel, 'notice', 'en')->getBody());
+        $client->followRedirect();
+        self::assertStringContainsString('changed while you were editing', (string) $client->getResponse()->getContent());
     }
 
     public function testCompareNeedsAdminAccess(): void

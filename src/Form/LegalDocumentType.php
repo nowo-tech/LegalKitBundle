@@ -17,6 +17,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
+use function is_string;
+
 /**
  * Title + body of one legal page in one locale (FormKit profile `legal_kit`). The body is a CKEditor 5 field
  * (`editor: ckeditor5`) or a plain textarea (`editor: textarea`); the bundle sanitises it before saving.
@@ -62,6 +64,11 @@ final class LegalDocumentType extends FormKitAbstractType
                 $this->addCkeditor5EditorField('body', $body + ['config' => $options['ckeditor5_profile']]);
             } else {
                 $this->addTextareaField('body', $body + ['attr' => ['rows' => 24]]);
+            }
+
+            if (is_string($options['base_token'])) {
+                // Optimistic guard of the text (all modes): checked under a row lock when the form is saved.
+                $builder->add('base_token', HiddenType::class, ['mapped' => false, 'data' => $options['base_token'], 'empty_data' => '']);
             }
 
             /** @var array{mode: string, can_publish: bool, summary: string, has_summary: bool, base_version: int, base_updated: string}|null $publication */
@@ -137,7 +144,9 @@ final class LegalDocumentType extends FormKitAbstractType
             'editor'             => 'textarea',
             'ckeditor5_profile'  => 'legal',
             'publication'        => null,
+            'base_token'         => null,
         ]);
+        $resolver->setAllowedTypes('base_token', ['null', 'string']);
         $resolver->setAllowedTypes('publication', ['null', 'array']);
         $resolver->setAllowedValues('editor', ['ckeditor5', 'textarea']);
         $resolver->setAllowedTypes('ckeditor5_profile', 'string');
