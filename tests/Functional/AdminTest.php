@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Functional;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\Events;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
+use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Tests\Support\KernelTestCase;
+use Nowo\LegalKitBundle\Tests\Support\TestKernel;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Routing\RouterInterface;
@@ -82,6 +87,97 @@ final class AdminTest extends KernelTestCase
         $html = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('Legal page saved for this locale.', $html);
         self::assertStringContainsString('nowo_legal_kit_reset', $html, 'Restore is offered for a stored copy');
+    }
+
+    public function testAStaleEditPageNeverOverwritesAnotherAdminsSaveWithoutVersioning(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->store($kernel, 'terms', 'en', 'Terms', '<p>Original</p>');
+        $first   = $this->adminClient($kernel);
+        $second  = $this->adminClient($kernel);
+        $crawler = $first->request('GET', '/admin/legal/terms/en');
+        $stale   = $second->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        self::assertStringContainsString('name="nowo_legal_kit_document[base_token]"', (string) $first->getResponse()->getContent());
+
+        $form                                  = $crawler->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form['nowo_legal_kit_document[body]'] = '<p>First admin</p>';
+        $first->submit($form);
+        self::assertSame(302, $first->getResponse()->getStatusCode());
+        self::assertSame('<p>First admin</p>', $this->row($kernel, 'terms', 'en')->getBody());
+
+        $stale['nowo_legal_kit_document[body]'] = '<p>Second admin, stale</p>';
+        $second->submit($stale);
+        self::assertSame(302, $second->getResponse()->getStatusCode());
+        $second->followRedirect();
+        self::assertStringContainsString('changed while you were editing', (string) $second->getResponse()->getContent());
+        self::assertSame('<p>First admin</p>', $this->row($kernel, 'terms', 'en')->getBody(), 'the stale edit changed nothing');
+        // A flush later in the same request must not store the refused edit either.
+        $this->entityManager($kernel)->flush();
+        self::assertSame('<p>First admin</p>', $this->row($kernel, 'terms', 'en')->getBody());
+    }
+
+    public function testASecondAdminCreatingTheSameTextAnswersChangedMeanwhile(): void
+    {
+        $kernel = $this->bootKernel();
+        $first  = $this->adminClient($kernel);
+        $second = $this->adminClient($kernel);
+        $form   = $first->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        $stale  = $second->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+
+        $form['nowo_legal_kit_document[body]'] = '<p>First</p>';
+        $first->submit($form);
+        $stale['nowo_legal_kit_document[body]'] = '<p>Second</p>';
+        $second->submit($stale);
+
+        self::assertSame(302, $second->getResponse()->getStatusCode());
+        $second->followRedirect();
+        self::assertStringContainsString('changed while you were editing', (string) $second->getResponse()->getContent());
+        self::assertSame('<p>First</p>', $this->row($kernel, 'terms', 'en')->getBody());
+    }
+
+    public function testAUniqueKeyWonByAConcurrentCreationAnswersChangedMeanwhile(): void
+    {
+        $kernel                                = $this->bootKernel();
+        $client                                = $this->adminClient($kernel);
+        $form                                  = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form['nowo_legal_kit_document[body]'] = '<p>Loser</p>';
+
+        // The other admin's insert (same key) lands between the token check and this flush.
+        $manager = $this->testContainer($kernel)->get(LegalKitEntityManager::class);
+        self::assertInstanceOf(LegalKitEntityManager::class, $manager);
+        $listener = new class($manager->getConnection(), $manager->getClassMetadata(LegalDocument::class)->getTableName()) {
+            public function __construct(private readonly Connection $connection, private readonly string $table)
+            {
+            }
+
+            public function onFlush(): void
+            {
+                $this->connection->insert($this->table, ['slug' => 'terms', 'locale' => 'en', 'title' => 'Winner', 'body' => '<p>Winner</p>']);
+            }
+        };
+        $manager->getEventManager()->addEventListener([Events::onFlush], $listener);
+        $client->submit($form);
+        $manager->getEventManager()->removeEventListener([Events::onFlush], $listener);
+
+        self::assertSame(302, $client->getResponse()->getStatusCode());
+        $client->followRedirect();
+        self::assertStringContainsString('changed while you were editing', (string) $client->getResponse()->getContent());
+        // The winner's insert shared the unit's transaction here (one connection), so the violation rolled both back.
+        self::assertNull($this->find($kernel, 'terms', 'en'));
+    }
+
+    public function testASubmitWithoutTheBaseTokenIsRefused(): void
+    {
+        $kernel = $this->bootKernel();
+        $this->store($kernel, 'terms', 'en', 'Terms', '<p>Original</p>');
+        $client = $this->adminClient($kernel);
+        $form   = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
+        $form->setValues(['nowo_legal_kit_document[base_token]' => '']);
+        $form['nowo_legal_kit_document[body]'] = '<p>Replayed form</p>';
+        $client->submit($form);
+
+        self::assertSame(302, $client->getResponse()->getStatusCode());
+        self::assertSame('<p>Original</p>', $this->row($kernel, 'terms', 'en')->getBody());
     }
 
     public function testEmptyBodyIsRejected(): void
@@ -205,5 +301,13 @@ final class AdminTest extends KernelTestCase
         $client->request('GET', '/admin/legal');
 
         self::assertSame(200, $client->getResponse()->getStatusCode());
+    }
+
+    private function row(TestKernel $kernel, string $slug, string $locale): LegalDocument
+    {
+        $row = $this->find($kernel, $slug, $locale);
+        self::assertNotNull($row);
+
+        return $row;
     }
 }

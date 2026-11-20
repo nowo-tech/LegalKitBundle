@@ -38,6 +38,20 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
+
+- **No schema change, no new option.** The editor form gets a hidden `base_token` field (a hash of the stored title and
+  body) in every mode, and the save refuses a stale form: the admin sees "changed meanwhile" and nothing is overwritten.
+  Before, with `versioning.enabled: false`, the last save won.
+- A form rendered before the upgrade has no token: its first submit after the deploy is refused once with "changed
+  meanwhile" (reload the page and save again).
+- If you override `@NowoLegalKitBundle/admin/edit.html.twig` and render the fields one by one, render the whole form (or
+  `base_token`), otherwise every save of that page is refused.
+- Two admins creating the same page text at once: the loser now sees "changed meanwhile" (before, the admin answered 409
+  `LEGAL_KIT_DUPLICATE_KEY`).
+
 ## To 1.14.0
 
 From **1.13.2**:

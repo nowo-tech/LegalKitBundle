@@ -78,6 +78,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Editor save is no longer last-writer-wins, with or without versioning** (REQ-RUNTIME-003 rule 4). With the default `versioning.enabled: false`, a stale edit page could overwrite the legal text another admin had just saved. The editor form now carries `base_token`, a hash of the stored title and body, and the save checks it again inside one transaction, with the row locked (`PESSIMISTIC_WRITE`), before the flush. A stale edit changes nothing, the managed row gets its stored values back, and the admin sees the existing "changed meanwhile" message. With versioning the same token is checked next to `base_version` / `base_updated` (the second-precision stamp could not tell two saves of the same second apart). Two admins creating the same page text at once: the loser also gets "changed meanwhile" (it was a 409 `LEGAL_KIT_DUPLICATE_KEY`). No schema change.
+
+### Tests
+
+- `tests/Integration/EditorRaceDatabaseTest.php` (group `database`): two connections on MySQL, MariaDB and PostgreSQL: stale edit refused, lock wait answers `CONFLICT_001`, the retry is a domain answer, two creations store one row.
+
 ### Changed
 
 - Comment in `LegalAcceptanceManager::pendingFor()` states why the version map is read before the texts and why the resolver stays uncached (audit UJ-LK-3). No behaviour change; a unit test was not added because `LegalPageVersions` and the manager are final classes.
