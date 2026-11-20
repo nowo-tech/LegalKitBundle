@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\LegalKitBundle\Tests\Unit\DependencyInjection;
 
+use LogicException;
 use Nowo\LegalKitBundle\Acceptance\AcceptanceRequestMatcher;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManagerInterface;
@@ -30,6 +31,7 @@ use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\BrokenConfiguration;
 use Nowo\LegalKitBundle\Tests\Support\DependencyInjection\FakeCookieConsentConfiguration;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersions;
 use Nowo\LegalKitBundle\Versioning\LegalPageVersionsInterface;
+use Nowo\LegalKitBundle\Versioning\LegalSeedHasher;
 use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use PHPUnit\Framework\TestCase;
@@ -39,10 +41,13 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\KernelEvents;
+use UnitEnum;
 
 use function array_slice;
+use function str_starts_with;
 
 final class ExtensionTest extends TestCase
 {
@@ -241,6 +246,69 @@ final class ExtensionTest extends TestCase
         self::assertSame(['legal_privacy'], $doctor->getArgument('$disabledRoutes'));
         self::assertSame('legal_privacy', $doctor->getArgument('$privacyRoute'));
         (new IntegrationPass())->process(new ContainerBuilder());
+    }
+
+    public function testTheSeedHasherHostComesFromTheDefaultUriWithoutReadingTheDeprecatedParameterOnSymfony81(): void
+    {
+        $container = $this->loadedWithVersioning(new class extends ParameterBag {
+            /** @return array<mixed>|bool|float|int|string|UnitEnum|null */
+            public function get(string $name): array|bool|string|int|float|UnitEnum|null
+            {
+                if (str_starts_with($name, 'router.request_context.')) {
+                    throw new LogicException('The deprecated parameter ' . $name . ' was read.');
+                }
+
+                return parent::get($name);
+            }
+        });
+        $container->setParameter('router.request_context.host', 'must-not-be-read.example');
+        $container->prependExtensionConfig('framework', ['router' => ['default_uri' => 'https://legal.example:8443/base/']]);
+
+        (new IntegrationPass(80100))->process($container);
+
+        self::assertSame('legal.example', $container->getDefinition(LegalSeedHasher::class)->getArgument('$host'));
+    }
+
+    public function testTheSeedHasherHostIsNullOnSymfony81WithoutAUsableDefaultUri(): void
+    {
+        foreach ([null, '%env(APP_URL)%', 'not a uri', ''] as $defaultUri) {
+            $container = $this->loadedWithVersioning(new ParameterBag());
+            if ($defaultUri !== null) {
+                $container->prependExtensionConfig('framework', ['router' => ['default_uri' => $defaultUri]]);
+            }
+            $container->prependExtensionConfig('framework', ['router' => 'ignored', 'other' => true]);
+
+            (new IntegrationPass(80100))->process($container);
+
+            self::assertNull($container->getDefinition(LegalSeedHasher::class)->getArgument('$host'), (string) $defaultUri);
+        }
+    }
+
+    public function testTheSeedHasherHostKeepsComingFromTheParameterBeforeSymfony81(): void
+    {
+        $container = $this->loadedWithVersioning(new ParameterBag());
+        $container->setParameter('router.request_context.host', 'configured.example');
+        (new IntegrationPass(70400))->process($container);
+        self::assertSame('configured.example', $container->getDefinition(LegalSeedHasher::class)->getArgument('$host'));
+
+        $container = $this->loadedWithVersioning(new ParameterBag());
+        $container->setParameter('router.request_context.host', '');
+        (new IntegrationPass(70400))->process($container);
+        self::assertNull($container->getDefinition(LegalSeedHasher::class)->getArgument('$host'));
+
+        // No parameter at all (a container without the framework): relative links only.
+        $container = $this->loadedWithVersioning(new ParameterBag());
+        (new IntegrationPass(70400))->process($container);
+        self::assertNull($container->getDefinition(LegalSeedHasher::class)->getArgument('$host'));
+    }
+
+    private function loadedWithVersioning(ParameterBag $bag): ContainerBuilder
+    {
+        $container = new ContainerBuilder($bag);
+        $container->setParameter('kernel.bundles', []);
+        (new NowoLegalKitExtension())->load([['versioning' => ['enabled' => true]]], $container);
+
+        return $container;
     }
 
     /**
