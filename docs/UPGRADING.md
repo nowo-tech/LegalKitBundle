@@ -5,6 +5,7 @@ This guide lists the changes integrators must apply when upgrading between versi
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.15.0](#to-1150)
 - [To 1.14.0](#to-1140)
   - [Acceptances recorded against a stale version (1.4.0 to 1.13.2)](#acceptances-recorded-against-a-stale-version-140-to-1132)
 - [To 1.13.2](#to-1132)
@@ -37,6 +38,14 @@ This guide lists the changes integrators must apply when upgrading between versi
   - [Deprecations (removed in 2.0)](#deprecations-removed-in-20)
 
 ## Unreleased
+
+## To 1.15.0
+
+From **1.14.0**:
+
+```bash
+composer update nowo-tech/legal-kit-bundle
+```
 
 ```bash
 composer update nowo-tech/legal-kit-bundle
