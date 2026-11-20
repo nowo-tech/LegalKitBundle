@@ -84,6 +84,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The Doctrine mappings the bundle prepends (`NowoLegalKitBundle`, `NowoLegalKitVersioning`, `NowoLegalKitAcceptance`) no longer set the ORM mapping `alias` option, deprecated in DoctrineBundle 3.4 (removed in 4.0, ORM has no entity namespace aliases). The alias was not used anywhere (the bundle needs ORM 3); a test pins that booting raises no such deprecation and the entities stay mapped.
+
 ## [1.15.1] - 2026-11-20
 
 ### Fixed
