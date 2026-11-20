@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Functional;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
 use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
@@ -312,10 +311,11 @@ final class AdminTest extends KernelTestCase
         $form                                   = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
         $form['nowo_legal_kit_document[title]'] = '';
         $form['nowo_legal_kit_document[body]']  = '<p>Posted</p>';
+        $seen                                   = $this->watchDirtyRowsAtResponse($kernel);
         $client->submit($form);
         self::assertSame(422, $client->getResponse()->getStatusCode());
 
-        $this->flushBundleManager($kernel);
+        self::assertSame(0, $seen->dirty, 'no managed row of the private manager is left dirty when the response is built');
         self::assertSame('<p>Original</p>', $this->row($kernel, 'terms', 'en')->getBody());
     }
 
@@ -326,18 +326,12 @@ final class AdminTest extends KernelTestCase
         $client                                = $this->adminClient($kernel);
         $form                                  = $client->request('GET', '/admin/legal/terms/en')->filter('form[name="nowo_legal_kit_document"]')->form();
         $form['nowo_legal_kit_document[body]'] = '<script>only()</script><p> </p>';
+        $seen                                  = $this->watchDirtyRowsAtResponse($kernel);
         $client->submit($form);
         self::assertSame(302, $client->getResponse()->getStatusCode());
 
-        $this->flushBundleManager($kernel);
+        self::assertSame(0, $seen->dirty, 'no managed row of the private manager is left dirty when the response is built');
         self::assertSame('<p>Original</p>', $this->row($kernel, 'terms', 'en')->getBody());
-    }
-
-    private function flushBundleManager(TestKernel $kernel): void
-    {
-        $private = $this->testContainer($kernel)->has(LegalKitEntityManager::class) ? $this->testContainer($kernel)->get(LegalKitEntityManager::class) : $this->entityManager($kernel);
-        self::assertInstanceOf(EntityManagerInterface::class, $private);
-        $private->flush();
     }
 
     private function row(TestKernel $kernel, string $slug, string $locale): LegalDocument

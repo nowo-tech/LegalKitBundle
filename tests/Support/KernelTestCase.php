@@ -11,7 +11,10 @@ use Nowo\LegalKitBundle\Repository\LegalDocumentRepository;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 
+use function count;
 use function restore_exception_handler;
 
 /**
@@ -116,6 +119,32 @@ abstract class KernelTestCase extends TestCase
             self::assertInstanceOf(LegalKitEntityManager::class, $private);
             $private->clear();
         }
+    }
+
+    /**
+     * Records, when the response of the next request is built (before the terminate boundary clears the private
+     * manager), how many managed rows of the bundle's private manager have a pending change.
+     *
+     * It also keeps the inner manager the request starts with (`inner`): `live()` replaces a closed inner manager, so an
+     * `isOpen()` on the decorator is always true; the retained instance tells whether the request closed it.
+     */
+    protected function watchDirtyRowsAtResponse(TestKernel $kernel): ResponseProbe
+    {
+        $seen    = new ResponseProbe();
+        $private = $this->testContainer($kernel)->get(LegalKitEntityManager::class);
+        self::assertInstanceOf(LegalKitEntityManager::class, $private);
+        $dispatcher = $kernel->getContainer()->get('event_dispatcher');
+        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
+        $dispatcher->addListener(KernelEvents::REQUEST, static function () use ($private, $seen): void {
+            $seen->inner ??= $private->live();
+        }, -1000);
+        $dispatcher->addListener(KernelEvents::RESPONSE, static function () use ($private, $seen): void {
+            $unitOfWork = $private->live()->getUnitOfWork();
+            $unitOfWork->computeChangeSets();
+            $seen->dirty = count($unitOfWork->getScheduledEntityUpdates());
+        });
+
+        return $seen;
     }
 
     protected function store(TestKernel $kernel, string $slug, string $locale, string $title, string $body): LegalDocument
