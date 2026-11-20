@@ -1,11 +1,13 @@
 demo:
     brand: Acme Cloud
     title: Demo de Legal Kit
-    nav: { admin: Páginas legales, ops: Ops, logout: Cerrar sesión, login: Iniciar sesión }
+    nav: { home: Inicio, section_demo: Demo, section_public: Páginas legales públicas, section_admin: Administración, admin: Páginas legales, ops: Ops, logout: Cerrar sesión, login: Iniciar sesión }
     home:
+        public_title: Páginas legales públicas
+        admin_title: Administración
         title: Kit de páginas legales
         intro: Aviso legal, privacidad, condiciones y cookies en inglés, español y alemán — texto genérico integrado hasta que un operador guarda un idioma.
         admin: 'Edítalas como administrador:'
         gate: 'Control de despliegue (sale con 1 mientras queden marcadores):'
     login: { hint: 'Cuenta de demo: admin / admin.', username: Usuario, password: Contraseña, submit: Iniciar sesión }
-    ops: { clear: No queda ningún marcador legal. La revisión jurídica sigue siendo necesaria. }
+    ops: { intro: Marcadores que el texto semilla deja en las páginas legales publicadas., placeholders: Marcadores, clear: No queda ningún marcador legal. La revisión jurídica sigue siendo necesaria. }

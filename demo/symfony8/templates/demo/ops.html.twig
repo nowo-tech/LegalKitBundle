@@ -3,14 +3,14 @@
 {% block title %}{{ 'demo.nav.ops'|trans }}{% endblock %}
 
 {% block nowo_ui_page_header %}
-    {{ include(nowo_ui_partial('page_header'), {title: 'demo.nav.ops'|trans}) }}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.nav.ops'|trans, intro: 'demo.ops.intro'|trans}) }}
 {% endblock %}
 
 {% block body %}
-    <section data-testid="demo-ops">
-        {{ include('@NowoLegalKitBundle/_placeholder_banner.html.twig') }}
-        {% if nowo_legal_kit_placeholder_hits() is empty %}
-            <p class="nowo-ui-flash nowo-ui-flash--success" role="status" data-testid="demo-ops-clear">{{ 'demo.ops.clear'|trans }}</p>
-        {% endif %}
-    </section>
+    {% set _hits = nowo_legal_kit_placeholder_hits() %}
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.ops.placeholders'|trans, kind: 'content', empty: _hits is empty, state_message: 'demo.ops.clear'|trans, testid: 'demo-ops'} %}
+        {% block section_body %}
+            {{ include('@NowoLegalKitBundle/_placeholder_banner.html.twig') }}
+        {% endblock %}
+    {% endembed %}
 {% endblock %}

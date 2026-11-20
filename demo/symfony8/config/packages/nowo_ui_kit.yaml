@@ -2,6 +2,7 @@
 # no host-theme tokens).
 nowo_ui_kit:
     css_framework: custom
+    base_stylesheet: true
     icon_set: none
     # REQ-UI-003: every UiKit scaffold (the LegalKit pages, public and admin) renders inside the demo base layout (UiKit admin layout, default theme).
     layouts:

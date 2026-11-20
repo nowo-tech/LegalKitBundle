@@ -1,11 +1,13 @@
 demo:
     brand: Acme Cloud
     title: Legal Kit demo
-    nav: { admin: Legal pages, ops: Ops, logout: Sign out, login: Sign in }
+    nav: { home: Home, section_demo: Demo, section_public: Public legal pages, section_admin: Administration, admin: Legal pages, ops: Ops, logout: Sign out, login: Sign in }
     home:
+        public_title: Public legal pages
+        admin_title: Administration
         title: Legal pages kit
         intro: Notice, privacy, terms and cookies in English, Spanish and German — built-in generic text until an operator saves a locale.
         admin: 'Edit them as an administrator:'
         gate: 'Deploy gate (exit 1 while placeholders remain):'
     login: { hint: 'Demo account: admin / admin.', username: Username, password: Password, submit: Sign in }
-    ops: { clear: No legal placeholder left. Counsel review is still required. }
+    ops: { intro: Placeholders left in the published legal pages by the seed text., placeholders: Placeholders, clear: No legal placeholder left. Counsel review is still required. }

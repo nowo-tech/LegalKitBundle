@@ -9,7 +9,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('admin');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByTestId('demo-masthead')).toContainText('admin');
+  await expect(page.getByTestId('demo-platform')).toContainText('admin');
   await page.evaluate(() => document.querySelectorAll('.sf-toolbar, .sf-minitoolbar').forEach((el) => el.remove()));
 }
 
@@ -28,7 +28,7 @@ test.describe('legal kit demo', () => {
   test('every public page has the footer legal navigation', async ({ page }) => {
     const response = await page.goto('/');
     expect(response?.ok()).toBeTruthy();
-    const footer = page.getByTestId('demo-footer');
+    const footer = page.getByRole('contentinfo');
     for (const slug of ['notice', 'privacy', 'terms', 'cookies', 'manage-cookies']) {
       await expect(footer.locator(`[data-nowo-legal-link="${slug}"]`)).toHaveCount(1);
     }

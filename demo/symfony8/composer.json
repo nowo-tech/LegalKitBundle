@@ -14,7 +14,7 @@
         "nowo-tech/cookie-consent-bundle": "^1.17",
         "nowo-tech/form-kit-bundle": "^2.22",
         "nowo-tech/legal-kit-bundle": "@dev",
-        "nowo-tech/ui-kit-bundle": "^2.49",
+        "nowo-tech/ui-kit-bundle": "^2.60",
         "symfony/asset": "^8.1",
         "symfony/console": "^8.1",
         "symfony/dotenv": "^8.1",
