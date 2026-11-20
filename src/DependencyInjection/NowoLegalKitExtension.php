@@ -233,17 +233,16 @@ final class NowoLegalKitExtension extends Extension implements PrependExtensionI
                 'is_bundle' => false,
                 'dir'       => __DIR__ . '/../Entity',
                 'prefix'    => 'Nowo\\LegalKitBundle\\Entity',
-                'alias'     => 'NowoLegalKit',
             ]]]]);
         }
 
         if (!$dedicated && $container->hasExtension('doctrine') && !$this->hostHasKey($container, 'doctrine', ['orm', 'entity_managers'])) {
             $mappings = [];
             if (self::flag($raw, 'versioning')) {
-                $mappings['NowoLegalKitVersioning'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Versioning/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Versioning\\Entity', 'alias' => 'NowoLegalKitVersioning'];
+                $mappings['NowoLegalKitVersioning'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Versioning/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Versioning\\Entity'];
             }
             if (self::flag($raw, 'acceptance')) {
-                $mappings['NowoLegalKitAcceptance'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Acceptance/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Acceptance\\Entity', 'alias' => 'NowoLegalKitAcceptance'];
+                $mappings['NowoLegalKitAcceptance'] = ['type' => 'attribute', 'is_bundle' => false, 'dir' => __DIR__ . '/../Acceptance/Entity', 'prefix' => 'Nowo\\LegalKitBundle\\Acceptance\\Entity'];
             }
             if ($mappings !== []) {
                 $container->prependExtensionConfig('doctrine', ['orm' => ['mappings' => $mappings]]);
