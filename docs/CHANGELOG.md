@@ -82,6 +82,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The editor paths that end without saving (an invalid form, an empty body after sanitising, a missing change summary) leave the bound managed row dirty; it now gets its stored values back (`discardChanges()`), so a later flush of the same manager cannot store the refused text (audit WB-LegalKit-1).
+- With versioning, a stale version or text inside the save transaction threw `StaleVersionException` out of `wrapInTransaction()`, which closes the manager (the host's, when `doctrine.entity_manager` names it). It now returns a sentinel, as the unversioned save does, after giving the row its stored values back (audit WB-LegalKit-2). `StaleVersionException` stays for BC but the editor no longer throws it.
+
 ## [1.15.0] - 2026-11-20
 
 ### Fixed

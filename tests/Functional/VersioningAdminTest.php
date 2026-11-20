@@ -7,6 +7,7 @@ namespace Nowo\LegalKitBundle\Tests\Functional;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\Events;
+use Nowo\LegalKitBundle\Doctrine\LegalKitEntityManager;
 use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalVersionPublishedEvent;
 use Nowo\LegalKitBundle\Tests\Support\VersioningTestCase;
@@ -237,6 +238,13 @@ final class VersioningAdminTest extends VersioningTestCase
 
         self::assertSame(302, $client->getResponse()->getStatusCode());
         self::assertSame('<p>Other admin</p>', $this->found($kernel, 'notice', 'en')->getBody());
+        // A refused save is a sentinel, not an exception: no manager is closed (the bundle's, or the host's).
+        self::assertTrue($this->entityManager($kernel)->isOpen());
+        $private = $this->testContainer($kernel)->get(LegalKitEntityManager::class);
+        self::assertInstanceOf(LegalKitEntityManager::class, $private);
+        self::assertTrue($private->isOpen());
+        $private->flush();
+        self::assertSame('<p>Other admin</p>', $this->found($kernel, 'notice', 'en')->getBody(), 'the refused edit stays out of the unit of work');
         $client->followRedirect();
         self::assertStringContainsString('changed while you were editing', (string) $client->getResponse()->getContent());
     }
