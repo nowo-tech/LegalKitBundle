@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\LegalKitBundle\Tests\Integration;
 
 use Nowo\LegalKitBundle\Acceptance\LegalAcceptanceManager;
+use Nowo\LegalKitBundle\Entity\LegalDocument;
 use Nowo\LegalKitBundle\Event\LegalDocumentRebasedEvent;
 use Nowo\LegalKitBundle\EventListener\ActionLogListener;
 use Nowo\LegalKitBundle\Tests\Support\Entity\ActionLog;
@@ -34,6 +35,29 @@ final class ActionLogTest extends KernelTestCase
         $logs = $this->entityManager($kernel)->getRepository(ActionLog::class)->findBy([], ['id' => 'ASC']);
         self::assertSame([ActionLogListener::ACTION_SAVED, ActionLogListener::ACTION_RESTORED], array_map(static fn (ActionLog $log): string => (string) $log->getAction(), $logs));
         self::assertSame(['slug' => 'terms', 'locale' => 'en'], $logs[0]->getContext());
+    }
+
+    /**
+     * AuditKit 2.0 defaults to `flush_mode: isolated` (the audit flush writes only the log row): the pages must be
+     * persisted by the bundle's own flush, not by the audit one.
+     */
+    public function testEditsArePersistedWithIsolatedAuditFlush(): void
+    {
+        $kernel = $this->bootKernel([], [], true, ['nowo_audit_kit' => ['user_class' => User::class, 'action_log' => ['entity_class' => ActionLog::class, 'flush_mode' => 'isolated']]]);
+        $client = $this->adminClient($kernel);
+
+        $crawler = $client->request('GET', '/admin/legal/terms/en');
+        $client->submit($crawler->filter('form[name="nowo_legal_kit_document"]')->form());
+        $manager = $this->entityManager($kernel);
+        $manager->clear();
+        self::assertNotNull($manager->getRepository(LegalDocument::class)->findOneBy(['slug' => 'terms', 'locale' => 'en']), 'The saved page is stored');
+        self::assertCount(1, $manager->getRepository(ActionLog::class)->findAll());
+
+        $crawler = $client->request('GET', '/admin/legal/terms/en');
+        $client->submit($crawler->filter('form[name="nowo_legal_kit_reset"]')->form());
+        $manager->clear();
+        self::assertNull($manager->getRepository(LegalDocument::class)->findOneBy(['slug' => 'terms', 'locale' => 'en']), 'The reset page is removed');
+        self::assertCount(2, $manager->getRepository(ActionLog::class)->findAll());
     }
 
     public function testVersioningEventsAreRecorded(): void
