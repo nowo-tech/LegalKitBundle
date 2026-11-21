@@ -1,48 +1,61 @@
 {#-
-  REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-  asset package, no CSS framework, no CDN, no token overrides). It is also the layout of every LegalKit page
-  (nowo_ui_kit.layouts.admin / guest, REQ-UI-003): the header menu, the footer with the LegalKit footer navigation
-  (REQ-CC-014) and, outside the admin pages, the CookieConsent widget (kept as the bundle ships it).
+  REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell (@NowoUiKit/demo_platform/layout.html.twig):
+  the same top bar, aside, content width, theme and footer as every other nowo-tech bundle demo. This file only declares
+  the demo (nowo_ui_demo_platform), the footer with the LegalKit footer navigation (REQ-CC-014) and, outside the admin
+  pages, the CookieConsent widget (kept as the bundle ships it). It is also the layout of every LegalKit page
+  (nowo_ui_kit.layouts.admin / guest, REQ-UI-003).
 -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{% set _nav = [
+    {label: 'demo.nav.home', route: 'homepage', section: 'demo.nav.section_demo'},
+] %}
+{% for _link in nowo_legal_kit_links() %}
+    {% set _nav = _nav|merge([{label: _link.label, href: _link.url, section: 'demo.nav.section_public', testid: 'demo-nav-legal-' ~ _link.slug}]) %}
+{% endfor %}
+{% if app.user %}
+    {% set _nav = _nav|merge([
+        {label: 'demo.nav.admin', route: 'nowo_legal_kit_admin_index', active: ['nowo_legal_kit_admin_*'], section: 'demo.nav.section_admin'},
+        {label: 'demo.nav.ops', route: 'demo_ops', section: 'demo.nav.section_admin'},
+    ]) %}
+{% endif %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Legal Kit',
+    home_route: 'homepage',
+    repository: 'https://github.com/nowo-tech/LegalKitBundle',
+    translation_domain: 'messages',
+    locales: [
+        {code: 'en', href: path('legal_notice_unlocalized')},
+        {code: 'es', href: path('legal_notice', {_locale: 'es'})},
+        {code: 'de', href: path('legal_notice', {_locale: 'de'})},
+    ],
+    auth: {login_route: 'demo_login', logout_route: 'demo_logout'},
+    nav: _nav,
+} %}
 
-{% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans }}{% endblock %}{% endblock %}
+{% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans }}{% endblock %} — Symfony 8{% endblock %}
 
-{% block nowo_ui_navigation %}
-    {% set _route = app.request.attributes.get('_route') %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('homepage') }}">{{ 'demo.brand'|trans }}</a>
-        <nav class="nowo-ui-menu" aria-label="{{ 'demo.brand'|trans }}">
-            {% if app.user %}
-                <a class="nowo-ui-link" href="{{ path('nowo_legal_kit_admin_index') }}"{% if _route starts with 'nowo_legal_kit_admin' %} aria-current="page"{% endif %}>{{ 'demo.nav.admin'|trans }}</a>
-                <a class="nowo-ui-link" href="{{ path('demo_ops') }}"{% if _route == 'demo_ops' %} aria-current="page"{% endif %}>{{ 'demo.nav.ops'|trans }}</a>
-                <a class="nowo-ui-link" href="{{ path('demo_logout') }}">{{ 'demo.nav.logout'|trans }}</a>
-            {% else %}
-                <a class="nowo-ui-link" href="{{ path('demo_login') }}" data-testid="demo-login-link">{{ 'demo.nav.login'|trans }}</a>
-            {% endif %}
-        </nav>
-        <div class="nowo-ui-header__end">
-            {% if app.user %}<span class="nowo-ui-muted">{{ app.user.userIdentifier }}</span>{% endif %}
-            {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}
-        </div>
-    </header>
+{#- The footer carries the legal navigation of the bundle (REQ-CC-014) with UiKit's footer partial. -#}
+{% block nowo_ui_demo_platform_footer %}
+    {% set _footer_links = [] %}
+    {% for _link in nowo_legal_kit_links() %}
+        {% set _footer_links = _footer_links|merge([{label: _link.label, href: _link.url, attr: {'data-nowo-legal-link': _link.slug}}]) %}
+    {% endfor %}
+    {% set _consent = nowo_legal_kit_consent_widget() %}
+    {% set _cookies = nowo_legal_kit_links()|filter(l => l.slug == 'cookies')|first %}
+    {% if _consent %}
+        {% set _footer_links = _footer_links|merge([{label: 'nav.manage_cookies'|trans({}, 'NowoLegalKitBundle'), href: _cookies ? _cookies.url : '#', attr: {'data-nowo-open-consent': '', 'data-nowo-legal-link': 'manage-cookies'}}]) %}
+    {% elseif _cookies %}
+        {% set _footer_links = _footer_links|merge([{label: 'nav.manage_cookies'|trans({}, 'NowoLegalKitBundle'), href: _cookies.url, attr: {'data-nowo-legal-link': 'manage-cookies'}}]) %}
+    {% endif %}
+    {{ include('@NowoUiKitBundle/partials/_footer.html.twig', {
+        brand: 'demo_platform.footer'|trans({'%platform%': 'nowo · bundles', '%bundle%': 'Legal Kit'}, 'NowoUiKitBundle'),
+        links: _footer_links,
+        nav_label: 'nav.label'|trans({}, 'NowoLegalKitBundle'),
+        copyright: '© 2026 ' ~ 'demo.brand'|trans,
+    }, false) }}
 {% endblock %}
 
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}
-
-{% block nowo_ui_body %}
-    {{ parent() }}
-    <footer class="nowo-ui-footer" data-testid="demo-footer">
-        <div class="nowo-ui-footer__inner">
-            <span class="nowo-ui-muted">© 2026 {{ 'demo.brand'|trans }}</span>
-            <nav class="nowo-ui-footer__nav">
-                {{ include('@NowoLegalKitBundle/_footer_nav.html.twig') }}
-                {% for locale in ['en', 'es', 'de'] %}
-                    <a class="nowo-ui-link" href="{{ locale == 'en' ? path('legal_notice_unlocalized') : path('legal_notice', {_locale: locale}) }}" hreflang="{{ locale }}">{{ locale|upper }}</a>
-                {% endfor %}
-            </nav>
-        </div>
-    </footer>
+{% block nowo_ui_modals %}
     {% set _page = app.request.attributes.get('_route') %}
     {% if not (_page starts with 'nowo_legal_kit_admin' or _page == 'demo_ops') and nowo_cookie_consent_should_embed_modal() %}
         {{ render(path('nowo_cookie_consent.show_if_not_set')) }}
