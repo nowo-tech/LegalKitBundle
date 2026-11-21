@@ -18,7 +18,7 @@
 
 - PHP 8.3+ (`ext-dom`, `ext-libxml`), Symfony 7.4 or 8.x
 - Doctrine ORM 3 with DoctrineBundle
-- `nowo-tech/audit-kit-bundle` ^1.7, `nowo-tech/ui-kit-bundle` ^2.4, `nowo-tech/form-kit-bundle` ^2.12 (installed
+- `nowo-tech/audit-kit-bundle` ^1.7 || ^2.0, `nowo-tech/ui-kit-bundle` ^2.4, `nowo-tech/form-kit-bundle` ^2.12 (installed
   with the bundle)
 - SecurityBundle (AuditKit resolves the editor from the security token; the admin needs it unless
   `web_ui.enabled: false`) and a PSR-20 clock service (`symfony/clock`, present in Flex applications) for AuditKit's

@@ -106,7 +106,7 @@ Then open **/admin/legal**, replace the bracketed placeholders in every locale a
 
 - PHP `>=8.3 <8.6`, `ext-dom`
 - Symfony 7.4, 8.0 and 8.1+ (FrameworkBundle, TwigBundle, Form, Validator, Security for the admin)
-- Doctrine ORM 3 + DoctrineBundle; `nowo-tech/audit-kit-bundle` ^1.7 (user class configured),
+- Doctrine ORM 3 + DoctrineBundle; `nowo-tech/audit-kit-bundle` ^1.7 || ^2.0 (user class configured),
   `nowo-tech/ui-kit-bundle` ^2.4, `nowo-tech/form-kit-bundle` ^2.12
 - Twig Extra (`twig/extra-bundle`, `twig/string-extra`; installed with the bundle, register `TwigExtraBundle` without Flex)
 - Optional: `nowo-tech/cookie-consent-bundle` ^1.17, `nowo-tech/ckeditor5-editor-bundle` ^1.9,
