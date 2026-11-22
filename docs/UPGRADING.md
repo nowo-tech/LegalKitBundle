@@ -42,6 +42,8 @@ This guide lists the changes integrators must apply when upgrading between versi
 
 ## Unreleased
 
+If your host mapping still sets the ORM mapping `alias` option (deprecated since DoctrineBundle 3.4), remove it: hosts using the `Xxx:` short alias must use FQCNs. The bundle's own mappings carry no `alias`.
+
 ## To 1.15.3
 
 From **1.15.2**:

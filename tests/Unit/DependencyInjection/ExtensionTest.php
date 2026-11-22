@@ -85,6 +85,39 @@ final class ExtensionTest extends TestCase
         self::assertSame('/bundles/nowolegalkit', $container->getExtensionConfig('framework')[0]['assets']['packages']['nowo_legal_kit']['base_path']);
     }
 
+    public function testPrependedOrmMappingsCarryNoDeprecatedAliasKey(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new NowoLegalKitExtension());
+        foreach (['framework', 'doctrine', 'nowo_form_kit', 'nowo_ckeditor5_editor', 'nowo_cookie_consent'] as $alias) {
+            $container->registerExtension($this->fakeExtension($alias));
+        }
+
+        (new NowoLegalKitExtension())->prepend($container);
+
+        $found = 0;
+        foreach ($container->getExtensionConfig('doctrine') as $config) {
+            foreach ($config['orm']['mappings'] ?? [] as $mapping) {
+                ++$found;
+                self::assertArrayNotHasKey('alias', $mapping, 'DoctrineBundle 3.4 deprecates the ORM mapping alias option');
+                self::assertArrayHasKey('prefix', $mapping);
+                self::assertArrayHasKey('dir', $mapping);
+                self::assertArrayHasKey('type', $mapping);
+            }
+        }
+        self::assertGreaterThan(0, $found, 'The bundle prepends at least one ORM mapping');
+    }
+
+    public function testTheShippedDemoDoctrineConfigHasNoMappingAlias(): void
+    {
+        $file = __DIR__ . '/../../../demo/symfony8/config/packages/doctrine.yaml';
+        if (!is_file($file)) {
+            self::markTestSkipped('The demo is not part of this checkout.');
+        }
+
+        self::assertDoesNotMatchRegularExpression('/^\s+alias:/m', (string) file_get_contents($file));
+    }
+
     public function testPrependDefaultsAndMultipleEntityManagers(): void
     {
         $container = new ContainerBuilder();
