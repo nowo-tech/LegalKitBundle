@@ -43,16 +43,25 @@ final readonly class LegalAcceptancesPersonalDataEraser implements PersonalDataE
     ) {
     }
 
+    /**
+     * Key of this eraser.
+     */
     public function getKey(): string
     {
         return self::KEY;
     }
 
+    /**
+     * This eraser applies to every user.
+     */
     public function supports(object $user): bool
     {
         return true;
     }
 
+    /**
+     * Erases the legal acceptances of the user.
+     */
     public function erase(ErasureRequest $request): void
     {
         // UserKit >= 1.12 captures the identifier before any eraser ran; older releases have no such property.

@@ -29,6 +29,11 @@ final readonly class AcceptanceSubjectPersonalDataResolver implements LegalPerso
     ) {
     }
 
+    /**
+     * Subject ids of the acceptances that belong to the user.
+     *
+     * @return list<string>
+     */
     public function subjectsFor(object $user, ?string $originalIdentifier): array
     {
         if (!$user instanceof UserInterface) {
