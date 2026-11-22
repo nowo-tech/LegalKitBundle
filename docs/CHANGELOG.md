@@ -88,6 +88,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- demo: the demo `doctrine.yaml` no longer sets the ORM mapping `alias` option, deprecated since DoctrineBundle 3.4 (`doctrine.orm.entity_managers.<em>.mappings.<name>.alias`). The bundle itself prepends its mappings without `alias`; a test now asserts it. Demo and tests only, no release needed.
+
 ## [1.15.3] - 2026-11-21
 
 ### Changed
