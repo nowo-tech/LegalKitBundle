@@ -1043,16 +1043,16 @@
         },
         {
             "name": "nowo-tech/form-kit-bundle",
-            "version": "v2.23.0",
+            "version": "v2.24.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/FormKitBundle.git",
-                "reference": "1a95181865f6f7f2dd076fb6b1e32c0a41e23634"
+                "reference": "4725ea02f88eceb6f5ff01f0d884a69c98958047"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/FormKitBundle/zipball/1a95181865f6f7f2dd076fb6b1e32c0a41e23634",
-                "reference": "1a95181865f6f7f2dd076fb6b1e32c0a41e23634",
+                "url": "https://api.github.com/repos/nowo-tech/FormKitBundle/zipball/4725ea02f88eceb6f5ff01f0d884a69c98958047",
+                "reference": "4725ea02f88eceb6f5ff01f0d884a69c98958047",
                 "shasum": ""
             },
             "require": {
@@ -1073,7 +1073,7 @@
                 "friendsofphp/php-cs-fixer": "^3.95.11",
                 "igor-php/igor-php": "^0.10.0",
                 "nowo-tech/phpstan-frankenphp": "^1.0",
-                "nowo-tech/ui-kit-bundle": "^2.43",
+                "nowo-tech/ui-kit-bundle": "^2.64",
                 "phpstan/extension-installer": "^1.2",
                 "phpstan/phpstan": "^2.0",
                 "phpstan/phpstan-phpunit": "^2.0",
@@ -1102,7 +1102,7 @@
                 "nowo-tech/slide-to-confirm-bundle": "For addSlideToConfirm() / addSlideToConfirmField() / addSlideToConfirmFieldType()",
                 "nowo-tech/tag-input-bundle": "For addTagInput() / addTagInputField() / addTagInputFieldType()",
                 "nowo-tech/tiptap-editor-bundle": "For addTiptapEditor() / addTiptapEditorField() / addTiptapEditorFieldType()",
-                "nowo-tech/ui-kit-bundle": "^2.43.1: the visible_when option's rows are hidden by the visible-when peer with chained rules (^2.23 without chains); ^2.43.0: the crop option on FileType gets translated dialog labels (UiKit ImageCrop) and the image-crop script that reads its attributes; ^2.37.0: addEmojiPicker() / addEmojiPickerField() / addEmojiPickerFieldType() (emoji picker field); ^2.15.0: addDateRange() / addDateRangeField() / addDateRangeFieldType() (date range filter field); ^2.5.3: locale tabs (locale_tabs option, TranslatableMapType, _locale_tabs include) render through the UiKit locale_tabs partial (WAI-ARIA tabs, no-JS fieldsets, keyboard, browser validation, Live Component safe); without it FormKit keeps its neutral markup",
+                "nowo-tech/ui-kit-bundle": "^2.64.0: the ui_widget option (option_cards: clickable radio / checkbox cards on an expanded ChoiceType; FormKit's own cards without it); ^2.43.1: the visible_when option's rows are hidden by the visible-when peer with chained rules (^2.23 without chains); ^2.43.0: the crop option on FileType gets translated dialog labels (UiKit ImageCrop) and the image-crop script that reads its attributes; ^2.37.0: addEmojiPicker() / addEmojiPickerField() / addEmojiPickerFieldType() (emoji picker field); ^2.15.0: addDateRange() / addDateRangeField() / addDateRangeFieldType() (date range filter field); ^2.5.3: locale tabs (locale_tabs option, TranslatableMapType, _locale_tabs include) render through the UiKit locale_tabs partial (WAI-ARIA tabs, no-JS fieldsets, keyboard, browser validation, Live Component safe); without it FormKit keeps its neutral markup",
                 "symfony/security-csrf": "Required by CsrfOnlyType / HiddenFieldsCsrfType / CsrfOnlyFormFactory / csrf_action_form(): without the form CSRF extension they throw (fail closed)",
                 "symfony/ux-autocomplete": "Entity autocomplete fields; use addAutocompleteField() / addAutocompleteFieldType() with your autocomplete FormType FQCN",
                 "symfony/ux-cropperjs": "For addCropper() / addCropperField() / addCropperFieldType() (image crop widget)",
@@ -1156,7 +1156,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-11-13T18:29:32+00:00"
+            "time": "2026-11-22T08:35:57+00:00"
         },
         {
             "name": "nowo-tech/migrations-kit-contracts",
@@ -1294,16 +1294,16 @@
         },
         {
             "name": "nowo-tech/transaction-doctrine",
-            "version": "v1.9.2",
+            "version": "v1.9.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/transaction-doctrine.git",
-                "reference": "8c546b996cf08b8dada696a8475f9a6e582b6104"
+                "reference": "d6a3176e8c09f10ef0f94223088c30f03fd51fd5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/transaction-doctrine/zipball/8c546b996cf08b8dada696a8475f9a6e582b6104",
-                "reference": "8c546b996cf08b8dada696a8475f9a6e582b6104",
+                "url": "https://api.github.com/repos/nowo-tech/transaction-doctrine/zipball/d6a3176e8c09f10ef0f94223088c30f03fd51fd5",
+                "reference": "d6a3176e8c09f10ef0f94223088c30f03fd51fd5",
                 "shasum": ""
             },
             "require": {
@@ -1400,20 +1400,20 @@
                 "issues": "https://github.com/nowo-tech/transaction-doctrine/issues",
                 "source": "https://github.com/nowo-tech/transaction-doctrine"
             },
-            "time": "2026-11-21T01:25:56+00:00"
+            "time": "2026-11-21T17:23:37+00:00"
         },
         {
             "name": "nowo-tech/ui-kit-bundle",
-            "version": "v2.52.2",
+            "version": "v2.68.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/UiKitBundle.git",
-                "reference": "fb737a0bc8eb9b0a297a1952a2430af0263c892f"
+                "reference": "b88274f85f5edbe2976debe53b0b6a766e7cba96"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/fb737a0bc8eb9b0a297a1952a2430af0263c892f",
-                "reference": "fb737a0bc8eb9b0a297a1952a2430af0263c892f",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/b88274f85f5edbe2976debe53b0b6a766e7cba96",
+                "reference": "b88274f85f5edbe2976debe53b0b6a766e7cba96",
                 "shasum": ""
             },
             "require": {
@@ -1460,7 +1460,8 @@
                 "symfony/validator": "Colour validation in the optional appearance forms"
             },
             "bin": [
-                "bin/nowo-ui-token-lint"
+                "bin/nowo-ui-token-lint",
+                "bin/nowo-ui-demo-style-lint"
             ],
             "type": "symfony-bundle",
             "autoload": {
@@ -1502,7 +1503,7 @@
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
                 "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-11-16T20:17:17+00:00"
+            "time": "2026-11-23T05:57:27+00:00"
         },
         {
             "name": "psr/cache",
@@ -7230,16 +7231,16 @@
         },
         {
             "name": "nowo-tech/cookie-consent-bundle",
-            "version": "v1.24.0",
+            "version": "v1.32.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/CookieConsentBundle.git",
-                "reference": "ee1b11e7b7d1732f8cc64ab3d3f1f0876cc09947"
+                "reference": "f2f689142f6b3d057b6c67ace2f1771156c240c6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/ee1b11e7b7d1732f8cc64ab3d3f1f0876cc09947",
-                "reference": "ee1b11e7b7d1732f8cc64ab3d3f1f0876cc09947",
+                "url": "https://api.github.com/repos/nowo-tech/CookieConsentBundle/zipball/f2f689142f6b3d057b6c67ace2f1771156c240c6",
+                "reference": "f2f689142f6b3d057b6c67ace2f1771156c240c6",
                 "shasum": ""
             },
             "require": {
@@ -7247,6 +7248,8 @@
                 "doctrine/orm": "^3.7",
                 "ext-dom": "*",
                 "nowo-tech/form-kit-bundle": "^2.13",
+                "nowo-tech/transaction-contract": "^1.0",
+                "nowo-tech/transaction-doctrine": "^1.6",
                 "nowo-tech/ui-kit-bundle": "^2.5.1",
                 "php": ">=8.2 <8.6",
                 "psr/clock": "^1.0",
@@ -7263,10 +7266,14 @@
                 "twig/extra-bundle": "^3.12",
                 "twig/string-extra": "^3.12"
             },
+            "conflict": {
+                "nowo-tech/user-kit-bundle": "<1.12"
+            },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
                 "igor-php/igor-php": "^0.10.0",
                 "nowo-tech/phpstan-frankenphp": "^1.0",
+                "nowo-tech/user-kit-bundle": "^1.14",
                 "phpstan/phpstan": "^2.0",
                 "phpstan/phpstan-phpunit": "^2.0",
                 "phpstan/phpstan-symfony": "^2.0",
@@ -7279,6 +7286,9 @@
                 "symfony/var-exporter": "^7.4 || ^8.0",
                 "symfony/yaml": "^7.4 || ^8.0",
                 "vincentlanglet/twig-cs-fixer": "^4.0"
+            },
+            "suggest": {
+                "nowo-tech/user-kit-bundle": "GDPR: registers the consent-log eraser (cookie_consent_logs) and export section (cookie_consents) automatically (>= 1.12)"
             },
             "type": "symfony-bundle",
             "autoload": {
@@ -7317,7 +7327,7 @@
                 "issues": "https://github.com/nowo-tech/CookieConsentBundle/issues",
                 "source": "https://github.com/nowo-tech/CookieConsentBundle"
             },
-            "time": "2026-11-09T07:09:00+00:00"
+            "time": "2026-11-19T21:29:11+00:00"
         },
         {
             "name": "nowo-tech/outbound-url-guard-bundle",
