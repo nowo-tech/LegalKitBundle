@@ -38,11 +38,17 @@ final readonly class LegalAcceptancesPersonalDataExportProvider implements Perso
     ) {
     }
 
+    /**
+     * Key of the section this provider adds to the personal data export.
+     */
     public function getSectionKey(): string
     {
         return self::SECTION;
     }
 
+    /**
+     * This provider applies to every user.
+     */
     public function supports(object $user): bool
     {
         return true;

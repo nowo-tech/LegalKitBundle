@@ -40,51 +40,89 @@ final readonly class LegalKitManagerRegistry implements ManagerRegistry
     ) {
     }
 
+    /**
+     * Name of the default connection, from the wrapped registry.
+     */
     public function getDefaultConnectionName(): string
     {
         return $this->registry->getDefaultConnectionName();
     }
 
+    /**
+     * Returns a connection of the wrapped registry.
+     */
     public function getConnection(?string $name = null): object
     {
         return $this->registry->getConnection($name);
     }
 
+    /**
+     * Connections of the wrapped registry.
+     *
+     * @return array<string, object>
+     */
     public function getConnections(): array
     {
         return $this->registry->getConnections();
     }
 
+    /**
+     * Names of the connections of the wrapped registry.
+     *
+     * @return array<string, string>
+     */
     public function getConnectionNames(): array
     {
         return $this->registry->getConnectionNames();
     }
 
+    /**
+     * Name of the default manager, from the wrapped registry.
+     */
     public function getDefaultManagerName(): string
     {
         return $this->registry->getDefaultManagerName();
     }
 
+    /**
+     * Returns a manager of the wrapped registry.
+     */
     public function getManager(?string $name = null): ObjectManager
     {
         return $this->registry->getManager($name);
     }
 
+    /**
+     * Managers of the wrapped registry.
+     *
+     * @return array<string, ObjectManager>
+     */
     public function getManagers(): array
     {
         return $this->registry->getManagers();
     }
 
+    /**
+     * Resets a manager of the wrapped registry.
+     */
     public function resetManager(?string $name = null): ObjectManager
     {
         return $this->registry->resetManager($name);
     }
 
+    /**
+     * Names of the managers of the wrapped registry.
+     *
+     * @return array<string, string>
+     */
     public function getManagerNames(): array
     {
         return $this->registry->getManagerNames();
     }
 
+    /**
+     * Returns the bundle manager for the bundle entities, the wrapped registry's repository for the rest.
+     */
     public function getRepository(string $persistentObject, ?string $persistentManagerName = null): ObjectRepository
     {
         if ($persistentManagerName === null && self::isBundleEntity($persistentObject)) {
@@ -94,6 +132,9 @@ final readonly class LegalKitManagerRegistry implements ManagerRegistry
         return $this->registry->getRepository($persistentObject, $persistentManagerName);
     }
 
+    /**
+     * Returns the bundle manager for a bundle entity class, the wrapped registry's manager for the rest.
+     */
     public function getManagerForClass(string $class): ?ObjectManager
     {
         if (self::isBundleEntity($class)) {

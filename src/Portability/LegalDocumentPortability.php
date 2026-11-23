@@ -198,6 +198,13 @@ final readonly class LegalDocumentPortability implements LegalDocumentPortabilit
         return count($written);
     }
 
+    /**
+     * Alias of {@see apply()}: upserts normalised rows and returns how many were written.
+     *
+     * @param list<LegalDocumentRow> $rows Output of {@see normalize()}
+     *
+     * @return int Number of rows written
+     */
     public function import(array $rows, ?LegalActorId $actor = null, bool $flush = false): int
     {
         return $this->apply($rows, $actor, $flush);

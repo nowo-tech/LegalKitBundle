@@ -245,6 +245,9 @@ final class LegalKitEntityManager extends EntityManagerDecorator implements Rese
         $this->stale = false;
     }
 
+    /**
+     * Transaction listener hook: nothing to do when a transaction starts.
+     */
     public function transactionStarted(object $connection): void
     {
     }
@@ -262,10 +265,16 @@ final class LegalKitEntityManager extends EntityManagerDecorator implements Rese
         }
     }
 
+    /**
+     * Transaction listener hook: nothing to do when a savepoint is created.
+     */
     public function savepointCreated(object $connection, string $name): void
     {
     }
 
+    /**
+     * Transaction listener hook: nothing to do when a savepoint is released.
+     */
     public function savepointReleased(object $connection, string $name): void
     {
     }

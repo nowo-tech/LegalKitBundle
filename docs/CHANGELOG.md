@@ -88,11 +88,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- CI: a new `release-gates` job runs `make rector-dry`, `validate-phpdoc`, `validate-translations` and `check-twig-extra` (full mode only, one matrix cell each), so a gate cannot fail only at release time. CI only, no change to the shipped bundle.
+
 ### Fixed
 
 - demo: the demo `doctrine.yaml` no longer sets the ORM mapping `alias` option, deprecated since DoctrineBundle 3.4 (`doctrine.orm.entity_managers.<em>.mappings.<name>.alias`). The bundle itself prepends its mappings without `alias`; a test now asserts it. Demo and tests only, no release needed.
 
 - A new strict `TranslationCatalogueTest` fails on a non-en locale missing a key, on a non-en value identical to English (any length, placeholders included; values without letters are skipped) unless allow-listed per locale (brands, units, protocols, loanwords, true cognates), and on stale allow-list entries. No translation changed.
+- PHPDoc added to 23 public methods that had none (`make validate-phpdoc` failed on them): the manager registry, the after-commit dispatcher, the entity manager transaction hooks, the personal data export provider, resolver and eraser, and `LegalDocumentPortability::import()`. Docblocks only, no behaviour change.
 
 ## [1.15.3] - 2026-11-21
 

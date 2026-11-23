@@ -108,6 +108,9 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Lega
         $this->dispatchPending();
     }
 
+    /**
+     * Dispatches the events held back until the commit and returns how many were dispatched.
+     */
     public function dispatchPending(): int
     {
         $count = 0;
@@ -131,6 +134,9 @@ final class AfterCommitEventDispatcher implements EventDispatcherInterface, Lega
         return $count;
     }
 
+    /**
+     * Number of events still held back until the commit.
+     */
     public function countPending(): int
     {
         $count = count($this->committed);
