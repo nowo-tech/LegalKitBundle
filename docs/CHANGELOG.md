@@ -91,7 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - PHP 8.6: `composer.json` allows PHP below 8.7 (was below 8.6). CI adds a forward-compatibility workflow with a
-  PHP 8.6 cell and a Symfony 8.2 cell (release candidates, allowed to fail until 8.2.0 is stable).
+  PHP 8.6 cell and a Symfony 8.2 cell (stable Symfony 8.2.0).
 - CI: a new `release-gates` job runs `make rector-dry`, `validate-phpdoc`, `validate-translations` and `check-twig-extra` (full mode only, one matrix cell each), so a gate cannot fail only at release time. CI only, no change to the shipped bundle.
 
 ### Fixed
